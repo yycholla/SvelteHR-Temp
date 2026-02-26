@@ -46,7 +46,7 @@ export class AuthService {
 
 		// SECURITY: GraphQLPort implementation must NOT log mutation variables
 		// to prevent password exposure in logs
-		const result = await this.graphql.mutate<{ login: { userId: string; token: string } | null }>(
+		const result = await this.graphql.mutation<{ login: { userId: string; token: string } | null }>(
 			`
 			mutation Login($email: String!, $password: String!) {
 				login(email: $email, password: $password) {

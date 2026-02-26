@@ -7,16 +7,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251217_002_create_media_assets::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251217_002_create_media_assets::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
         let db_url = std::env::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test tables after test runs
@@ -60,7 +62,8 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'media_assets'
-                 ORDER BY ordinal_position".to_string(),
+                 ORDER BY ordinal_position"
+                    .to_string(),
             ))
             .await;
 
@@ -74,7 +77,8 @@ mod tests {
                  FROM information_schema.table_constraints
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'media_assets'
-                 AND constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
@@ -113,7 +117,8 @@ mod tests {
                 "SELECT COUNT(*)
                  FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'media_assets'".to_string(),
+                 AND table_name = 'media_assets'"
+                    .to_string(),
             ))
             .await;
 

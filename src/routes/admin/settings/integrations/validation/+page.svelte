@@ -1,10 +1,8 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
 	import { toast } from 'svelte-sonner';
-	import { AlertTriangle, CheckCircle2, RefreshCw, AlertCircle, Database } from '@lucide/svelte';
+	import { AlertCircle, AlertTriangle, CheckCircle2, RefreshCw } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

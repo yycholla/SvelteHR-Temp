@@ -3,7 +3,9 @@ use chrono::{DateTime, Utc};
 use std::time::Duration;
 
 use crate::domain::sync::{EntityType, QuickBooksId, SyncError};
-use crate::integrations::intuit::{Department, EmailAddress, Employee, EmployeeExtended, IntuitClient, NtRef, PhoneNumber};
+use crate::integrations::intuit::{
+    Department, EmailAddress, Employee, EmployeeExtended, IntuitClient, NtRef, PhoneNumber,
+};
 use crate::ports::quickbooks::{
     DepartmentData, EmployeeData, QuickBooksPort, RemoteDepartment, RemoteEmployee,
     RemoteTimeEntry, TimeEntryData,
@@ -230,10 +232,7 @@ impl QuickBooksPort for QuickBooksAdapter {
         Ok(self.map_department_to_remote(department))
     }
 
-    async fn upsert_department(
-        &self,
-        data: DepartmentData,
-    ) -> Result<RemoteDepartment, SyncError> {
+    async fn upsert_department(&self, data: DepartmentData) -> Result<RemoteDepartment, SyncError> {
         let department = self.map_department_data(data);
 
         // Try to create (upsert logic - could be enhanced to check if exists first)

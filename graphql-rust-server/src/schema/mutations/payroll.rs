@@ -139,7 +139,9 @@ impl PayrollMutations {
                 "Successfully synced compensation for employee {}",
                 input.employee_id
             ),
-            compensation_type: compensation.compensation_type.map(|ct| ct.as_str().to_string()),
+            compensation_type: compensation
+                .compensation_type
+                .map(|ct| ct.as_str().to_string()),
             annual_salary: compensation.annual_salary,
             hourly_rate: compensation.hourly_rate,
             pay_schedule: compensation.pay_schedule.map(|ps| ps.as_str().to_string()),
@@ -231,7 +233,10 @@ impl PayrollMutations {
 
         // Map payroll item
         payroll_service
-            .map_payroll_item(input.compensation_type.clone(), input.quickbooks_item_id.clone())
+            .map_payroll_item(
+                input.compensation_type.clone(),
+                input.quickbooks_item_id.clone(),
+            )
             .await?;
 
         Ok(PayrollItemMappingResult {

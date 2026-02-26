@@ -6,7 +6,7 @@ import { EventService } from '$services/EventService';
 export function createEventService(event: RequestEvent): EventService {
 	const client = createUrqlClient(
 		event.fetch,
-		undefined,
+		event.locals.accessToken,
 		undefined,
 		serializeCookies(event.cookies)
 	);

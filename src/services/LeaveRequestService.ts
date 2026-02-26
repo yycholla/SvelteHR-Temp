@@ -155,9 +155,11 @@ export class LeaveRequestService {
 			if (overlappingRequests.length > 0) {
 				return Result.error(
 					new OverlappingLeaveRequestError(
-						data.startDate,
-						data.endDate,
-						overlappingRequests.map((r) => r.id)
+						overlappingRequests.map((request) => ({
+							id: request.id,
+							startDate: new Date(request.dateRange.startDate),
+							endDate: new Date(request.dateRange.endDate)
+						}))
 					)
 				);
 			}

@@ -6,7 +6,9 @@ use crate::integrations::intuit::IntuitClient;
 use crate::models::webhook_events;
 use crate::services::webhook_processor::WebhookProcessor;
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, Set,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -206,7 +208,8 @@ impl WebhookBatchProcessor {
                         // Update event progress to FAILED
                         if let Some(event_progress) = events.get_mut(index) {
                             event_progress.status = EventStatus::Failed;
-                            event_progress.error = Some(format!("Failed to update event status: {}", e));
+                            event_progress.error =
+                                Some(format!("Failed to update event status: {}", e));
                         }
                     } else {
                         successful += 1;
@@ -223,13 +226,15 @@ impl WebhookBatchProcessor {
                     let error_msg = e.to_string();
 
                     // Need to fetch the event again to update it
-                    if let Ok(Some(event_model)) = webhook_events::Entity::find_by_id(event_id.parse::<uuid::Uuid>().unwrap())
-                        .one(&*self.db)
-                        .await
+                    if let Ok(Some(event_model)) =
+                        webhook_events::Entity::find_by_id(event_id.parse::<uuid::Uuid>().unwrap())
+                            .one(&*self.db)
+                            .await
                     {
                         let mut active_event: webhook_events::ActiveModel = event_model.into();
                         active_event.status = Set("failed".to_string());
-                        active_event.processing_attempts = Set(active_event.processing_attempts.clone().unwrap() + 1);
+                        active_event.processing_attempts =
+                            Set(active_event.processing_attempts.clone().unwrap() + 1);
                         active_event.last_error = Set(Some(error_msg.clone()));
 
                         if let Err(update_err) = active_event.update(&*self.db).await {

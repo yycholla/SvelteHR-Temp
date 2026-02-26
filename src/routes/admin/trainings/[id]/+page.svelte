@@ -1,15 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { logger } from '$lib/utils/logger';
 	import {
 		AlertCircle,
+		ArrowLeft,
 		CheckCircle2,
 		Loader2,
-		ArrowLeft,
+		Save,
 		Settings,
-		Users,
-		Calendar,
-		Save
+		Users
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -17,7 +15,6 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Badge } from '$lib/components/ui/badge';
-	import * as Alert from '$lib/components/ui/alert';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import RecurrencePatternInput from '$lib/components/ui/recurrence-pattern-input.svelte';
 
@@ -27,7 +24,66 @@
 	// To save time/risk, I will use the existing component for now but place it in a tab.
 	import TrainingAssignments from './components/TrainingAssignments.svelte';
 
-	const { data, form } = $props();
+	interface TrainingAssignmentUser {
+		displayName?: string | null;
+		email?: string | null;
+		firstName?: string | null;
+		lastName?: string | null;
+	}
+
+	interface TrainingAssignmentRecord {
+		id: string;
+		user?: TrainingAssignmentUser | null;
+		dueDate?: string | null;
+		completedAt?: string | null;
+	}
+
+	interface TrainingRecord {
+		id: string;
+		title: string;
+		description?: string | null;
+		isActive: boolean;
+		tags?: string[] | null;
+		rrule?: string | null;
+		recurrenceEndDate?: string | null;
+		startDate?: string | null;
+		endDate?: string | null;
+		metaTitle?: string | null;
+		metaDescription?: string | null;
+	}
+
+	interface UserOptionSource {
+		id: string;
+		displayName?: string | null;
+		email?: string | null;
+	}
+
+	interface DepartmentOptionSource {
+		id: string;
+		name: string;
+	}
+
+	interface TrainingDetailPageData {
+		training: TrainingRecord;
+		allUsers: UserOptionSource[];
+		departments: DepartmentOptionSource[];
+		assignments: TrainingAssignmentRecord[];
+	}
+
+	interface TrainingDetailPageForm {
+		error?: string;
+		success?: boolean;
+	}
+
+	interface RecurrencePattern {
+		frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+		interval: number;
+		endDate: Date | null;
+		daysOfWeek?: number[];
+		rruleString: string;
+	}
+
+	const { data, form }: { data: TrainingDetailPageData; form?: TrainingDetailPageForm } = $props();
 	const { training, allUsers, departments, assignments } = data;
 
 	let submitting = $state(false);
@@ -50,11 +106,11 @@
 					interval: 1,
 					endDate: training.recurrenceEndDate ? new Date(training.recurrenceEndDate) : null,
 					rruleString: training.rrule
-				} as any)
+				} as RecurrencePattern)
 			: null
 	);
 
-	function toDatetimeLocal(isoString: string | null) {
+	function toDatetimeLocal(isoString: string | null | undefined) {
 		if (!isoString) return '';
 		const date = new Date(isoString);
 		const offset = date.getTimezoneOffset() * 60000;
@@ -62,12 +118,12 @@
 	}
 
 	// Transform options
-	const userOptions = allUsers.map((user: any) => ({
+	const userOptions = allUsers.map((user) => ({
 		value: user.id,
-		label: user.displayName || user.email
+		label: user.displayName || user.email || ''
 	}));
 
-	const departmentOptions = departments.map((dept: any) => ({
+	const departmentOptions = departments.map((dept) => ({
 		value: dept.id,
 		label: dept.name
 	}));

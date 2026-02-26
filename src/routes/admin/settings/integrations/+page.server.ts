@@ -1,6 +1,12 @@
 import type { PageServerLoad } from './$types';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 
+interface SyncAlertRecord {
+	id: string;
+	severity: string;
+	message: string;
+}
+
 // Sync permission constants matching backend SyncPermission enum
 const SYNC_PERMISSIONS = {
 	TRIGGER_EMPLOYEE: 'sync:trigger_employee',
@@ -214,7 +220,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 		const connection = result.data?.intuit?.connection;
 		const syncHealth = result.data?.syncHealth;
 		const healthStatus = syncHealth?.syncHealthStatus;
-		const alerts = syncHealth?.syncHealthAlerts || [];
+		const alerts: SyncAlertRecord[] = syncHealth?.syncHealthAlerts || [];
 
 		return {
 			intuitConnected: connection?.isConnected || false,
@@ -229,7 +235,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 				errorRate: healthStatus?.errorRate || 0,
 				activeAlertsCount: healthStatus?.activeAlertsCount || 0
 			},
-			alerts: alerts.map((alert: any) => ({
+			alerts: alerts.map((alert) => ({
 				id: alert.id,
 				severity: alert.severity,
 				message: alert.message

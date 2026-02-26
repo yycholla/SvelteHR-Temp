@@ -124,8 +124,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table((Schema::HrPublic, OnboardingContentBlocks::Table))
                     .add_column_if_not_exists(
-                        ColumnDef::new(OnboardingContentBlocks::InlineFormElements)
-                            .json_binary()
+                        ColumnDef::new(OnboardingContentBlocks::InlineFormElements).json_binary(),
                     )
                     .to_owned(),
             )
@@ -141,8 +140,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table((Schema::HrPublic, OnboardingFormBlocks::Table))
                     .add_column_if_not_exists(
-                        ColumnDef::new(OnboardingFormBlocks::InlineFormElements)
-                            .json_binary()
+                        ColumnDef::new(OnboardingFormBlocks::InlineFormElements).json_binary(),
                     )
                     .to_owned(),
             )

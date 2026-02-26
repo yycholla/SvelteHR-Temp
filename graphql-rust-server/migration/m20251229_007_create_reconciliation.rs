@@ -178,28 +178,100 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(ReconciliationReports::EntityType).string_len(50).not_null())
-                    .col(ColumnDef::new(ReconciliationReports::Status).string_len(20).not_null().default("running"))
-                    .col(ColumnDef::new(ReconciliationReports::TotalLocal).integer().not_null().default(0))
-                    .col(ColumnDef::new(ReconciliationReports::TotalRemote).integer().not_null().default(0))
-                    .col(ColumnDef::new(ReconciliationReports::TotalMatched).integer().not_null().default(0))
-                    .col(ColumnDef::new(ReconciliationReports::TotalDiscrepancies).integer().not_null().default(0))
-                    .col(ColumnDef::new(ReconciliationReports::MissingInLocal).integer().not_null().default(0))
-                    .col(ColumnDef::new(ReconciliationReports::MissingInRemote).integer().not_null().default(0))
-                    .col(ColumnDef::new(ReconciliationReports::DataMismatches).integer().not_null().default(0))
-                    .col(ColumnDef::new(ReconciliationReports::TriggeredBy).uuid().null())
-                    .col(ColumnDef::new(ReconciliationReports::TriggeredByEmail).string_len(255).null())
-                    .col(ColumnDef::new(ReconciliationReports::DurationMs).integer().null())
-                    .col(ColumnDef::new(ReconciliationReports::ErrorMessage).text().null())
-                    .col(ColumnDef::new(ReconciliationReports::Summary).json_binary().null())
-                    .col(ColumnDef::new(ReconciliationReports::Metadata).json_binary().null())
+                    .col(
+                        ColumnDef::new(ReconciliationReports::EntityType)
+                            .string_len(50)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::Status)
+                            .string_len(20)
+                            .not_null()
+                            .default("running"),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::TotalLocal)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::TotalRemote)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::TotalMatched)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::TotalDiscrepancies)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::MissingInLocal)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::MissingInRemote)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::DataMismatches)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::TriggeredBy)
+                            .uuid()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::TriggeredByEmail)
+                            .string_len(255)
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::DurationMs)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::ErrorMessage)
+                            .text()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::Summary)
+                            .json_binary()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationReports::Metadata)
+                            .json_binary()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(ReconciliationReports::StartedAt)
                             .timestamp_with_time_zone()
                             .not_null()
                             .extra("DEFAULT CURRENT_TIMESTAMP"),
                     )
-                    .col(ColumnDef::new(ReconciliationReports::CompletedAt).timestamp_with_time_zone().null())
+                    .col(
+                        ColumnDef::new(ReconciliationReports::CompletedAt)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(ReconciliationReports::CreatedAt)
                             .timestamp_with_time_zone()
@@ -229,20 +301,78 @@ impl MigrationTrait for Migration {
                             .uuid()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::EntityType).string_len(50).not_null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::EntityId).string_len(255).not_null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::DiscrepancyType).string_len(50).not_null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::Severity).string_len(20).not_null().default("medium"))
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::FieldName).string_len(100).null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::LocalValue).text().null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::RemoteValue).text().null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::Description).text().not_null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::SuggestedAction).text().null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::IsResolved).boolean().not_null().default(false))
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::ResolvedAt).timestamp_with_time_zone().null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::ResolvedBy).uuid().null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::ResolutionNotes).text().null())
-                    .col(ColumnDef::new(ReconciliationDiscrepancies::Metadata).json_binary().null())
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::EntityType)
+                            .string_len(50)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::EntityId)
+                            .string_len(255)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::DiscrepancyType)
+                            .string_len(50)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::Severity)
+                            .string_len(20)
+                            .not_null()
+                            .default("medium"),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::FieldName)
+                            .string_len(100)
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::LocalValue)
+                            .text()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::RemoteValue)
+                            .text()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::Description)
+                            .text()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::SuggestedAction)
+                            .text()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::IsResolved)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::ResolvedAt)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::ResolvedBy)
+                            .uuid()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::ResolutionNotes)
+                            .text()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReconciliationDiscrepancies::Metadata)
+                            .json_binary()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(ReconciliationDiscrepancies::CreatedAt)
                             .timestamp_with_time_zone()
@@ -256,7 +386,10 @@ impl MigrationTrait for Migration {
                                 (Schema::HrPublic, ReconciliationDiscrepancies::Table),
                                 ReconciliationDiscrepancies::ReportId,
                             )
-                            .to((Schema::HrPublic, ReconciliationReports::Table), ReconciliationReports::Id)
+                            .to(
+                                (Schema::HrPublic, ReconciliationReports::Table),
+                                ReconciliationReports::Id,
+                            )
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),

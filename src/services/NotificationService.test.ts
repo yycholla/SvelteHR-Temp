@@ -297,7 +297,7 @@ describe('NotificationService - getById', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('NOTIFICATION_FETCH_FAILED');
+		expect((result.error as DomainError).code).toBe('NOTIFICATION_FETCH_FAILED');
 	});
 });
 
@@ -513,7 +513,7 @@ describe('NotificationService - getAll', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('NOTIFICATIONS_FETCH_FAILED');
+		expect((result.error as DomainError).code).toBe('NOTIFICATIONS_FETCH_FAILED');
 	});
 });
 
@@ -705,7 +705,7 @@ describe('NotificationService - create', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('NOTIFICATION_CREATE_FAILED');
+		expect((result.error as DomainError).code).toBe('NOTIFICATION_CREATE_FAILED');
 	});
 });
 
@@ -983,7 +983,7 @@ describe('NotificationService - update', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('NOTIFICATION_UPDATE_FAILED');
+		expect((result.error as DomainError).code).toBe('NOTIFICATION_UPDATE_FAILED');
 	});
 });
 
@@ -1028,7 +1028,7 @@ describe('NotificationService - delete', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('NOTIFICATION_DELETE_FAILED');
+		expect((result.error as DomainError).code).toBe('NOTIFICATION_DELETE_FAILED');
 	});
 });
 
@@ -1090,7 +1090,7 @@ describe('NotificationService - getForRecipient', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('RECIPIENT_FETCH_FAILED');
+		expect((result.error as DomainError).code).toBe('RECIPIENT_FETCH_FAILED');
 	});
 });
 
@@ -1174,7 +1174,7 @@ describe('NotificationService - getUnread', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('UNREAD_FETCH_FAILED');
+		expect((result.error as DomainError).code).toBe('UNREAD_FETCH_FAILED');
 	});
 });
 
@@ -1236,7 +1236,7 @@ describe('NotificationService - markAsRead', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('MARK_READ_FAILED');
+		expect((result.error as DomainError).code).toBe('MARK_READ_FAILED');
 	});
 });
 
@@ -1284,7 +1284,7 @@ describe('NotificationService - markAsUnread', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('MARK_UNREAD_FAILED');
+		expect((result.error as DomainError).code).toBe('MARK_UNREAD_FAILED');
 	});
 });
 
@@ -1377,6 +1377,6 @@ describe('NotificationService - markAllAsRead', () => {
 
 		expect(result.isError).toBe(true);
 		expect(result.error).toBeInstanceOf(DomainError);
-		expect(result.error.code).toBe('MARK_ALL_READ_FAILED');
+		expect((result.error as DomainError).code).toBe('MARK_ALL_READ_FAILED');
 	});
 });

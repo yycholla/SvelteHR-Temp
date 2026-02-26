@@ -7,7 +7,7 @@ use async_graphql::{Error, ErrorExtensions};
 use sea_orm::DbErr;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use tracing::{error, warn, info};
+use tracing::{error, info, warn};
 
 use axum::{
     http::StatusCode,
@@ -34,9 +34,15 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
             AppError::Database(db_err) => match db_err {
-                DbError::Connection(_) => (StatusCode::SERVICE_UNAVAILABLE, "Database connection error".to_string()),
+                DbError::Connection(_) => (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "Database connection error".to_string(),
+                ),
                 DbError::Constraint(msg) => (StatusCode::CONFLICT, msg),
-                _ => (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()),
+                _ => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Database error".to_string(),
+                ),
             },
             AppError::Authentication(msg) => (StatusCode::UNAUTHORIZED, msg),
             AppError::Authorization(msg) => (StatusCode::FORBIDDEN, msg),
@@ -46,7 +52,10 @@ impl IntoResponse for AppError {
             AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             AppError::SessionExpired => (StatusCode::UNAUTHORIZED, "Session expired".to_string()),
             AppError::AccountLocked => (StatusCode::FORBIDDEN, "Account locked".to_string()),
-            AppError::RateLimited => (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded".to_string()),
+            AppError::RateLimited => (
+                StatusCode::TOO_MANY_REQUESTS,
+                "Rate limit exceeded".to_string(),
+            ),
         };
 
         let body = Json(serde_json::json!({
@@ -227,7 +236,9 @@ impl From<DbErr> for AppError {
                 if msg.contains("duplicate key") {
                     AppError::Database(DbError::Constraint("Duplicate entry".to_string()))
                 } else if msg.contains("foreign key") {
-                    AppError::Database(DbError::Constraint("Foreign key constraint violation".to_string()))
+                    AppError::Database(DbError::Constraint(
+                        "Foreign key constraint violation".to_string(),
+                    ))
                 } else {
                     AppError::Database(DbError::Query(msg))
                 }
@@ -237,8 +248,6 @@ impl From<DbErr> for AppError {
         }
     }
 }
-
-
 
 /// Result type alias for application operations
 pub type AppResult<T> = Result<T, AppError>;
@@ -308,7 +317,10 @@ mod tests {
     #[test]
     fn test_app_error_display() {
         let auth_error = AppError::Authentication("Invalid token".to_string());
-        assert_eq!(auth_error.to_string(), "Authentication error: Invalid token");
+        assert_eq!(
+            auth_error.to_string(),
+            "Authentication error: Invalid token"
+        );
     }
 
     #[test]
@@ -316,7 +328,7 @@ mod tests {
         let db_err = DbErr::Custom("duplicate key value violates unique constraint".to_string());
         let app_err: AppError = db_err.into();
         match app_err {
-            AppError::Database(DbError::Constraint(_)) => {},
+            AppError::Database(DbError::Constraint(_)) => {}
             _ => panic!("Expected constraint error"),
         }
     }

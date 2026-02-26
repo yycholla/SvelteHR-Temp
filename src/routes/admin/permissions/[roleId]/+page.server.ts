@@ -16,7 +16,18 @@ import {
 	GET_ALL_PERMISSIONS,
 	GET_ROLES_WITH_PERMISSIONS
 } from '$lib/graphql/permissions-operations';
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
+
+interface PermissionItem {
+	id: string;
+	name: string;
+}
+
+interface RoleWithPermissions {
+	id: string;
+	name: string;
+	permissions?: PermissionItem[];
+}
 
 /**
  * Check if user has admin access permissions (deprecated - use PermissionChecks)
@@ -33,7 +44,7 @@ function checkAdminAccess(locals: App.Locals): boolean {
 }
 
 export const load: PageServerLoad = async (event) => {
-	const { params, locals, fetch: fetchFn, cookies } = event;
+	const { params, fetch: fetchFn, cookies } = event;
 
 	// Check authentication and permissions
 	PermissionChecks.adminRead(event);
@@ -56,11 +67,12 @@ export const load: PageServerLoad = async (event) => {
 		]);
 
 		// Find the specific role
-		const role = rolesData?.roles?.find((r: any) => r.id === roleId);
+		const roles = (rolesData?.roles || []) as RoleWithPermissions[];
+		const role = roles.find((r) => r.id === roleId);
 
 		logger.info('[ROLE PERMISSIONS] Loading role', { roleId });
 		logger.info('[ROLE PERMISSIONS] Found roles', {
-			roles: rolesData?.roles?.map((r: any) => ({ id: r.id, name: r.name }))
+			roles: roles.map((r) => ({ id: r.id, name: r.name }))
 		});
 		logger.info('[ROLE PERMISSIONS] Found role', { role });
 
@@ -111,14 +123,15 @@ export const actions: Actions = {
 				limit: 100,
 				offset: 0
 			});
-			const role = rolesData.roles.find((r: any) => r.id === roleId);
+			const roles = (rolesData.roles || []) as RoleWithPermissions[];
+			const role = roles.find((r) => r.id === roleId);
 
 			if (!role) {
 				return fail(404, { error: 'Role not found' });
 			}
 
 			// Calculate current permission IDs
-			const currentPermissionIds = role.permissions?.map((p: any) => p.id) || [];
+			const currentPermissionIds = role.permissions?.map((permission) => permission.id) || [];
 
 			// Calculate permissions to add (in desired but not in current)
 			const permissionsToAdd = desiredPermissionIds.filter(

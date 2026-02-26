@@ -2,14 +2,23 @@
 // Admin-only page for managing task types
 
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 import { createUrqlClient, executeQuery, serializeCookies } from '$lib/graphql/client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { GET_TASK_TYPES } from '$lib/graphql/tasks-operations';
 
+interface TaskTypeRecord {
+	id: string;
+	name: string;
+	description?: string | null;
+	defaultPriority?: string | null;
+	colorCode?: string | null;
+	isActive: boolean;
+	createdAt?: string;
+}
+
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, fetch: fetchFn } = event;
+	const { cookies, fetch: fetchFn } = event;
 
 	// Check authentication and permissions
 	PermissionChecks.adminRead(event);
@@ -22,10 +31,10 @@ export const load: PageServerLoad = async (event) => {
 		// Fetch all task types (both active and inactive for admin management)
 		const taskTypesData = await executeQuery(client, GET_TASK_TYPES, { isActive: null });
 
-		const taskTypes = taskTypesData?.taskTypes || [];
+		const taskTypes: TaskTypeRecord[] = taskTypesData?.taskTypes || [];
 
 		// Sort by name for better UI
-		const sortedTaskTypes = taskTypes.sort((a: any, b: any) => a.name.localeCompare(b.name));
+		const sortedTaskTypes = taskTypes.sort((a, b) => a.name.localeCompare(b.name));
 
 		return {
 			taskTypes: sortedTaskTypes,

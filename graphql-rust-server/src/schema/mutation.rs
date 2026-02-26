@@ -2,62 +2,171 @@ use async_graphql::{Context, Object, Result};
 use base64;
 use bcrypt::verify;
 use chrono::{Datelike, Utc};
-use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionTrait};
 use sea_orm::prelude::Expr;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    TransactionTrait,
+};
 use uuid::Uuid;
 
 use crate::{
     auth::{context::UserContext, JwtService},
     database::get_db_from_context,
     error::AppError,
-    schema::mutations::{
-        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations, TrainingMutations, OnboardingMutations, IntuitMutations, WebhookMutations, TimeEntryMutations, PayrollMutations, DigestMutations, ComplianceMutations,
-        // Import JWT auth types
-        auth::{LoginInput, RefreshTokenInput, AuthResponse, LogoutResult, AuthUserInfo, TokenPair, AuthSuccess, AuthError},
-    },
     models::{
-        Notification, UpdateNotificationInput,
-        ApproveLeaveRequestInput, AssignRoleInput, AssignTaskInput,
-        ChangeTaskStatusInput, CreateEventAttendeeInput, CreateEventInput,
-        CreateLeaveBalanceInput, CreateLeaveRequestInput, CreateLeaveTypeInput,
-        CreateLinkedResourceInput, CreatePerformanceReviewInput, CreatePermissionInput,
-        CreateReviewCycleInput, CreateReviewFeedbackInput, CreateReviewGoalInput, CreateRoleInput,
-        CreateTaskDependencyInput, CreateTaskInput, CreateTaskTypeInput, Event,
-        EventAttendee, LeaveBalance, LeaveRequest, LeaveType, LinkedResource, Permission, RejectLeaveRequestInput, ReviewCycle, ReviewFeedback,
-        ReviewGoal, Role, Task, TaskAssignee, TaskDependency, TaskStatus, UpdateEventAttendeeInput, UpdateEventInput,
-        UpdateLeaveBalanceInput, UpdateLeaveRequestInput, UpdateLeaveTypeInput,
-        UpdateLinkedResourceInput, UpdatePerformanceReviewInput, UpdatePermissionInput,
-        UpdateReviewCycleInput, UpdateReviewFeedbackInput, UpdateReviewGoalInput, UpdateRoleInput,
-        UpdateTaskAssigneeInput, UpdateTaskDependencyInput, UpdateTaskInput, UpdateTaskTypeInput,
-        UserRoleAssignment,
-        CreateDepartmentInput, Department, UpdateDepartmentInput,
-        // Employee domain new models
-        CreateEmployeeCertificationInput, CreateEmployeeGoalInput, CreateEmployeeSkillInput,
-        CreateEmployeeVehicleInput, CreateEmergencyContactInput, EmergencyContact,
-        EmployeeCertification, EmployeeGoal, EmployeeSkill, EmployeeVehicle, GoalStatus, UpdateEmployeeGoalInput, UpdateEmployeeSkillInput,
-        UpdateEmployeeVehicleInput, UpdateEmergencyContactInput,
-        // Documents domain
-        CreateDocumentAccessLogInput, CreateDocumentAssignmentInput, CreateDocumentCategoryInput,
-        CreateDocumentInput, CreateDocumentVersionInput, CreateEncryptedFileStorageInput, DocumentAccessLog, DocumentAssignment,
-        DocumentCategory, DocumentVersion, EncryptedFileStorage, UpdateDocumentCategoryInput,
-        UpdateDocumentInput, UploadDocumentInput,
-        // Time domain
-        AttendanceRecord, CreateAttendanceRecordInput, UpdateAttendanceRecordInput,
         // System domain
-        ActivityLog, BulkRollbackBatch, BulkRollbackItem, CompensationBand,
-        CreateActivityLogInput, CreateBulkRollbackBatchInput, CreateBulkRollbackItemInput,
-        CreateCompensationBandInput, CreateEncryptionKeyInput, CreateHRReportInput,
-        CreatePayrollRecordInput, CreateRollbackRequestInput, HRReport, PayrollRecord,
-        RollbackRequest, RollbackStatus,
-        SystemSettings, UpdateBulkRollbackBatchInput, UpdateBulkRollbackItemInput, UpdateSystemSettingsInput,
-        UpdateCompensationBandInput, UpdateRollbackRequestInput,
+        ActivityLog,
+        ApproveLeaveRequestInput,
+        AssignRoleInput,
+        AssignTaskInput,
+        // Time domain
+        AttendanceRecord,
+        BulkRollbackBatch,
+        BulkRollbackItem,
+        ChangeTaskStatusInput,
+        CompensationBand,
+        CreateActivityLogInput,
+        CreateAttendanceRecordInput,
+        CreateBulkRollbackBatchInput,
+        CreateBulkRollbackItemInput,
+        CreateCompensationBandInput,
+        CreateDepartmentInput,
+        // Documents domain
+        CreateDocumentAccessLogInput,
+        CreateDocumentAssignmentInput,
+        CreateDocumentCategoryInput,
+        CreateDocumentInput,
+        CreateDocumentVersionInput,
+        CreateEmergencyContactInput,
+        // Employee domain new models
+        CreateEmployeeCertificationInput,
+        CreateEmployeeGoalInput,
+        CreateEmployeeSkillInput,
+        CreateEmployeeVehicleInput,
+        CreateEncryptedFileStorageInput,
+        CreateEncryptionKeyInput,
+        CreateEventAttendeeInput,
         // Events domain (new models)
-        CreateEventCommentInput, CreateEventHistoryInput, CreateEventWaitlistInput, EventComment,
-        EventHistory, EventWaitlist, UpdateEventCommentInput, UpdateEventWaitlistInput,
+        CreateEventCommentInput,
+        CreateEventHistoryInput,
+        CreateEventInput,
+        CreateEventWaitlistInput,
+        CreateHRReportInput,
+        CreateLeaveBalanceInput,
+        CreateLeaveRequestInput,
+        CreateLeaveTypeInput,
+        CreateLinkedResourceInput,
+        CreatePayrollRecordInput,
+        CreatePerformanceReviewInput,
+        CreatePermissionInput,
+        CreateReviewCycleInput,
+        CreateReviewFeedbackInput,
+        CreateReviewGoalInput,
+        // Reviews domain
+        CreateReviewTemplateInput,
+        CreateRoleInput,
+        CreateRollbackRequestInput,
+        CreateTaskDependencyInput,
+        CreateTaskInput,
+        CreateTaskTypeInput,
+        Department,
+        DocumentAccessLog,
+        DocumentAssignment,
+        DocumentCategory,
+        DocumentVersion,
+        EmergencyContact,
+        EmployeeCertification,
+        EmployeeGoal,
+        EmployeeSkill,
+        EmployeeVehicle,
+        EncryptedFileStorage,
+        Event,
+        EventAttendee,
+        EventComment,
+        EventHistory,
+        EventWaitlist,
+        GoalStatus,
+        HRReport,
+        LeaveBalance,
+        LeaveRequest,
+        LeaveType,
+        LinkedResource,
+        Notification,
+        PayrollRecord,
+        Permission,
+        RejectLeaveRequestInput,
+        ReviewCycle,
+        ReviewFeedback,
+        ReviewGoal,
+        ReviewTemplate,
+        Role,
+        RollbackRequest,
+        RollbackStatus,
+        SystemSettings,
+        Task,
+        TaskAssignee,
+        TaskDependency,
+        TaskStatus,
         // Tasks domain
         TaskType,
-        // Reviews domain
-        CreateReviewTemplateInput, ReviewTemplate, UpdateReviewTemplateInput,
+        UpdateAttendanceRecordInput,
+        UpdateBulkRollbackBatchInput,
+        UpdateBulkRollbackItemInput,
+        UpdateCompensationBandInput,
+        UpdateDepartmentInput,
+        UpdateDocumentCategoryInput,
+        UpdateDocumentInput,
+        UpdateEmergencyContactInput,
+        UpdateEmployeeGoalInput,
+        UpdateEmployeeSkillInput,
+        UpdateEmployeeVehicleInput,
+        UpdateEventAttendeeInput,
+        UpdateEventCommentInput,
+        UpdateEventInput,
+        UpdateEventWaitlistInput,
+        UpdateLeaveBalanceInput,
+        UpdateLeaveRequestInput,
+        UpdateLeaveTypeInput,
+        UpdateLinkedResourceInput,
+        UpdateNotificationInput,
+        UpdatePerformanceReviewInput,
+        UpdatePermissionInput,
+        UpdateReviewCycleInput,
+        UpdateReviewFeedbackInput,
+        UpdateReviewGoalInput,
+        UpdateReviewTemplateInput,
+        UpdateRoleInput,
+        UpdateRollbackRequestInput,
+        UpdateSystemSettingsInput,
+        UpdateTaskAssigneeInput,
+        UpdateTaskDependencyInput,
+        UpdateTaskInput,
+        UpdateTaskTypeInput,
+        UploadDocumentInput,
+        UserRoleAssignment,
+    },
+    schema::mutations::{
+        // Import JWT auth types
+        auth::{
+            AuthError, AuthResponse, AuthSuccess, AuthUserInfo, LoginInput, LogoutResult,
+            RefreshTokenInput, TokenPair,
+        },
+        AuthMutations,
+        ComplianceMutations,
+        DepartmentMutations,
+        DigestMutations,
+        EmployeeImportMutations,
+        EmployeeMutations,
+        IntuitMutations,
+        OnboardingMutations,
+        PayrollMutations,
+        RbacMutations,
+        TaskMutations,
+        TimeEntryMutations,
+        TimeMutations,
+        TrainingMutations,
+        UserMutations,
+        WebhookMutations,
     },
 };
 
@@ -172,7 +281,6 @@ pub struct MutationRoot;
 
 #[Object]
 impl MutationRoot {
-
     // ============================================================
     // JWT Authentication Mutations
     // ============================================================
@@ -298,7 +406,11 @@ impl MutationRoot {
     ///
     /// Returns new access token and new refresh token (token rotation).
     /// Old refresh token is marked as used and cannot be reused.
-    async fn refresh_token(&self, ctx: &Context<'_>, input: RefreshTokenInput) -> Result<AuthResponse> {
+    async fn refresh_token(
+        &self,
+        ctx: &Context<'_>,
+        input: RefreshTokenInput,
+    ) -> Result<AuthResponse> {
         let jwt_service = ctx.data::<JwtService>()?;
 
         tracing::debug!("Token refresh attempt");
@@ -348,18 +460,22 @@ impl MutationRoot {
             Err(e) => {
                 tracing::warn!("Token refresh failed: {:?}", e);
                 let (code, message) = match e {
-                    crate::auth::JwtError::TokenExpired => {
-                        ("TOKEN_EXPIRED", "Refresh token has expired. Please log in again.")
-                    }
-                    crate::auth::JwtError::RefreshTokenReused => {
-                        ("TOKEN_REUSED", "Refresh token was already used. Possible security breach detected.")
-                    }
-                    crate::auth::JwtError::TokenRevoked => {
-                        ("TOKEN_REVOKED", "Token has been revoked. Please log in again.")
-                    }
-                    crate::auth::JwtError::RefreshTokenNotFound => {
-                        ("INVALID_TOKEN", "Invalid refresh token. Please log in again.")
-                    }
+                    crate::auth::JwtError::TokenExpired => (
+                        "TOKEN_EXPIRED",
+                        "Refresh token has expired. Please log in again.",
+                    ),
+                    crate::auth::JwtError::RefreshTokenReused => (
+                        "TOKEN_REUSED",
+                        "Refresh token was already used. Possible security breach detected.",
+                    ),
+                    crate::auth::JwtError::TokenRevoked => (
+                        "TOKEN_REVOKED",
+                        "Token has been revoked. Please log in again.",
+                    ),
+                    crate::auth::JwtError::RefreshTokenNotFound => (
+                        "INVALID_TOKEN",
+                        "Invalid refresh token. Please log in again.",
+                    ),
                     _ => ("AUTH_ERROR", "Token refresh failed. Please log in again."),
                 };
 
@@ -431,10 +547,9 @@ impl MutationRoot {
         match saved_state {
             Some(saved) if saved == state => {
                 // Valid state - remove from session
-                session
-                    .remove::<String>("oauth_state")
-                    .await
-                    .map_err(|e| async_graphql::Error::new(format!("Failed to clear OAuth state: {}", e)))?;
+                session.remove::<String>("oauth_state").await.map_err(|e| {
+                    async_graphql::Error::new(format!("Failed to clear OAuth state: {}", e))
+                })?;
 
                 tracing::debug!(state = %state, "OAuth state verified and cleared from session");
                 Ok(true)
@@ -542,10 +657,6 @@ impl MutationRoot {
         Ok(result.rows_affected > 0)
     }
 
-
-
-
-
     // ============================================================
     // Role Mutations
     // ============================================================
@@ -566,7 +677,12 @@ impl MutationRoot {
     }
 
     /// Update an existing role
-    async fn update_role(&self, ctx: &Context<'_>, id: Uuid, input: UpdateRoleInput) -> Result<Role> {
+    async fn update_role(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateRoleInput,
+    ) -> Result<Role> {
         let db = get_db_from_context(ctx)?;
 
         // Find existing role
@@ -627,7 +743,11 @@ impl MutationRoot {
     // ============================================================
 
     /// Create a new permission
-    async fn create_permission(&self, ctx: &Context<'_>, input: CreatePermissionInput) -> Result<Permission> {
+    async fn create_permission(
+        &self,
+        ctx: &Context<'_>,
+        input: CreatePermissionInput,
+    ) -> Result<Permission> {
         let db = get_db_from_context(ctx)?;
 
         let permission = crate::models::permission::ActiveModel {
@@ -642,7 +762,12 @@ impl MutationRoot {
     }
 
     /// Update an existing permission
-    async fn update_permission(&self, ctx: &Context<'_>, id: Uuid, input: UpdatePermissionInput) -> Result<Permission> {
+    async fn update_permission(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdatePermissionInput,
+    ) -> Result<Permission> {
         let db = get_db_from_context(ctx)?;
 
         // Find existing permission
@@ -703,7 +828,11 @@ impl MutationRoot {
     // ============================================================
 
     /// Assign a role to a user
-    async fn assign_role_to_user(&self, ctx: &Context<'_>, input: AssignRoleInput) -> Result<UserRoleAssignment> {
+    async fn assign_role_to_user(
+        &self,
+        ctx: &Context<'_>,
+        input: AssignRoleInput,
+    ) -> Result<UserRoleAssignment> {
         let db = get_db_from_context(ctx)?;
 
         // Get the assigner's user ID from context if available
@@ -720,7 +849,12 @@ impl MutationRoot {
     }
 
     /// Remove a role from a user (soft delete the assignment)
-    async fn remove_role_from_user(&self, ctx: &Context<'_>, user_id: Uuid, role_id: Uuid) -> Result<bool> {
+    async fn remove_role_from_user(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Uuid,
+        role_id: Uuid,
+    ) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
         // Find the assignment
@@ -733,7 +867,8 @@ impl MutationRoot {
 
         if let Some(assignment) = assignment {
             // Soft delete by setting deleted_at
-            let mut assignment: crate::models::user_role_assignment::ActiveModel = assignment.into();
+            let mut assignment: crate::models::user_role_assignment::ActiveModel =
+                assignment.into();
             assignment.deleted_at = Set(Some(Utc::now()));
 
             assignment.update(&db).await?;
@@ -744,7 +879,12 @@ impl MutationRoot {
     }
 
     /// Assign a permission to a role
-    async fn assign_permission_to_role(&self, ctx: &Context<'_>, role_id: Uuid, permission_id: Uuid) -> Result<bool> {
+    async fn assign_permission_to_role(
+        &self,
+        ctx: &Context<'_>,
+        role_id: Uuid,
+        permission_id: Uuid,
+    ) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
         // Check if the assignment already exists
@@ -770,7 +910,12 @@ impl MutationRoot {
     }
 
     /// Remove a permission from a role (soft delete)
-    async fn remove_permission_from_role(&self, ctx: &Context<'_>, role_id: Uuid, permission_id: Uuid) -> Result<bool> {
+    async fn remove_permission_from_role(
+        &self,
+        ctx: &Context<'_>,
+        role_id: Uuid,
+        permission_id: Uuid,
+    ) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
         // Find the assignment
@@ -831,7 +976,8 @@ impl MutationRoot {
             if let Some(existing) = existing {
                 // If soft-deleted, restore it
                 if existing.deleted_at.is_some() {
-                    let mut role_perm: crate::models::role_permission::ActiveModel = existing.into();
+                    let mut role_perm: crate::models::role_permission::ActiveModel =
+                        existing.into();
                     role_perm.deleted_at = Set(None);
                     role_perm.updated_at = Set(Utc::now());
                     role_perm.update(&db).await?;
@@ -850,11 +996,16 @@ impl MutationRoot {
             }
         }
 
-        Ok(crate::schema::mutations::rbac::BulkAssignPermissionsResponse {
-            success: true,
-            assigned_count,
-            message: format!("{} permission(s) assigned to role successfully", assigned_count),
-        })
+        Ok(
+            crate::schema::mutations::rbac::BulkAssignPermissionsResponse {
+                success: true,
+                assigned_count,
+                message: format!(
+                    "{} permission(s) assigned to role successfully",
+                    assigned_count
+                ),
+            },
+        )
     }
 
     /// Bulk remove multiple permissions from a role
@@ -884,11 +1035,16 @@ impl MutationRoot {
             }
         }
 
-        Ok(crate::schema::mutations::rbac::BulkRemovePermissionsResponse {
-            success: true,
-            removed_count,
-            message: format!("{} permission(s) removed from role successfully", removed_count),
-        })
+        Ok(
+            crate::schema::mutations::rbac::BulkRemovePermissionsResponse {
+                success: true,
+                removed_count,
+                message: format!(
+                    "{} permission(s) removed from role successfully",
+                    removed_count
+                ),
+            },
+        )
     }
 
     // ============================================================
@@ -1137,7 +1293,9 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Parse decimal values from strings
-        let total_days = input.total_days.parse::<rust_decimal::Decimal>()
+        let total_days = input
+            .total_days
+            .parse::<rust_decimal::Decimal>()
             .map_err(|_| AppError::Validation("Invalid total_days format".to_string()))?;
 
         let balance = crate::models::leave_balance::ActiveModel {
@@ -1173,19 +1331,22 @@ impl MutationRoot {
         let mut balance: crate::models::leave_balance::ActiveModel = existing_balance.into();
 
         if let Some(total_days_str) = input.total_days {
-            let total_days = total_days_str.parse::<rust_decimal::Decimal>()
+            let total_days = total_days_str
+                .parse::<rust_decimal::Decimal>()
                 .map_err(|_| AppError::Validation("Invalid total_days format".to_string()))?;
             balance.total_days = Set(total_days);
         }
 
         if let Some(used_days_str) = input.used_days {
-            let used_days = used_days_str.parse::<rust_decimal::Decimal>()
+            let used_days = used_days_str
+                .parse::<rust_decimal::Decimal>()
                 .map_err(|_| AppError::Validation("Invalid used_days format".to_string()))?;
             balance.used_days = Set(used_days);
         }
 
         if let Some(remaining_days_str) = input.remaining_days {
-            let remaining_days = remaining_days_str.parse::<rust_decimal::Decimal>()
+            let remaining_days = remaining_days_str
+                .parse::<rust_decimal::Decimal>()
                 .map_err(|_| AppError::Validation("Invalid remaining_days format".to_string()))?;
             balance.remaining_days = Set(remaining_days);
         }
@@ -1229,24 +1390,18 @@ impl MutationRoot {
 
         // VALIDATION 2: Check for overlapping leave requests
         let has_overlap = check_overlapping_requests(
-            &db,
-            user_id,
-            start_date,
-            end_date,
-            None, // No exclusion for new requests
-        ).await?;
+            &db, user_id, start_date, end_date, None, // No exclusion for new requests
+        )
+        .await?;
 
         if has_overlap {
-            return Err("Cannot create leave request: overlapping dates with existing request".into());
+            return Err(
+                "Cannot create leave request: overlapping dates with existing request".into(),
+            );
         }
 
         // VALIDATION 3: Check sufficient leave balance
-        let has_balance = check_sufficient_balance(
-            &db,
-            user_id,
-            input.leave_type_id,
-            days,
-        ).await?;
+        let has_balance = check_sufficient_balance(&db, user_id, input.leave_type_id, days).await?;
 
         if !has_balance {
             return Err("Cannot create leave request: insufficient leave balance".into());
@@ -1283,7 +1438,9 @@ impl MutationRoot {
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
             .one(&db)
             .await?
-            .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
+            .ok_or_else(|| {
+                AppError::NotFound("Leave request not found or not pending".to_string())
+            })?;
 
         // Track whether dates are being updated for validation
         let mut final_start_date = existing_request.start_date;
@@ -1327,19 +1484,17 @@ impl MutationRoot {
             final_start_date,
             final_end_date,
             Some(id), // Exclude this request from overlap check
-        ).await?;
+        )
+        .await?;
 
         if has_overlap {
-            return Err("Cannot update leave request: overlapping dates with existing request".into());
+            return Err(
+                "Cannot update leave request: overlapping dates with existing request".into(),
+            );
         }
 
         // VALIDATION 3: Check sufficient leave balance
-        let has_balance = check_sufficient_balance(
-            &db,
-            user_id,
-            leave_type_id,
-            final_days,
-        ).await?;
+        let has_balance = check_sufficient_balance(&db, user_id, leave_type_id, final_days).await?;
 
         if !has_balance {
             return Err("Cannot update leave request: insufficient leave balance".into());
@@ -1374,7 +1529,9 @@ impl MutationRoot {
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
             .one(&db)
             .await?
-            .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
+            .ok_or_else(|| {
+                AppError::NotFound("Leave request not found or not pending".to_string())
+            })?;
 
         // VALIDATION 4: Prevent self-approval
         if existing_request.employee_id == approver_id {
@@ -1413,7 +1570,9 @@ impl MutationRoot {
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
             .one(&db)
             .await?
-            .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
+            .ok_or_else(|| {
+                AppError::NotFound("Leave request not found or not pending".to_string())
+            })?;
 
         // Build active model with rejection
         let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
@@ -1436,12 +1595,14 @@ impl MutationRoot {
             .filter(
                 crate::models::leave_request::Column::Status
                     .eq("pending")
-                    .or(crate::models::leave_request::Column::Status.eq("approved"))
+                    .or(crate::models::leave_request::Column::Status.eq("approved")),
             )
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
             .one(&db)
             .await?
-            .ok_or_else(|| AppError::NotFound("Leave request not found or cannot be cancelled".to_string()))?;
+            .ok_or_else(|| {
+                AppError::NotFound("Leave request not found or cannot be cancelled".to_string())
+            })?;
 
         // Build active model with cancellation
         let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
@@ -1490,7 +1651,11 @@ impl MutationRoot {
             title: Set(input.title.clone()),
             description: Set(input.description.clone()),
             task_type_id: Set(input.task_type_id),
-            status: Set(input.status.unwrap_or(TaskStatus::Todo).as_str().to_string()),
+            status: Set(input
+                .status
+                .unwrap_or(TaskStatus::Todo)
+                .as_str()
+                .to_string()),
             priority: Set(input.priority.as_str().to_string()),
             due_date: Set(input.due_date),
             estimated_hours: Set(input.estimated_hours),
@@ -1499,7 +1664,9 @@ impl MutationRoot {
             created_by: Set(creator_id),
             assignee_id: Set(input.assignee_id),
             parent_task_id: Set(input.parent_task_id),
-            requires_manual_reassignment: Set(Some(input.requires_manual_reassignment.unwrap_or(false))),
+            requires_manual_reassignment: Set(Some(
+                input.requires_manual_reassignment.unwrap_or(false),
+            )),
             ..Default::default()
         };
 
@@ -1873,7 +2040,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Task dependency not found".to_string()))?;
 
         // Build active model with updates
-        let mut dependency: crate::models::task_dependency::ActiveModel = existing_dependency.into();
+        let mut dependency: crate::models::task_dependency::ActiveModel =
+            existing_dependency.into();
 
         if let Some(dependency_type) = input.dependency_type {
             dependency.dependency_type = Set(dependency_type.as_str().to_string());
@@ -1906,7 +2074,8 @@ impl MutationRoot {
         }
 
         // Soft delete by setting deleted_at
-        let mut dependency: crate::models::task_dependency::ActiveModel = dependency.unwrap().into();
+        let mut dependency: crate::models::task_dependency::ActiveModel =
+            dependency.unwrap().into();
         dependency.deleted_at = Set(Some(Utc::now()));
 
         dependency.update(&db).await?;
@@ -2530,7 +2699,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Employee vehicle not found".to_string()))?;
 
         // Build active model with updates
-        let mut vehicle: crate::models::employee::employee_vehicle::ActiveModel = existing_vehicle.into();
+        let mut vehicle: crate::models::employee::employee_vehicle::ActiveModel =
+            existing_vehicle.into();
 
         if let Some(make) = input.make {
             vehicle.make = Set(make);
@@ -2609,7 +2779,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Emergency contact not found".to_string()))?;
 
         // Build active model with updates
-        let mut contact: crate::models::employee::emergency_contact::ActiveModel = existing_contact.into();
+        let mut contact: crate::models::employee::emergency_contact::ActiveModel =
+            existing_contact.into();
 
         if let Some(name) = input.name {
             contact.name = Set(name);
@@ -2776,7 +2947,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Document not found".to_string()))?;
 
         // Build active model with updates
-        let mut document: crate::models::documents::document::ActiveModel = existing_document.into();
+        let mut document: crate::models::documents::document::ActiveModel =
+            existing_document.into();
 
         if let Some(title) = input.title {
             document.title = Set(title);
@@ -2814,7 +2986,8 @@ impl MutationRoot {
         }
 
         // Soft delete by setting deleted_at
-        let mut document: crate::models::documents::document::ActiveModel = document.unwrap().into();
+        let mut document: crate::models::documents::document::ActiveModel =
+            document.unwrap().into();
         document.deleted_at = Set(Some(Utc::now()));
 
         document.update(&db).await?;
@@ -2858,7 +3031,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Document category not found".to_string()))?;
 
         // Build active model with updates
-        let mut category: crate::models::documents::document_category::ActiveModel = existing_category.into();
+        let mut category: crate::models::documents::document_category::ActiveModel =
+            existing_category.into();
 
         if let Some(name) = input.name {
             category.name = Set(name);
@@ -2895,7 +3069,8 @@ impl MutationRoot {
         }
 
         // Soft delete by setting deleted_at
-        let mut category: crate::models::documents::document_category::ActiveModel = category.unwrap().into();
+        let mut category: crate::models::documents::document_category::ActiveModel =
+            category.unwrap().into();
         category.deleted_at = Set(Some(Utc::now()));
 
         category.update(&db).await?;
@@ -2995,9 +3170,9 @@ impl MutationRoot {
         let storage = crate::models::documents::encrypted_file_storage::ActiveModel {
             id: Set(uuid::Uuid::new_v4()),
             document_id: Set(input.document_id),
-            encrypted_data: Set(vec![]),  // TODO: This mutation needs to be updated to accept encrypted data
+            encrypted_data: Set(vec![]), // TODO: This mutation needs to be updated to accept encrypted data
             encryption_key_id: Set(input.encryption_key_id),
-            iv: Set(vec![]),  // TODO: This mutation needs to be updated to accept IV
+            iv: Set(vec![]), // TODO: This mutation needs to be updated to accept IV
             created_at: Set(Utc::now()),
         };
 
@@ -3136,7 +3311,9 @@ impl MutationRoot {
             date: Set(input.date),
             clock_in: Set(input.clock_in),
             clock_out: Set(input.clock_out),
-            hours_worked: Set(input.hours_worked.and_then(rust_decimal::Decimal::from_f64_retain)),
+            hours_worked: Set(input
+                .hours_worked
+                .and_then(rust_decimal::Decimal::from_f64_retain)),
             status: Set(input.status.as_str().to_string()),
             notes: Set(input.notes.clone()),
             ..Default::default()
@@ -3162,7 +3339,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Attendance record not found".to_string()))?;
 
         // Build active model with updates
-        let mut record: crate::models::time::attendance_record::ActiveModel = existing_record.into();
+        let mut record: crate::models::time::attendance_record::ActiveModel =
+            existing_record.into();
 
         if let Some(clock_in) = input.clock_in {
             record.clock_in = Set(Some(clock_in));
@@ -3381,7 +3559,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Rollback request not found".to_string()))?;
 
         // Build active model with updates
-        let mut request: crate::models::system::rollback_request::ActiveModel = existing_request.into();
+        let mut request: crate::models::system::rollback_request::ActiveModel =
+            existing_request.into();
 
         if let Some(status) = input.status {
             request.status = Set(status.as_str().to_string());
@@ -3440,7 +3619,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Bulk rollback batch not found".to_string()))?;
 
         // Build active model with updates
-        let mut batch: crate::models::system::bulk_rollback_batch::ActiveModel = existing_batch.into();
+        let mut batch: crate::models::system::bulk_rollback_batch::ActiveModel =
+            existing_batch.into();
 
         if let Some(processed_items) = input.processed_items {
             batch.processed_items = Set(processed_items);
@@ -3561,7 +3741,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEncryptionKeyInput,
     ) -> Result<crate::models::system::encryption_key::Model> {
-        use base64::{Engine as _, engine::general_purpose};
+        use base64::{engine::general_purpose, Engine as _};
 
         let db = get_db_from_context(ctx)?;
 
@@ -3577,8 +3757,8 @@ impl MutationRoot {
             .map_err(|e| AppError::Validation(format!("Invalid base64 encrypted key: {}", e)))?;
 
         // Call pgcrypto function to encrypt the key data server-side
-        use sea_orm::FromQueryResult;
         use crate::error::DbError;
+        use sea_orm::FromQueryResult;
         #[derive(FromQueryResult)]
         struct EncryptedResult {
             encrypt_key_data: Vec<u8>,
@@ -3590,12 +3770,14 @@ impl MutationRoot {
             vec![
                 sea_orm::Value::Bytes(Some(Box::new(raw_key_bytes))),
                 sea_orm::Value::String(Some(Box::new(input.key_name.clone()))),
-            ]
+            ],
         ))
         .one(&db)
         .await
         .map_err(|e| AppError::Database(DbError::Query(e.to_string())))?
-        .ok_or_else(|| AppError::Database(DbError::Query("Failed to encrypt key data".to_string())))?;
+        .ok_or_else(|| {
+            AppError::Database(DbError::Query("Failed to encrypt key data".to_string()))
+        })?;
 
         // Create the encryption key record with encrypted data
         let key = crate::models::system::encryption_key::ActiveModel {
@@ -3613,7 +3795,9 @@ impl MutationRoot {
     }
 
     /// Update system settings by category (requires system_settings:write permission)
-    #[graphql(guard = "crate::middleware::guards::RequirePermission::new(\"system_settings:write\")")]
+    #[graphql(
+        guard = "crate::middleware::guards::RequirePermission::new(\"system_settings:write\")"
+    )]
     async fn update_system_settings(
         &self,
         ctx: &Context<'_>,
@@ -3676,7 +3860,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Event comment not found".to_string()))?;
 
         // Build active model with updates
-        let mut comment: crate::models::events::event_comment::ActiveModel = existing_comment.into();
+        let mut comment: crate::models::events::event_comment::ActiveModel =
+            existing_comment.into();
 
         if let Some(comment_text) = input.comment {
             comment.comment = Set(comment_text);
@@ -3776,7 +3961,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Event waitlist entry not found".to_string()))?;
 
         // Build active model with updates
-        let mut waitlist: crate::models::events::event_waitlist::ActiveModel = existing_waitlist.into();
+        let mut waitlist: crate::models::events::event_waitlist::ActiveModel =
+            existing_waitlist.into();
 
         if let Some(promoted) = input.promoted {
             waitlist.promoted = Set(promoted);
@@ -3934,7 +4120,8 @@ impl MutationRoot {
             .ok_or_else(|| AppError::NotFound("Review template not found".to_string()))?;
 
         // Build active model with updates
-        let mut template: crate::models::reviews::review_template::ActiveModel = existing_template.into();
+        let mut template: crate::models::reviews::review_template::ActiveModel =
+            existing_template.into();
 
         if let Some(name) = input.name {
             template.name = Set(name);
@@ -3969,7 +4156,8 @@ impl MutationRoot {
 
         if let Some(template) = existing_template {
             // Build active model for soft delete
-            let mut template: crate::models::reviews::review_template::ActiveModel = template.into();
+            let mut template: crate::models::reviews::review_template::ActiveModel =
+                template.into();
             template.is_active = Set(false);
             template.updated_at = Set(Utc::now());
 
@@ -4047,7 +4235,10 @@ impl MutationRoot {
         // If setting this as primary, unset any existing primary addresses for this user
         if let Some(true) = input.is_primary {
             crate::models::employee::user_address::Entity::update_many()
-                .filter(crate::models::employee::user_address::Column::UserId.eq(existing_address.user_id))
+                .filter(
+                    crate::models::employee::user_address::Column::UserId
+                        .eq(existing_address.user_id),
+                )
                 .filter(crate::models::employee::user_address::Column::IsPrimary.eq(true))
                 .filter(crate::models::employee::user_address::Column::DeletedAt.is_null())
                 .filter(crate::models::employee::user_address::Column::Id.ne(id))
@@ -4060,7 +4251,8 @@ impl MutationRoot {
         }
 
         // Build active model for update
-        let mut address: crate::models::employee::user_address::ActiveModel = existing_address.into();
+        let mut address: crate::models::employee::user_address::ActiveModel =
+            existing_address.into();
 
         // Update fields if provided
         if let Some(address_type) = input.address_type {
@@ -4141,8 +4333,9 @@ impl MutationRoot {
         let storage_path = format!("{}/{}", user_context.user_id, uuid::Uuid::new_v4());
 
         // Decode base64 encrypted data
-        use base64::{Engine as _, engine::general_purpose};
-        let encrypted_data = general_purpose::STANDARD.decode(&input.encrypted_data)
+        use base64::{engine::general_purpose, Engine as _};
+        let encrypted_data = general_purpose::STANDARD
+            .decode(&input.encrypted_data)
             .map_err(|_| AppError::Validation("Invalid base64 encrypted data".to_string()))?;
 
         // Prepend IV to encrypted data (standard AES-GCM practice)
@@ -4159,7 +4352,9 @@ impl MutationRoot {
             file_path: Set(storage_path.clone()),
             file_size: Set(input.file_size_bytes),
             mime_type: Set(format!("application/{}", input.file_type.to_lowercase())),
-            access_level: Set(input.sensitivity_level.unwrap_or_else(|| "Internal".to_string())),
+            access_level: Set(input
+                .sensitivity_level
+                .unwrap_or_else(|| "Internal".to_string())),
             is_encrypted: Set(true),
             expiry_date: Set(input.expiration_date),
             version_number: Set(1),
@@ -4172,9 +4367,9 @@ impl MutationRoot {
         let file_storage = crate::models::documents::encrypted_file_storage::ActiveModel {
             id: Set(uuid::Uuid::new_v4()),
             document_id: Set(document.id),
-            encrypted_data: Set(file_data),  // Combined IV + encrypted data
+            encrypted_data: Set(file_data), // Combined IV + encrypted data
             encryption_key_id: Set(input.encryption_key_id),
-            iv: Set(input.iv),  // Store IV separately for reference
+            iv: Set(input.iv), // Store IV separately for reference
             created_at: Set(Utc::now()),
         };
 
@@ -4219,7 +4414,7 @@ impl MutationRoot {
             user_id: Set(user_context.user_id),
             access_type: Set("upload".to_string()),
             accessed_at: Set(None), // Only set when document is actually accessed (view/download)
-            ip_address: Set(None), // TODO: Get from request
+            ip_address: Set(None),  // TODO: Get from request
             ..Default::default()
         };
         audit_log.insert(&txn).await?;

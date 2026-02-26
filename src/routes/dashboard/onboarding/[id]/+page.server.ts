@@ -1,12 +1,14 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
-import { client as urqlClient } from '$lib/graphql/client';
-import { GET_ONBOARDING_MODULE_QUERY } from '$lib/graphql/onboarding-operations';
+import { createGraphQLClient } from '$lib/server/graphql/unified-client';
+import { createOnboardingService } from '$lib/server/services';
+import { GET_FORM_TEMPLATES_QUERY } from '$lib/graphql/onboarding-operations';
 import {
 	COMPLETE_FORM,
+	GET_FORM_BLOCKS,
 	GET_FORMS_BY_MODULE,
+	GET_FORM_PROGRESS,
 	SAVE_FORM_PROGRESS
 } from '$lib/graphql/form-operations';
 import { logger } from '$lib/utils/logger';
@@ -22,80 +24,64 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	try {
-		// Fetch onboarding module
-		const moduleResult = await urqlClient.query(GET_ONBOARDING_MODULE_QUERY, { id });
+		const onboardingService = createOnboardingService(event);
+		const graphqlClient = createGraphQLClient(event);
 
-		if (moduleResult.error) {
-			logger.error('Error fetching module:', moduleResult.error);
+		// Fetch onboarding module through service layer
+		const moduleResult = await onboardingService.getModuleById(id);
+		if (moduleResult.isError) {
+			if (moduleResult.error.code === 'ONBOARDING_MODULE_NOT_FOUND') {
+				throw error(404, 'Onboarding module not found');
+			}
+
+			logger.error('Error fetching module', moduleResult.error);
 			throw error(500, 'Failed to load onboarding module');
 		}
 
-		const module = moduleResult.data?.onboardingModule;
-		if (!module) {
-			throw error(404, 'Onboarding module not found');
-		}
+		const moduleEntity = moduleResult.value;
+		const module = {
+			id: moduleEntity.id,
+			title: moduleEntity.title.value,
+			description: moduleEntity.description,
+			isActive: moduleEntity.isActive,
+			category: moduleEntity.category.value,
+			tags: [...moduleEntity.tags],
+			authorId: moduleEntity.authorId
+		};
 
 		// Fetch forms for this module with their blocks
-		const formsResult = await urqlClient.query(GET_FORMS_BY_MODULE, {
-			onboardingModuleId: id
-		});
+		const formsResult = await graphqlClient.query<{
+			onboardingFormsByModule?: Array<{
+				id: string;
+				title: string;
+				description?: string | null;
+				sequenceOrder: number;
+				isRequired: boolean;
+			}>;
+		}>(GET_FORMS_BY_MODULE, { onboardingModuleId: id });
 
-		if (formsResult.error) {
-			logger.error('Error fetching forms:', formsResult.error);
-			throw error(500, 'Failed to load forms');
-		}
-
-		const forms = formsResult.data?.onboardingFormsByModule || [];
+		const forms = formsResult?.onboardingFormsByModule || [];
 
 		// Fetch blocks for each form
 		const formsWithBlocks = await Promise.all(
 			forms.map(async (form: any) => {
-				const blocksQuery = `
-					query GetFormBlocks($onboardingFormId: UUID!) {
-						formBlocks(onboardingFormId: $onboardingFormId) {
-							id
-							onboardingFormId
-							title
-							type
-							sequenceOrder
-							textContent
-							documentUrl
-							formTemplateId
-							inlineFormElements
-							fileUploadRequirements
-							signatureRequirements
-							checkboxItems
-						}
-					}
-				`;
-
-				const client = GraphQLClient.fromCookies(event.cookies);
-				const blocksResponse = await client.query(blocksQuery, {
+				const blocksData = await graphqlClient.query<{ formBlocks?: any[] }>(GET_FORM_BLOCKS, {
 					onboardingFormId: form.id
 				});
 
-				const blocks = blocksResponse.data?.formBlocks || [];
+				const blocks = blocksData?.formBlocks || [];
 				blocks.sort((a: any, b: any) => a.sequenceOrder - b.sequenceOrder);
 
 				// Fetch form progress for current user
-				const progressQuery = `
-					query GetFormProgress($userId: UUID!, $onboardingFormId: UUID!) {
-						formProgress(userId: $userId, onboardingFormId: $onboardingFormId) {
-							id
-							status
-							formData
-							startedAt
-							completedAt
-						}
+				const progressData = await graphqlClient.query<{ formProgress?: any | null }>(
+					GET_FORM_PROGRESS,
+					{
+						userId: user.id,
+						onboardingFormId: form.id
 					}
-				`;
+				);
 
-				const progressResponse = await client.query(progressQuery, {
-					userId: user.id,
-					onboardingFormId: form.id
-				});
-
-				const progress = progressResponse.data?.formProgress;
+				const progress = progressData?.formProgress;
 
 				return {
 					...form,
@@ -115,23 +101,11 @@ export const load: PageServerLoad = async (event) => {
 		const completedForms = formsWithBlocks.filter((f: any) => f.isCompleted).length;
 
 		// Fetch form templates
-		const formTemplatesQuery = `
-			query GetFormTemplates {
-				formTemplates {
-					id
-					name
-					description
-					category
-					version
-					isActive
-					fields
-				}
-			}
-		`;
-
-		const client = GraphQLClient.fromCookies(event.cookies);
-		const formTemplatesResponse = await client.query(formTemplatesQuery);
-		const formTemplates = formTemplatesResponse.data?.formTemplates || [];
+		const formTemplatesData = await graphqlClient.query<{ formTemplates?: any[] }>(
+			GET_FORM_TEMPLATES_QUERY,
+			{}
+		);
+		const formTemplates = formTemplatesData?.formTemplates || [];
 		const formTemplatesMap = new Map(formTemplates.map((t: any) => [t.id, t]));
 
 		return {
@@ -144,13 +118,17 @@ export const load: PageServerLoad = async (event) => {
 		};
 	} catch (err) {
 		logger.error('Error loading onboarding module:', err as Error);
+		if (err && typeof err === 'object' && 'status' in err) {
+			throw err;
+		}
 		throw error(500, 'Failed to load onboarding module');
 	}
 };
 
 export const actions: Actions = {
 	// Save form progress
-	saveProgress: async ({ request, locals }) => {
+	saveProgress: async (event) => {
+		const { request, locals } = event;
 		const { user } = locals;
 		if (!user) {
 			throw error(401, 'Unauthorized');
@@ -168,10 +146,11 @@ export const actions: Actions = {
 			formData: formDataJson ? JSON.parse(formDataJson) : null
 		};
 
-		const result = await urqlClient.mutation(SAVE_FORM_PROGRESS, { input });
-
-		if (result.error) {
-			logger.error('Error saving progress:', result.error);
+		try {
+			const graphqlClient = createGraphQLClient(event);
+			await graphqlClient.mutate(SAVE_FORM_PROGRESS, { input });
+		} catch (err) {
+			logger.error('Error saving progress', err as Error);
 			return { success: false, error: 'Failed to save progress' };
 		}
 
@@ -179,7 +158,8 @@ export const actions: Actions = {
 	},
 
 	// Complete form
-	completeForm: async ({ request, locals }) => {
+	completeForm: async (event) => {
+		const { request, locals } = event;
 		const { user } = locals;
 		if (!user) {
 			throw error(401, 'Unauthorized');
@@ -194,10 +174,11 @@ export const actions: Actions = {
 			formData: formDataJson ? JSON.parse(formDataJson) : {}
 		};
 
-		const result = await urqlClient.mutation(COMPLETE_FORM, { input });
-
-		if (result.error) {
-			logger.error('Error completing form:', result.error);
+		try {
+			const graphqlClient = createGraphQLClient(event);
+			await graphqlClient.mutate(COMPLETE_FORM, { input });
+		} catch (err) {
+			logger.error('Error completing form', err as Error);
 			return { success: false, error: 'Failed to complete form' };
 		}
 

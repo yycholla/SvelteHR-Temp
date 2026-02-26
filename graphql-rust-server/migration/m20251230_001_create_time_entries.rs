@@ -31,26 +31,10 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(
-                        ColumnDef::new(Projects::Name)
-                            .string_len(255)
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Projects::Code)
-                            .string_len(50)
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(Projects::Description)
-                            .text()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(Projects::ClientName)
-                            .string_len(255)
-                            .null(),
-                    )
+                    .col(ColumnDef::new(Projects::Name).string_len(255).not_null())
+                    .col(ColumnDef::new(Projects::Code).string_len(50).null())
+                    .col(ColumnDef::new(Projects::Description).text().null())
+                    .col(ColumnDef::new(Projects::ClientName).string_len(255).null())
                     .col(
                         ColumnDef::new(Projects::IsActive)
                             .boolean()
@@ -143,58 +127,34 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(
-                        ColumnDef::new(TimeEntries::UserId)
-                            .uuid()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(TimeEntries::EntryDate)
-                            .date()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(TimeEntries::UserId).uuid().not_null())
+                    .col(ColumnDef::new(TimeEntries::EntryDate).date().not_null())
                     .col(
                         ColumnDef::new(TimeEntries::Hours)
                             .decimal_len(5, 2)
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(TimeEntries::ProjectId)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(TimeEntries::ProjectId).uuid().null())
                     .col(
                         ColumnDef::new(TimeEntries::IsBillable)
                             .boolean()
                             .not_null()
                             .default(false),
                     )
-                    .col(
-                        ColumnDef::new(TimeEntries::Description)
-                            .text()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(TimeEntries::Description).text().null())
                     .col(
                         ColumnDef::new(TimeEntries::Status)
                             .string_len(20)
                             .not_null()
                             .default("draft"),
                     )
-                    .col(
-                        ColumnDef::new(TimeEntries::ApprovedBy)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(TimeEntries::ApprovedBy).uuid().null())
                     .col(
                         ColumnDef::new(TimeEntries::ApprovedAt)
                             .timestamp_with_time_zone()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(TimeEntries::RejectedReason)
-                            .text()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(TimeEntries::RejectedReason).text().null())
                     .col(
                         ColumnDef::new(TimeEntries::QuickbooksTimeActivityId)
                             .string_len(255)
@@ -211,11 +171,7 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(TimeEntries::SyncError)
-                            .text()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(TimeEntries::SyncError).text().null())
                     .col(
                         ColumnDef::new(TimeEntries::CreatedAt)
                             .timestamp_with_time_zone()
@@ -452,8 +408,10 @@ impl MigrationTrait for Migration {
         // Data Cleanup: Soft delete permissions
         // ====================
         // Mark time tracking permissions as deleted
-        manager.get_connection().execute_unprepared(
-            r#"
+        manager
+            .get_connection()
+            .execute_unprepared(
+                r#"
             UPDATE hr_public.permissions
             SET deleted_at = NOW()
             WHERE resource IN ('time_entries', 'time_sync', 'projects')
@@ -463,8 +421,9 @@ impl MigrationTrait for Migration {
                 'trigger', 'view_status', 'retry_failed',
                 'view', 'edit', 'delete', 'sync_qb'
             )
-            "#
-        ).await?;
+            "#,
+            )
+            .await?;
 
         Ok(())
     }

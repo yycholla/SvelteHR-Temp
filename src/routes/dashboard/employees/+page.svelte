@@ -287,8 +287,8 @@
 			</Card.Header>
 			<Card.Content>
 				{#if EmployeeStatistics}
-					<svelte:component
-						this={EmployeeStatistics}
+					{@const Statistics = EmployeeStatistics}
+					<Statistics
 						{totalActiveEmployees}
 						{totalInactiveEmployees}
 						{totalEmployees}

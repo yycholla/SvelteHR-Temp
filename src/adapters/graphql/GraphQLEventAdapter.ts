@@ -58,7 +58,7 @@ interface GraphQLEvent {
 		employeeId: string;
 		responseStatus: string;
 		isRequired?: boolean;
-		reminderTime?: string | null;
+		reminderTime?: number | null;
 	}>;
 }
 
@@ -395,7 +395,7 @@ export class GraphQLEventAdapter implements EventRepository {
 						responseStatus: rsvpResult.value,
 						isRequired: att.isRequired ?? false,
 						isOrganizer: false,
-						reminderTime: att.reminderTime ? new Date(att.reminderTime) : null,
+						reminderTime: att.reminderTime ?? null,
 						createdAt: new Date(data.createdAt),
 						updatedAt: new Date(data.updatedAt)
 					});

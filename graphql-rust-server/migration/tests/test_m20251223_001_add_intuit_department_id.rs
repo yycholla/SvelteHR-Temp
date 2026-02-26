@@ -10,15 +10,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251223_001_add_intuit_department_id::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251223_001_add_intuit_department_id::Migration;
 
     /// Setup a test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -33,7 +36,8 @@ mod tests {
         let _ = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
-                "ALTER TABLE hr_public.departments DROP COLUMN IF EXISTS intuit_department_id".to_string(),
+                "ALTER TABLE hr_public.departments DROP COLUMN IF EXISTS intuit_department_id"
+                    .to_string(),
             ))
             .await;
     }
@@ -66,17 +70,25 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'intuit_department_id'".to_string(),
+                 AND column_name = 'intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(column_result.is_ok(), "intuit_department_id column should exist");
+        assert!(
+            column_result.is_ok(),
+            "intuit_department_id column should exist"
+        );
         let column = column_result.unwrap();
         assert!(column.is_some(), "Should have column information");
 
         let column_info = column.unwrap();
-        let data_type: String = column_info.try_get("", "data_type").expect("Should get data_type");
-        let is_nullable: String = column_info.try_get("", "is_nullable").expect("Should get is_nullable");
+        let data_type: String = column_info
+            .try_get("", "data_type")
+            .expect("Should get data_type");
+        let is_nullable: String = column_info
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
 
         assert_eq!(data_type, "character varying", "Column should be VARCHAR");
         assert_eq!(is_nullable, "YES", "Column should be nullable");
@@ -88,12 +100,16 @@ mod tests {
                 "SELECT indexname FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'departments'
-                 AND indexname = 'idx_departments_intuit_department_id'".to_string(),
+                 AND indexname = 'idx_departments_intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 
         assert!(index_result.is_ok(), "Index should exist");
-        assert!(index_result.unwrap().is_some(), "Should find idx_departments_intuit_department_id");
+        assert!(
+            index_result.unwrap().is_some(),
+            "Should find idx_departments_intuit_department_id"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -106,7 +122,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify column is nullable (supports gradual rollout)
         let column_result = db
@@ -115,7 +134,8 @@ mod tests {
                 "SELECT is_nullable FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'intuit_department_id'".to_string(),
+                 AND column_name = 'intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 
@@ -142,7 +162,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify index was created
         let index_result = db
@@ -151,7 +174,8 @@ mod tests {
                 "SELECT indexname, indexdef FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'departments'
-                 AND indexname = 'idx_departments_intuit_department_id'".to_string(),
+                 AND indexname = 'idx_departments_intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 
@@ -160,7 +184,9 @@ mod tests {
         assert!(index.is_some(), "Index should exist");
 
         let index_info = index.unwrap();
-        let indexdef: String = index_info.try_get("", "indexdef").expect("Should get indexdef");
+        let indexdef: String = index_info
+            .try_get("", "indexdef")
+            .expect("Should get indexdef");
 
         assert!(
             indexdef.contains("intuit_department_id"),
@@ -178,7 +204,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify column is VARCHAR (not numeric)
         let column_result = db
@@ -187,13 +216,16 @@ mod tests {
                 "SELECT data_type, udt_name FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'intuit_department_id'".to_string(),
+                 AND column_name = 'intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok(), "Should query column type");
         let column = column_result.unwrap().unwrap();
-        let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
+        let data_type: String = column
+            .try_get("", "data_type")
+            .expect("Should get data_type");
 
         assert_eq!(
             data_type, "character varying",
@@ -230,7 +262,8 @@ mod tests {
                 "SELECT column_name FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'intuit_department_id'".to_string(),
+                 AND column_name = 'intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 
@@ -252,8 +285,14 @@ mod tests {
         let migration = Migration;
 
         // Run up then down
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         // Verify column was dropped
         let column_result = db
@@ -262,7 +301,8 @@ mod tests {
                 "SELECT column_name FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'intuit_department_id'".to_string(),
+                 AND column_name = 'intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 
@@ -278,7 +318,8 @@ mod tests {
                 "SELECT indexname FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'departments'
-                 AND indexname = 'idx_departments_intuit_department_id'".to_string(),
+                 AND indexname = 'idx_departments_intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 
@@ -300,8 +341,14 @@ mod tests {
         let migration = Migration;
 
         // Run up, then down twice
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("First migration down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("First migration down should succeed");
         migration
             .down(&schema_manager)
             .await
@@ -320,9 +367,18 @@ mod tests {
         let migration = Migration;
 
         // Run complete up/down/up cycle
-        migration.up(&schema_manager).await.expect("First up should succeed");
-        migration.down(&schema_manager).await.expect("Down should succeed");
-        migration.up(&schema_manager).await.expect("Second up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("First up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Second up should succeed");
 
         // Verify column exists after full cycle
         let column_result = db
@@ -331,7 +387,8 @@ mod tests {
                 "SELECT column_name FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'intuit_department_id'".to_string(),
+                 AND column_name = 'intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 
@@ -351,7 +408,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify no unique constraint exists (allows flexibility)
         let constraint_result = db
@@ -362,7 +422,8 @@ mod tests {
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
                  AND constraint_type = 'UNIQUE'
-                 AND constraint_name LIKE '%intuit_department_id%'".to_string(),
+                 AND constraint_name LIKE '%intuit_department_id%'"
+                    .to_string(),
             ))
             .await;
 
@@ -383,7 +444,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify index is NOT unique (allows duplicate QB IDs in different environments)
         let index_result = db
@@ -392,7 +456,8 @@ mod tests {
                 "SELECT indexname, indexdef FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'departments'
-                 AND indexname = 'idx_departments_intuit_department_id'".to_string(),
+                 AND indexname = 'idx_departments_intuit_department_id'"
+                    .to_string(),
             ))
             .await;
 

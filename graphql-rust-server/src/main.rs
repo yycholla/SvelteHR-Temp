@@ -14,23 +14,24 @@ use axum::{
     Router,
 };
 use tower::ServiceBuilder;
-use tower_http::{
-    cors::CorsLayer,
-    trace::TraceLayer,
-    services::ServeDir,
-};
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 
 use hr_graphql_server::{
-    database::create_db_connection,
-    dataloader::DataLoaderContext,
-    handlers::{graphql_handler, graphql_playground, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, intuit_webhook::intuit_webhook_handler, intuit_oauth::intuit_oauth_callback_handler, webhook_progress::webhook_progress_stream, AppState},
-    middleware::{security_headers_middleware, jwt_auth_middleware, optional_jwt_middleware},
-    schema::create_schema,
-    logging,
-    scheduler,
     auth,
     config::Config,
+    database::create_db_connection,
+    dataloader::DataLoaderContext,
+    handlers::{
+        events::delete_event_handler, graphql_handler, graphql_playground,
+        intuit_oauth::intuit_oauth_callback_handler, intuit_webhook::intuit_webhook_handler,
+        roles::get_roles_handler, users::get_users_handler,
+        webhook_progress::webhook_progress_stream, AppState,
+    },
+    logging,
+    middleware::{jwt_auth_middleware, optional_jwt_middleware, security_headers_middleware},
     openapi::ApiDoc,
+    scheduler,
+    schema::create_schema,
 };
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -49,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 std::env::var("RUST_SENTRY_ENVIRONMENT")
                     .or_else(|_| std::env::var("ENVIRONMENT"))
                     .unwrap_or_else(|_| "development".to_string())
-                    .into()
+                    .into(),
             ),
             traces_sample_rate: std::env::var("RUST_SENTRY_TRACES_SAMPLE_RATE")
                 .ok()
@@ -57,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap_or(0.2), // Default 20% sampling
             attach_stacktrace: true,
             ..Default::default()
-        }
+        },
     ));
 
     if !std::env::var("SENTRY_DSN").unwrap_or_default().is_empty() {
@@ -71,16 +72,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| config.port.to_string())
         .parse::<u16>()?;
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| config.database_url);
+    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| config.database_url);
 
     // Create database connection
     let db = create_db_connection(&database_url).await?;
     tracing::info!("Connected to database");
 
     // Initialize JWT service for token-based authentication
-    let jwt_config = auth::JwtConfig::from_env()
-        .expect("Failed to load JWT configuration. Ensure JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are set.");
+    let jwt_config = auth::JwtConfig::from_env().expect(
+        "Failed to load JWT configuration. Ensure JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are set.",
+    );
 
     // Load JWT keys from files (supports both file paths and environment variables)
     let jwt_keys = match (
@@ -122,7 +123,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Err(e) => {
-            tracing::warn!("Email configuration not found: {}. Email features will not be available.", e);
+            tracing::warn!(
+                "Email configuration not found: {}. Email features will not be available.",
+                e
+            );
             None
         }
     };
@@ -152,37 +156,67 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build the application
     let app = Router::new()
         // Swagger UI for REST API documentation
-        .merge(SwaggerUi::new("/swagger-ui")
-            .url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         // JWT Authentication is handled via GraphQL mutations:
         // - login: mutation { login(input: { email, password }) }
         // - logout: mutation { logout }
         // - refreshToken: mutation { refreshToken(input: { refreshToken, refreshTokenPlaintext }) }
         // Password reset endpoints (PUBLIC - no auth required)
-        .route("/api/auth/request-reset", post(hr_graphql_server::handlers::password_reset::request_password_reset_handler))
-        .route("/api/auth/reset-password", post(hr_graphql_server::handlers::password_reset::reset_password_handler))
+        .route(
+            "/api/auth/request-reset",
+            post(hr_graphql_server::handlers::password_reset::request_password_reset_handler),
+        )
+        .route(
+            "/api/auth/reset-password",
+            post(hr_graphql_server::handlers::password_reset::reset_password_handler),
+        )
         // REST API endpoints
-        .route("/api/events/{id}", axum::routing::delete(delete_event_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
-        .route("/api/roles", axum::routing::get(get_roles_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
-        .route("/api/users", axum::routing::get(get_users_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
-        .route("/api/upload", post(hr_graphql_server::handlers::upload::upload_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
+        .route(
+            "/api/events/{id}",
+            axum::routing::delete(delete_event_handler).layer(axum_middleware::from_fn_with_state(
+                app_state.clone(),
+                jwt_auth_middleware,
+            )),
+        )
+        .route(
+            "/api/roles",
+            axum::routing::get(get_roles_handler).layer(axum_middleware::from_fn_with_state(
+                app_state.clone(),
+                jwt_auth_middleware,
+            )),
+        )
+        .route(
+            "/api/users",
+            axum::routing::get(get_users_handler).layer(axum_middleware::from_fn_with_state(
+                app_state.clone(),
+                jwt_auth_middleware,
+            )),
+        )
+        .route(
+            "/api/upload",
+            post(hr_graphql_server::handlers::upload::upload_handler).layer(
+                axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware),
+            ),
+        )
         // QuickBooks OAuth callback (no auth - public callback from QuickBooks)
         .route("/api/intuit/callback", get(intuit_oauth_callback_handler))
         // QuickBooks webhook endpoint (no auth - uses HMAC signature verification)
         .route("/api/intuit/webhook", post(intuit_webhook_handler))
         // Webhook progress SSE endpoint (requires auth)
-        .route("/api/webhooks/process/{batch_id}/progress", get(webhook_progress_stream)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
+        .route(
+            "/api/webhooks/process/{batch_id}/progress",
+            get(webhook_progress_stream).layer(axum_middleware::from_fn_with_state(
+                app_state.clone(),
+                jwt_auth_middleware,
+            )),
+        )
         .nest_service("/uploads", ServeDir::new("uploads"))
         // GraphQL endpoints with optional JWT auth
-        .route("/graphql",
-            get(graphql_playground)
-            .post(graphql_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), optional_jwt_middleware))
+        .route(
+            "/graphql",
+            get(graphql_playground).post(graphql_handler).layer(
+                axum_middleware::from_fn_with_state(app_state.clone(), optional_jwt_middleware),
+            ),
         )
         // Health check
         .route("/health", get(health_check))
@@ -196,16 +230,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .layer(sentry_tower::NewSentryLayer::new_from_top())
                 .layer(
                     #[allow(deprecated)]
-                    sentry_tower::SentryHttpLayer::with_transaction()
-                )
-                // JWT authentication handled per-route via jwt_auth_middleware
+                    sentry_tower::SentryHttpLayer::with_transaction(),
+                ), // JWT authentication handled per-route via jwt_auth_middleware
         )
         // Store application state for handlers
         .with_state(app_state);
 
     // Start server
-    let addr = format!("{}:{}", host, port)
-        .parse::<SocketAddr>()?;
+    let addr = format!("{}:{}", host, port).parse::<SocketAddr>()?;
 
     // JWT tokens are stateless - no cleanup task needed
     // Expired refresh tokens are cleaned up via database migration/cron job if needed
@@ -218,7 +250,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match hr_graphql_server::services::DigestScheduler::new(
         std::sync::Arc::new(db.clone()),
         email_service,
-    ).await {
+    )
+    .await
+    {
         Ok(scheduler) => {
             if let Err(e) = scheduler.start().await {
                 tracing::error!("Failed to start digest scheduler: {}", e);
@@ -243,7 +277,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("📚 Swagger UI (REST API docs): http://{}/swagger-ui", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }

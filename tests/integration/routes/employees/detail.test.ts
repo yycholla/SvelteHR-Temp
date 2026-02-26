@@ -206,7 +206,7 @@ describe('Employee Detail View Integration Tests', () => {
 	describe('Setup Tests', () => {
 		it('loads successfully with valid employee ID', async () => {
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
-			const result = await load(mockEvent as RequestEvent);
+			const result = (await load(mockEvent as any)) as any;
 
 			expect(result).toBeDefined();
 			expect(result.employee).toBeDefined();
@@ -226,7 +226,7 @@ describe('Employee Detail View Integration Tests', () => {
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
 
 			try {
-				await load(mockEvent as RequestEvent);
+				await load(mockEvent as any);
 				expect(true).toBe(false); // Should not reach here
 			} catch (error: any) {
 				expect(error.status).toBe(404);
@@ -237,7 +237,7 @@ describe('Employee Detail View Integration Tests', () => {
 	describe('Data Loading Tests', () => {
 		it('displays employee personal information', async () => {
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
-			const result = await load(mockEvent as RequestEvent);
+			const result = (await load(mockEvent as any)) as any;
 
 			expect(result.employee.firstName).toBe(mockEmployee.name.first);
 			expect(result.employee.lastName).toBe(mockEmployee.name.last);
@@ -248,7 +248,7 @@ describe('Employee Detail View Integration Tests', () => {
 
 		it('displays employee department information', async () => {
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
-			const result = await load(mockEvent as RequestEvent);
+			const result = (await load(mockEvent as any)) as any;
 
 			expect(result.employee.department).toBeDefined();
 			expect(result.employee.departmentId).toBe(mockEmployee.departmentId);
@@ -256,7 +256,7 @@ describe('Employee Detail View Integration Tests', () => {
 
 		it('displays employee status', async () => {
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
-			const result = await load(mockEvent as RequestEvent);
+			const result = (await load(mockEvent as any)) as any;
 
 			expect(result.employee.status).toBe(mockEmployee.status);
 			expect(result.employee.isActive).toBe(mockEmployee.isActive);
@@ -278,7 +278,7 @@ describe('Employee Detail View Integration Tests', () => {
 			} as any;
 
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
-			const result = await load(mockEvent as RequestEvent);
+			const result = (await load(mockEvent as any)) as any;
 
 			// Permission flags should be set correctly for admin
 			expect(result.permissions.canViewContactInfo).toBe(true);
@@ -301,7 +301,7 @@ describe('Employee Detail View Integration Tests', () => {
 			} as any;
 
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
-			const result = await load(mockEvent as RequestEvent);
+			const result = (await load(mockEvent as any)) as any;
 
 			// Permission flags should reflect self-view
 			expect(result.permissions.isViewingSelf).toBe(true);
@@ -323,7 +323,7 @@ describe('Employee Detail View Integration Tests', () => {
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
 
 			try {
-				await load(mockEvent as RequestEvent);
+				await load(mockEvent as any);
 				expect(true).toBe(false); // Should not reach here
 			} catch (error: any) {
 				expect(error.status).toBe(500);
@@ -337,7 +337,7 @@ describe('Employee Detail View Integration Tests', () => {
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
 
 			try {
-				await load(mockEvent as RequestEvent);
+				await load(mockEvent as any);
 				expect(true).toBe(false); // Should not reach here
 			} catch (error: any) {
 				expect(error.status).toBe(500);
@@ -357,7 +357,7 @@ describe('Employee Detail View Integration Tests', () => {
 			const { load } = await import('../../../../src/routes/dashboard/employees/[id]/+page.server');
 
 			try {
-				await load(mockEvent as RequestEvent);
+				await load(mockEvent as any);
 				expect(true).toBe(false); // Should not reach here
 			} catch (error: any) {
 				expect(error.status).toBe(404);

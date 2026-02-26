@@ -1,8 +1,8 @@
 use async_graphql::*;
-use sea_orm::*;
-use uuid::Uuid;
 use chrono::Utc;
+use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::auth::context::UserContext;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
@@ -99,12 +99,16 @@ impl FieldMappingMutation {
 
         // Validate entity type
         if !["Employee", "Department"].contains(&input.entity_type.as_str()) {
-            return Err(Error::new("Invalid entity type. Must be 'Employee' or 'Department'"));
+            return Err(Error::new(
+                "Invalid entity type. Must be 'Employee' or 'Department'",
+            ));
         }
 
         // Validate direction
         if !["Pull", "Push", "Bidirectional"].contains(&input.direction.as_str()) {
-            return Err(Error::new("Invalid direction. Must be 'Pull', 'Push', or 'Bidirectional'"));
+            return Err(Error::new(
+                "Invalid direction. Must be 'Pull', 'Push', or 'Bidirectional'",
+            ));
         }
 
         // Generate mapping ID

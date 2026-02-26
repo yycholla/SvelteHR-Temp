@@ -1,10 +1,38 @@
 <script lang="ts">
+	interface UserFormState {
+		email: string;
+		displayName: string;
+		departmentId: string;
+		managerId: string;
+		jobTitle: string;
+		phone: string;
+		mobilePhone: string;
+		birthDate: string;
+		hireDate: string;
+		isActive: boolean;
+	}
+
+	interface UserOption {
+		id: string;
+		displayName: string | null;
+		email: string;
+	}
+
+	interface SelectedUser {
+		id: string;
+	}
+
+	interface DepartmentOption {
+		id: string;
+		name: string;
+	}
+
 	interface Props {
 		open: boolean;
-		selectedUser: any;
-		formData: any;
-		departments: any[];
-		allUsers: any[];
+		selectedUser: SelectedUser | null;
+		formData: UserFormState;
+		departments: DepartmentOption[];
+		allUsers: UserOption[];
 		loading: boolean;
 		onClose: () => void;
 		onSubmit: () => void;

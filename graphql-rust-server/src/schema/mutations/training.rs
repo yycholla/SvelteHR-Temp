@@ -1,18 +1,17 @@
 use async_graphql::{Context, Object, Result};
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set, QueryFilter, ColumnTrait};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 use crate::{
+    auth::UserContext,
     database::get_db_from_context,
     error::AppError,
     models::{
-        CreateTrainingInput, UpdateTrainingInput, Training,
-        CreateTrainingContentInput, UpdateTrainingContentInput, TrainingContent,
-        CreateAssignmentInput, TrainingAssignment,
-        UpdateProgressInput, TrainingProgress,
+        CreateAssignmentInput, CreateTrainingContentInput, CreateTrainingInput, Training,
+        TrainingAssignment, TrainingContent, TrainingProgress, UpdateProgressInput,
+        UpdateTrainingContentInput, UpdateTrainingInput,
     },
-    auth::UserContext,
 };
 
 pub struct TrainingMutations;
@@ -20,7 +19,11 @@ pub struct TrainingMutations;
 #[Object]
 impl TrainingMutations {
     // Training
-    async fn create_training(&self, ctx: &Context<'_>, input: CreateTrainingInput) -> Result<Training> {
+    async fn create_training(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateTrainingInput,
+    ) -> Result<Training> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check (e.g. admin or training manager)
 
@@ -46,11 +49,18 @@ impl TrainingMutations {
         Ok(res)
     }
 
-    async fn update_training(&self, ctx: &Context<'_>, id: Uuid, input: UpdateTrainingInput) -> Result<Training> {
+    async fn update_training(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateTrainingInput,
+    ) -> Result<Training> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let training = crate::models::training::training::Entity::find_by_id(id).one(&db).await?
+        let training = crate::models::training::training::Entity::find_by_id(id)
+            .one(&db)
+            .await?
             .ok_or_else(|| AppError::NotFound("Training not found".to_string()))?;
 
         let mut training: crate::models::training::training::ActiveModel = training.into();
@@ -101,12 +111,18 @@ impl TrainingMutations {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let res = crate::models::training::training::Entity::delete_by_id(id).exec(&db).await?;
+        let res = crate::models::training::training::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 
     // Content
-    async fn create_training_content(&self, ctx: &Context<'_>, input: CreateTrainingContentInput) -> Result<TrainingContent> {
+    async fn create_training_content(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateTrainingContentInput,
+    ) -> Result<TrainingContent> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
@@ -125,10 +141,17 @@ impl TrainingMutations {
         Ok(res)
     }
 
-    async fn update_training_content(&self, ctx: &Context<'_>, id: Uuid, input: UpdateTrainingContentInput) -> Result<TrainingContent> {
+    async fn update_training_content(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateTrainingContentInput,
+    ) -> Result<TrainingContent> {
         let db = get_db_from_context(ctx)?;
-        
-        let content = crate::models::training::content::Entity::find_by_id(id).one(&db).await?
+
+        let content = crate::models::training::content::Entity::find_by_id(id)
+            .one(&db)
+            .await?
             .ok_or_else(|| AppError::NotFound("Content not found".to_string()))?;
 
         let mut content: crate::models::training::content::ActiveModel = content.into();
@@ -153,13 +176,19 @@ impl TrainingMutations {
 
     async fn delete_training_content(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
-        
-        let res = crate::models::training::content::Entity::delete_by_id(id).exec(&db).await?;
+
+        let res = crate::models::training::content::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 
     // Assignment
-    async fn assign_training(&self, ctx: &Context<'_>, input: CreateAssignmentInput) -> Result<TrainingAssignment> {
+    async fn assign_training(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateAssignmentInput,
+    ) -> Result<TrainingAssignment> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
@@ -179,7 +208,9 @@ impl TrainingMutations {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let res = crate::models::training::assignment::Entity::delete_by_id(id).exec(&db).await?;
+        let res = crate::models::training::assignment::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 
@@ -189,7 +220,7 @@ impl TrainingMutations {
         ctx: &Context<'_>,
         training_id: Uuid,
         department_id: Uuid,
-        due_date: Option<chrono::DateTime<Utc>>
+        due_date: Option<chrono::DateTime<Utc>>,
     ) -> Result<i32> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check (should require admin or HR manager role)
@@ -235,7 +266,7 @@ impl TrainingMutations {
         &self,
         ctx: &Context<'_>,
         training_id: Uuid,
-        due_date: Option<chrono::DateTime<Utc>>
+        due_date: Option<chrono::DateTime<Utc>>,
     ) -> Result<i32> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check (should require admin or HR manager role)
@@ -276,7 +307,12 @@ impl TrainingMutations {
     }
 
     // Progress
-    async fn update_progress(&self, ctx: &Context<'_>, content_id: Uuid, input: UpdateProgressInput) -> Result<TrainingProgress> {
+    async fn update_progress(
+        &self,
+        ctx: &Context<'_>,
+        content_id: Uuid,
+        input: UpdateProgressInput,
+    ) -> Result<TrainingProgress> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?; // Require auth
 
@@ -301,7 +337,14 @@ impl TrainingMutations {
                 user_id: Set(user_context.user_id),
                 training_content_id: Set(content_id),
                 status: Set(input.status),
-                completed_at: Set(if input.status == crate::models::training::progress::ProgressStatus::Completed { Some(Utc::now()) } else { None }),
+                completed_at: Set(
+                    if input.status == crate::models::training::progress::ProgressStatus::Completed
+                    {
+                        Some(Utc::now())
+                    } else {
+                        None
+                    },
+                ),
                 last_accessed_at: Set(Some(Utc::now())),
             };
             progress.insert(&db).await?

@@ -11,7 +11,7 @@ export interface AppError {
 	message: string;
 	type: 'error' | 'warning' | 'info';
 	timestamp: Date;
-	details?: any;
+	details?: unknown;
 	action?: {
 		label: string;
 		handler: () => void;
@@ -97,21 +97,35 @@ class ErrorStore {
 
 export const errorStore = new ErrorStore();
 
-// Helper functions for common error scenarios
-export function handleGraphQLError(error: any, operation?: string): void {
-	logger.error('Handle graph q l error failed', error as Error);
+function normalizeError(error: unknown): Error {
+	if (error instanceof Error) return error;
+	return new Error(typeof error === 'string' ? error : 'Unknown error');
+}
 
-	const message = error.message || 'A GraphQL operation failed';
-	const userMessage = error.extensions?.userMessage || message;
+interface GraphQLErrorLike {
+	message?: string;
+	extensions?: { userMessage?: string };
+	graphQLErrors?: unknown;
+	networkError?: unknown;
+	name?: string;
+}
+
+// Helper functions for common error scenarios
+export function handleGraphQLError(error: unknown, operation?: string): void {
+	const graphQLError = error as GraphQLErrorLike;
+	logger.error('Handle graph q l error failed', normalizeError(error));
+
+	const message = graphQLError.message || 'A GraphQL operation failed';
+	const userMessage = graphQLError.extensions?.userMessage || message;
 
 	errorStore.add({
 		message: userMessage,
 		type: 'error',
 		details: {
 			operation,
-			originalError: error,
-			graphqlErrors: error.graphQLErrors,
-			networkError: error.networkError
+			originalError: graphQLError,
+			graphqlErrors: graphQLError.graphQLErrors,
+			networkError: graphQLError.networkError
 		},
 		action: {
 			label: 'Retry',
@@ -120,20 +134,21 @@ export function handleGraphQLError(error: any, operation?: string): void {
 	});
 }
 
-export function handleServerError(error: any, context?: string): void {
-	logger.error('Handle server error failed', error as Error);
+export function handleServerError(error: unknown, context?: string): void {
+	const serverError = error as GraphQLErrorLike;
+	logger.error('Handle server error failed', normalizeError(error));
 
-	const isNetworkError = !navigator.onLine || error.name === 'NetworkError';
+	const isNetworkError = !navigator.onLine || serverError.name === 'NetworkError';
 	const message = isNetworkError
 		? 'Network connection lost. Please check your internet connection.'
-		: error.message || 'A server error occurred';
+		: serverError.message || 'A server error occurred';
 
 	errorStore.add({
 		message,
 		type: 'error',
 		details: {
 			context,
-			originalError: error,
+			originalError: serverError,
 			isNetworkError
 		},
 		action: {
@@ -143,7 +158,7 @@ export function handleServerError(error: any, context?: string): void {
 	});
 }
 
-export function showSuccess(message: string, details?: any): void {
+export function showSuccess(message: string, details?: unknown): void {
 	errorStore.add({
 		message,
 		type: 'info',
@@ -151,7 +166,7 @@ export function showSuccess(message: string, details?: any): void {
 	});
 }
 
-export function showWarning(message: string, details?: any, action?: AppError['action']): void {
+export function showWarning(message: string, details?: unknown, action?: AppError['action']): void {
 	errorStore.add({
 		message,
 		type: 'warning',

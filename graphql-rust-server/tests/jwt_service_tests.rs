@@ -96,7 +96,9 @@ async fn setup_jwt_service(test_db: &TestDatabase) -> JwtService {
 
 #[tokio::test]
 async fn test_generate_and_validate_access_token() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     // Create test user with roles and permissions
@@ -127,7 +129,10 @@ async fn test_generate_and_validate_access_token() {
     assert_eq!(claims.email, test_user.email);
     assert_eq!(claims.display_name, test_user.display_name);
     assert!(!claims.roles.is_empty(), "User should have roles");
-    assert!(!claims.permissions.is_empty(), "User should have permissions");
+    assert!(
+        !claims.permissions.is_empty(),
+        "User should have permissions"
+    );
     assert_eq!(claims.iss, "test-mountainhr-api");
     assert_eq!(claims.aud, "test-mountainhr-app");
 
@@ -136,7 +141,9 @@ async fn test_generate_and_validate_access_token() {
 
 #[tokio::test]
 async fn test_access_token_contains_roles_and_permissions() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -185,7 +192,9 @@ async fn test_expired_token_rejected() {
     use jsonwebtoken::{DecodingKey, EncodingKey};
     use std::time::Duration;
 
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
 
     // Create JWT service with immediate expiration (1 second)
     let config = JwtConfig {
@@ -237,7 +246,9 @@ async fn test_expired_token_rejected() {
 
 #[tokio::test]
 async fn test_invalid_signature_rejected() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -271,7 +282,9 @@ async fn test_invalid_signature_rejected() {
 
 #[tokio::test]
 async fn test_generate_refresh_token() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -314,7 +327,9 @@ async fn test_generate_refresh_token() {
 
 #[tokio::test]
 async fn test_refresh_token_rotation() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -363,7 +378,9 @@ async fn test_refresh_token_rotation() {
 
 #[tokio::test]
 async fn test_refresh_token_reuse_triggers_family_revocation() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -414,7 +431,9 @@ async fn test_refresh_token_reuse_triggers_family_revocation() {
 
 #[tokio::test]
 async fn test_refresh_token_expiration() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
 
     // Configure very short refresh token TTL
     env::set_var("JWT_REFRESH_TTL_DAYS", "0");
@@ -462,7 +481,9 @@ async fn test_refresh_token_expiration() {
 
 #[tokio::test]
 async fn test_revoke_all_user_tokens() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -511,10 +532,7 @@ async fn test_revoke_all_user_tokens() {
     // Access token should now be rejected
     let result = jwt_service.validate_access_token(&access_token).await;
 
-    assert!(
-        result.is_err(),
-        "Token should be rejected after revocation"
-    );
+    assert!(result.is_err(), "Token should be rejected after revocation");
     match result.unwrap_err() {
         JwtError::TokenRevoked => {
             // Expected error
@@ -553,7 +571,9 @@ async fn test_revoke_all_user_tokens() {
 
 #[tokio::test]
 async fn test_tokens_valid_after_enforcement() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -608,7 +628,9 @@ async fn test_tokens_valid_after_enforcement() {
 
 #[tokio::test]
 async fn test_revoke_token_family() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -672,7 +694,9 @@ async fn test_revoke_token_family() {
 
 #[tokio::test]
 async fn test_cleanup_expired_tokens() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -714,11 +738,7 @@ async fn test_cleanup_expired_tokens() {
         .await
         .expect("Failed to query tokens");
 
-    assert_eq!(
-        remaining_tokens.len(),
-        0,
-        "Expired token should be deleted"
-    );
+    assert_eq!(remaining_tokens.len(), 0, "Expired token should be deleted");
 
     test_db.cleanup().await;
 }
@@ -729,7 +749,9 @@ async fn test_cleanup_expired_tokens() {
 
 #[tokio::test]
 async fn test_load_user_roles_and_permissions() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     let test_user = TestUser::admin(&test_db).await;
@@ -759,7 +781,9 @@ async fn test_load_user_roles_and_permissions() {
 
 #[tokio::test]
 async fn test_user_with_no_roles() {
-    let test_db = TestDatabase::new().await.expect("Failed to create test database");
+    let test_db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let jwt_service = setup_jwt_service(&test_db).await;
 
     // Create user without role assignments

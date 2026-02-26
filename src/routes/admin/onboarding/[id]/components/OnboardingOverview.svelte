@@ -5,9 +5,26 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { formatDistanceToNow } from 'date-fns';
 
+	interface OnboardingModule {
+		id: string;
+		isActive: boolean;
+		description?: string | null;
+		category?: string | null;
+		tags?: string[] | null;
+		createdAt: string;
+	}
+
+	interface ContentBlock {
+		id: string;
+		sequenceOrder: number;
+		title: string;
+		isRequired: boolean;
+		type: string;
+	}
+
 	interface Props {
-		module: any;
-		contentBlocks: any[];
+		module: OnboardingModule;
+		contentBlocks: ContentBlock[];
 		stats: {
 			total: number;
 			completed: number;

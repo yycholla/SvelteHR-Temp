@@ -4,8 +4,8 @@
 //! Creates real DB records (users + role assignments) without generating
 //! JWT tokens — the GraphQL test context injects UserContext directly.
 
-use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 use sea_orm::DatabaseBackend;
+use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 use uuid::Uuid;
 
 use super::errors::TestContextError;
@@ -84,7 +84,9 @@ impl TestUsers {
             insert_users_sql,
         ))
         .await
-        .map_err(|e| TestContextError::SessionError(format!("Failed to insert test users: {}", e)))?;
+        .map_err(|e| {
+            TestContextError::SessionError(format!("Failed to insert test users: {}", e))
+        })?;
 
         // Assign roles via user_role_assignments (look up role IDs by name from seeded roles)
         // Roles are seeded by migration: Employee(25), Manager(50), HR Manager(75), Admin(100)

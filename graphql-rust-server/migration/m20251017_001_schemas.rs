@@ -44,14 +44,16 @@ impl MigrationTrait for Migration {
                     id TEXT PRIMARY KEY,
                     data BYTEA NOT NULL,
                     expiry_date TIMESTAMPTZ NOT NULL
-                )"
+                )",
             )
             .await?;
 
         // Create index on expiry_date for cleanup operations
         manager
             .get_connection()
-            .execute_unprepared("CREATE INDEX IF NOT EXISTS idx_sessions_expiry_date ON sessions (expiry_date)")
+            .execute_unprepared(
+                "CREATE INDEX IF NOT EXISTS idx_sessions_expiry_date ON sessions (expiry_date)",
+            )
             .await?;
 
         Ok(())

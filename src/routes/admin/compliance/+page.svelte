@@ -4,7 +4,6 @@
 		CheckCircle,
 		Download,
 		FileText,
-		RefreshCw,
 		Shield,
 		TrendingUp,
 		XCircle
@@ -131,7 +130,7 @@ ${report.actions.length > 0 ? `Actions: ${report.actions.join(', ')}` : 'No acti
 	<div class="rounded-lg border bg-card p-6">
 		<h2 class="mb-4 text-xl font-semibold">Compliance Overview</h2>
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-			{#each Object.entries(complianceMetrics) as [key, metric]}
+			{#each Object.values(complianceMetrics) as metric}
 				{@const StatusIcon = getStatusIcon(metric.status)}
 				<div class="rounded-lg border bg-muted/50 p-4">
 					<div class="mb-2 flex items-center justify-between">

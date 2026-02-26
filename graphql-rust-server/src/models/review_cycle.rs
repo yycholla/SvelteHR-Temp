@@ -174,7 +174,9 @@ impl Model {
     /// User who created the cycle
     async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.created_by).one(&db).await?;
+        let user = super::user::Entity::find_by_id(self.created_by)
+            .one(&db)
+            .await?;
         Ok(user)
     }
 

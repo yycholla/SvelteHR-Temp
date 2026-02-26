@@ -40,22 +40,13 @@ pub enum JwtConfigError {
     MissingEnvVar(String),
 
     #[error("Invalid PEM format for {key_type}: {details}")]
-    InvalidPemFormat {
-        key_type: String,
-        details: String,
-    },
+    InvalidPemFormat { key_type: String, details: String },
 
     #[error("Invalid TTL value for {var}: {value} (expected positive integer)")]
-    InvalidTtl {
-        var: String,
-        value: String,
-    },
+    InvalidTtl { var: String, value: String },
 
     #[error("Failed to parse {key_type} key: {error}")]
-    KeyParseError {
-        key_type: String,
-        error: String,
-    },
+    KeyParseError { key_type: String, error: String },
 }
 
 impl JwtConfig {
@@ -101,12 +92,10 @@ impl JwtConfig {
             })?;
 
         // Load issuer (default: mountainhr-api)
-        let issuer = env::var("JWT_ISSUER")
-            .unwrap_or_else(|_| "mountainhr-api".to_string());
+        let issuer = env::var("JWT_ISSUER").unwrap_or_else(|_| "mountainhr-api".to_string());
 
         // Load audience (default: mountainhr-app)
-        let audience = env::var("JWT_AUDIENCE")
-            .unwrap_or_else(|_| "mountainhr-app".to_string());
+        let audience = env::var("JWT_AUDIENCE").unwrap_or_else(|_| "mountainhr-app".to_string());
 
         Ok(Self {
             access_ttl: Duration::from_secs(access_ttl_minutes * 60),
@@ -150,19 +139,22 @@ impl JwtKeys {
     /// let keys = JwtKeys::from_files("/app/keys/jwt-private.pem", "/app/keys/jwt-public.pem")
     ///     .expect("Failed to load JWT keys");
     /// ```
-    pub fn from_files(private_key_path: &str, public_key_path: &str) -> Result<Self, JwtConfigError> {
+    pub fn from_files(
+        private_key_path: &str,
+        public_key_path: &str,
+    ) -> Result<Self, JwtConfigError> {
         use std::fs;
 
         // Read private key file
-        let private_key_pem = fs::read_to_string(private_key_path)
-            .map_err(|e| JwtConfigError::KeyParseError {
+        let private_key_pem =
+            fs::read_to_string(private_key_path).map_err(|e| JwtConfigError::KeyParseError {
                 key_type: "private key file".to_string(),
                 error: format!("Failed to read {}: {}", private_key_path, e),
             })?;
 
         // Read public key file
-        let public_key_pem = fs::read_to_string(public_key_path)
-            .map_err(|e| JwtConfigError::KeyParseError {
+        let public_key_pem =
+            fs::read_to_string(public_key_path).map_err(|e| JwtConfigError::KeyParseError {
                 key_type: "public key file".to_string(),
                 error: format!("Failed to read {}: {}", public_key_path, e),
             })?;
@@ -174,18 +166,20 @@ impl JwtKeys {
         Self::validate_pem_format(&public_key_pem, "public key")?;
 
         // Parse private key for encoding (signing)
-        let encoding_key = EncodingKey::from_rsa_pem(private_key_pem.as_bytes())
-            .map_err(|e| JwtConfigError::KeyParseError {
+        let encoding_key = EncodingKey::from_rsa_pem(private_key_pem.as_bytes()).map_err(|e| {
+            JwtConfigError::KeyParseError {
                 key_type: "private key".to_string(),
                 error: e.to_string(),
-            })?;
+            }
+        })?;
 
         // Parse public key for decoding (verification)
-        let decoding_key = DecodingKey::from_rsa_pem(public_key_pem.as_bytes())
-            .map_err(|e| JwtConfigError::KeyParseError {
+        let decoding_key = DecodingKey::from_rsa_pem(public_key_pem.as_bytes()).map_err(|e| {
+            JwtConfigError::KeyParseError {
                 key_type: "public key".to_string(),
                 error: e.to_string(),
-            })?;
+            }
+        })?;
 
         Ok(Self {
             encoding_key,
@@ -236,18 +230,20 @@ impl JwtKeys {
         Self::validate_pem_format(&public_key_pem, "public key")?;
 
         // Parse private key for encoding (signing)
-        let encoding_key = EncodingKey::from_rsa_pem(private_key_pem.as_bytes())
-            .map_err(|e| JwtConfigError::KeyParseError {
+        let encoding_key = EncodingKey::from_rsa_pem(private_key_pem.as_bytes()).map_err(|e| {
+            JwtConfigError::KeyParseError {
                 key_type: "private key".to_string(),
                 error: e.to_string(),
-            })?;
+            }
+        })?;
 
         // Parse public key for decoding (verification)
-        let decoding_key = DecodingKey::from_rsa_pem(public_key_pem.as_bytes())
-            .map_err(|e| JwtConfigError::KeyParseError {
+        let decoding_key = DecodingKey::from_rsa_pem(public_key_pem.as_bytes()).map_err(|e| {
+            JwtConfigError::KeyParseError {
                 key_type: "public key".to_string(),
                 error: e.to_string(),
-            })?;
+            }
+        })?;
 
         Ok(Self {
             encoding_key,
@@ -380,7 +376,10 @@ DRNLTSLyQNk1u7QFAYLP3WRSh/pQ8YH1jszCWSEXlU46L2vqsvwf4Ukb3YiBF1kb
 
         let result = JwtConfig::from_env();
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), JwtConfigError::InvalidTtl { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            JwtConfigError::InvalidTtl { .. }
+        ));
 
         env::remove_var("JWT_ACCESS_TTL_MINUTES");
     }
@@ -411,7 +410,10 @@ DRNLTSLyQNk1u7QFAYLP3WRSh/pQ8YH1jszCWSEXlU46L2vqsvwf4Ukb3YiBF1kb
 
         let result = JwtKeys::from_env();
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), JwtConfigError::MissingEnvVar(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            JwtConfigError::MissingEnvVar(_)
+        ));
 
         env::remove_var("JWT_PUBLIC_KEY");
     }
@@ -425,7 +427,10 @@ DRNLTSLyQNk1u7QFAYLP3WRSh/pQ8YH1jszCWSEXlU46L2vqsvwf4Ukb3YiBF1kb
 
         let result = JwtKeys::from_env();
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), JwtConfigError::MissingEnvVar(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            JwtConfigError::MissingEnvVar(_)
+        ));
 
         env::remove_var("JWT_PRIVATE_KEY");
     }
@@ -439,7 +444,10 @@ DRNLTSLyQNk1u7QFAYLP3WRSh/pQ8YH1jszCWSEXlU46L2vqsvwf4Ukb3YiBF1kb
 
         let result = JwtKeys::from_env();
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), JwtConfigError::InvalidPemFormat { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            JwtConfigError::InvalidPemFormat { .. }
+        ));
 
         env::remove_var("JWT_PRIVATE_KEY");
         env::remove_var("JWT_PUBLIC_KEY");

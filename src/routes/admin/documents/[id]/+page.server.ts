@@ -1,14 +1,43 @@
 // Document detail page server-side loader (Feature 024)
 // Server-side data loading for individual document with RBAC checks
 
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { logger } from '$lib/utils/logger';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { setJWTClaims, transaction } from '$lib/server/db';
 
+interface DocumentAccessLog {
+	id: string;
+	document_id: string;
+	user_id: string;
+	access_type: string;
+	access_timestamp: string;
+	access_outcome: string;
+	ip_address: string | null;
+	user_agent: string | null;
+	denial_reason: string | null;
+	user_email: string | null;
+}
+
+interface EmployeeRecord {
+	id: string;
+	email: string;
+	department_id?: string;
+}
+
+interface DepartmentRecord {
+	id: string;
+	name: string;
+}
+
+interface TeamRecord {
+	id: string;
+	name: string;
+}
+
 export const load: PageServerLoad = async (event) => {
-	const { params, fetch } = event;
+	const { params } = event;
 
 	// Check authentication and permissions
 	requireAuth(event, {
@@ -121,7 +150,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Step 4: Fetch access logs (if HR/Admin)
-		let accessLogs: any[] = [];
+		let accessLogs: DocumentAccessLog[] = [];
 
 		if (userRole === 'super_admin' || userRole === 'admin') {
 			accessLogs = await transaction(async (client) => {
@@ -157,9 +186,9 @@ export const load: PageServerLoad = async (event) => {
 		const canDownload = canAccess; // Anyone with view access can download
 
 		// Step 6: Fetch employees, departments, teams for assignment modal (if HR/Admin)
-		let employees: any[] = [];
-		let departments: any[] = [];
-		let teams: any[] = [];
+		let employees: EmployeeRecord[] = [];
+		let departments: DepartmentRecord[] = [];
+		let teams: TeamRecord[] = [];
 
 		if (canAssign) {
 			// Fetch employees
@@ -176,7 +205,10 @@ export const load: PageServerLoad = async (event) => {
 				return result.rows;
 			});
 
-			employees = employeesData;
+			employees = employeesData.map((employee) => ({
+				...employee,
+				department_id: employee.department_id ?? undefined
+			}));
 
 			// Fetch departments
 			const departmentsData = await transaction(async (client) => {

@@ -61,11 +61,17 @@ mod tests {
 
         // Run UP twice
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("First UP should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("First UP should succeed");
 
         // Second run may create duplicates but should not fail
         let result = Migration.up(&manager).await;
-        assert!(result.is_ok(), "Second UP should execute (may create duplicates)");
+        assert!(
+            result.is_ok(),
+            "Second UP should execute (may create duplicates)"
+        );
     }
 
     #[tokio::test]
@@ -76,7 +82,10 @@ mod tests {
 
         // Run DOWN twice
         Migration.up(&manager).await.expect("UP should succeed");
-        Migration.down(&manager).await.expect("First DOWN should succeed");
+        Migration
+            .down(&manager)
+            .await
+            .expect("First DOWN should succeed");
 
         // Second DOWN should be safe (no data to delete)
         let result = Migration.down(&manager).await;
@@ -94,7 +103,10 @@ mod tests {
 
         Migration.up(&manager).await.expect("UP should succeed");
         Migration.down(&manager).await.expect("DOWN should succeed");
-        Migration.up(&manager).await.expect("Second UP should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Second UP should succeed");
     }
 
     #[tokio::test]
@@ -105,7 +117,10 @@ mod tests {
 
         // Run migration
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Check if table comment was added
         let result = db

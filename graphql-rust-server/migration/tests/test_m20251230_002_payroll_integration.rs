@@ -11,16 +11,19 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251230_002_payroll_integration::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251230_002_payroll_integration::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -44,7 +47,8 @@ mod tests {
                  DROP COLUMN IF EXISTS pay_schedule,
                  DROP COLUMN IF EXISTS quickbooks_payroll_item_id,
                  DROP COLUMN IF EXISTS commission_rate,
-                 DROP COLUMN IF EXISTS bonus_eligible CASCADE".to_string(),
+                 DROP COLUMN IF EXISTS bonus_eligible CASCADE"
+                    .to_string(),
             ))
             .await;
 
@@ -92,12 +96,16 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT typname FROM pg_type
                  WHERE typname = 'compensation_type'
-                 AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'hr_public')".to_string(),
+                 AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'hr_public')"
+                    .to_string(),
             ))
             .await;
 
         assert!(enum_result.is_ok(), "compensation_type enum should exist");
-        assert!(enum_result.unwrap().is_some(), "Should have enum information");
+        assert!(
+            enum_result.unwrap().is_some(),
+            "Should have enum information"
+        );
 
         // Verify pay_schedule enum was created
         let enum_result = db
@@ -105,12 +113,16 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT typname FROM pg_type
                  WHERE typname = 'pay_schedule'
-                 AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'hr_public')".to_string(),
+                 AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'hr_public')"
+                    .to_string(),
             ))
             .await;
 
         assert!(enum_result.is_ok(), "pay_schedule enum should exist");
-        assert!(enum_result.unwrap().is_some(), "Should have enum information");
+        assert!(
+            enum_result.unwrap().is_some(),
+            "Should have enum information"
+        );
 
         // Verify payroll_sync_history table was created
         let table_result = db
@@ -118,12 +130,19 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'payroll_sync_history'".to_string(),
+                 AND table_name = 'payroll_sync_history'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(table_result.is_ok(), "payroll_sync_history table should exist");
-        assert!(table_result.unwrap().is_some(), "Should have table information");
+        assert!(
+            table_result.is_ok(),
+            "payroll_sync_history table should exist"
+        );
+        assert!(
+            table_result.unwrap().is_some(),
+            "Should have table information"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -170,11 +189,7 @@ mod tests {
                 ))
                 .await;
 
-            assert!(
-                column_result.is_ok(),
-                "Column {} should exist",
-                column_name
-            );
+            assert!(column_result.is_ok(), "Column {} should exist", column_name);
             assert!(
                 column_result.unwrap().is_some(),
                 "Should have column information for {}",
@@ -209,12 +224,16 @@ mod tests {
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'payroll_sync_history'
                  AND constraint_name = 'fk_payroll_sync_history_user_id'
-                 AND constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
         assert!(fk_result.is_ok(), "user_id foreign key should exist");
-        assert!(fk_result.unwrap().is_some(), "Should have foreign key information");
+        assert!(
+            fk_result.unwrap().is_some(),
+            "Should have foreign key information"
+        );
 
         // Verify foreign key for changed_by
         let fk_result = db
@@ -224,12 +243,16 @@ mod tests {
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'payroll_sync_history'
                  AND constraint_name = 'fk_payroll_sync_history_changed_by'
-                 AND constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
         assert!(fk_result.is_ok(), "changed_by foreign key should exist");
-        assert!(fk_result.unwrap().is_some(), "Should have foreign key information");
+        assert!(
+            fk_result.unwrap().is_some(),
+            "Should have foreign key information"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -364,12 +387,20 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'payroll_sync_history'".to_string(),
+                 AND table_name = 'payroll_sync_history'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(table_result.is_ok(), "Should be able to check if table exists");
-        let count: i64 = table_result.unwrap().unwrap().try_get("", "count").expect("Should get count");
+        assert!(
+            table_result.is_ok(),
+            "Should be able to check if table exists"
+        );
+        let count: i64 = table_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 0, "payroll_sync_history table should be dropped");
 
         // Verify compensation columns were dropped
@@ -383,8 +414,15 @@ mod tests {
             ))
             .await;
 
-        assert!(column_result.is_ok(), "Should be able to check if columns exist");
-        let col_count: i64 = column_result.unwrap().unwrap().try_get("", "count").expect("Should get count");
+        assert!(
+            column_result.is_ok(),
+            "Should be able to check if columns exist"
+        );
+        let col_count: i64 = column_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(col_count, 0, "Compensation columns should be dropped");
 
         // Clean up after test
@@ -469,10 +507,14 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'payroll_sync_history'".to_string(),
+                 AND table_name = 'payroll_sync_history'"
+                    .to_string(),
             ))
             .await;
-        assert!(table_check.is_ok() && table_check.unwrap().is_some(), "Table should exist after up");
+        assert!(
+            table_check.is_ok() && table_check.unwrap().is_some(),
+            "Table should exist after up"
+        );
 
         // Run down migration
         migration
@@ -486,11 +528,16 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'payroll_sync_history'".to_string(),
+                 AND table_name = 'payroll_sync_history'"
+                    .to_string(),
             ))
             .await;
         assert!(table_check.is_ok(), "Should be able to check table");
-        let count: i64 = table_check.unwrap().unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = table_check
+            .unwrap()
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 0, "Table should be dropped after down");
 
         // Clean up after test
@@ -520,20 +567,29 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'annual_salary'".to_string(),
+                 AND column_name = 'annual_salary'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok(), "annual_salary column should exist");
         let column = column_result.unwrap().unwrap();
-        let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
-        let is_nullable: String = column.try_get("", "is_nullable").expect("Should get is_nullable");
+        let data_type: String = column
+            .try_get("", "data_type")
+            .expect("Should get data_type");
+        let is_nullable: String = column
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
         let precision: Option<i32> = column.try_get("", "numeric_precision").ok();
         let scale: Option<i32> = column.try_get("", "numeric_scale").ok();
 
         assert_eq!(data_type, "numeric", "annual_salary should be numeric type");
         assert_eq!(is_nullable, "YES", "annual_salary should be nullable");
-        assert_eq!(precision, Some(12), "annual_salary should have precision 12");
+        assert_eq!(
+            precision,
+            Some(12),
+            "annual_salary should have precision 12"
+        );
         assert_eq!(scale, Some(2), "annual_salary should have scale 2");
 
         // Verify bonus_eligible has correct default
@@ -544,14 +600,25 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'bonus_eligible'".to_string(),
+                 AND column_name = 'bonus_eligible'"
+                    .to_string(),
             ))
             .await;
 
         assert!(default_result.is_ok(), "bonus_eligible column should exist");
-        let default_val: Option<String> = default_result.unwrap().unwrap().try_get("", "column_default").ok();
-        assert!(default_val.is_some(), "bonus_eligible should have a default");
-        assert!(default_val.unwrap().contains("false"), "bonus_eligible should default to false");
+        let default_val: Option<String> = default_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "column_default")
+            .ok();
+        assert!(
+            default_val.is_some(),
+            "bonus_eligible should have a default"
+        );
+        assert!(
+            default_val.unwrap().contains("false"),
+            "bonus_eligible should default to false"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -580,17 +647,24 @@ mod tests {
                  (SELECT ordinal_position FROM information_schema.columns
                   WHERE table_schema = 'hr_public'
                   AND table_name = 'payroll_sync_history'
-                  AND column_name = 'sync_direction')) as comment".to_string(),
+                  AND column_name = 'sync_direction')) as comment"
+                    .to_string(),
             ))
             .await;
 
-        assert!(comment_result.is_ok(), "Should be able to query column comments");
+        assert!(
+            comment_result.is_ok(),
+            "Should be able to query column comments"
+        );
         let comment_info = comment_result.unwrap();
         assert!(comment_info.is_some(), "Should have comment information");
 
         let comment: Option<String> = comment_info.unwrap().try_get("", "comment").ok();
         assert!(comment.is_some(), "sync_direction should have a comment");
-        assert!(comment.unwrap().contains("Direction of sync"), "Comment should describe the column");
+        assert!(
+            comment.unwrap().contains("Direction of sync"),
+            "Comment should describe the column"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;

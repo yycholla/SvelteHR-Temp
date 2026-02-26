@@ -79,9 +79,21 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()".to_string()),
                     )
-                    .col(ColumnDef::new(IntuitConnections::RealmId).string().not_null())
-                    .col(ColumnDef::new(IntuitConnections::AccessToken).text().not_null())
-                    .col(ColumnDef::new(IntuitConnections::RefreshToken).text().not_null())
+                    .col(
+                        ColumnDef::new(IntuitConnections::RealmId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(IntuitConnections::AccessToken)
+                            .text()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(IntuitConnections::RefreshToken)
+                            .text()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(IntuitConnections::TokenExpiresAt)
                             .timestamp_with_time_zone()
@@ -159,7 +171,10 @@ impl MigrationTrait for Migration {
                     // Foreign key: SET NULL on user deletion to preserve audit history
                     .foreign_key(
                         ForeignKey::create()
-                            .from((Schema::HrPublic, IntuitSyncLog::Table), IntuitSyncLog::UserId)
+                            .from(
+                                (Schema::HrPublic, IntuitSyncLog::Table),
+                                IntuitSyncLog::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::SetNull),
                     )
@@ -203,24 +218,17 @@ impl MigrationTrait for Migration {
                 Table::drop()
                     .table((Schema::HrPublic, IntuitSyncLog::Table))
                     .if_exists()
-                    .to_owned()
+                    .to_owned(),
             )
             .await?;
 
         // Drop index before dropping column
-        MigrationHelpers::drop_index_if_exists(
-            manager,
-            "hr_public.idx_users_intuit_employee_id",
-        )
-        .await?;
+        MigrationHelpers::drop_index_if_exists(manager, "hr_public.idx_users_intuit_employee_id")
+            .await?;
 
         // Drop intuit_employee_id column from users table
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "intuit_employee_id",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "intuit_employee_id")
+            .await?;
 
         // Drop intuit_connections table (no dependencies)
         manager
@@ -228,7 +236,7 @@ impl MigrationTrait for Migration {
                 Table::drop()
                     .table((Schema::HrPublic, IntuitConnections::Table))
                     .if_exists()
-                    .to_owned()
+                    .to_owned(),
             )
             .await?;
 

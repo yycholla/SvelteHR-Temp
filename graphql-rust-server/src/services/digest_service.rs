@@ -3,15 +3,15 @@
 //! Generates and sends automated email summaries of sync activity, conflicts, and system health
 
 use crate::models::{
-    email_digest_log, email_digests, intuit_sync_log, reconciliation_reports,
-    sync_health_metrics, user,
+    email_digest_log, email_digests, intuit_sync_log, reconciliation_reports, sync_health_metrics,
+    user,
 };
 use crate::services::email_service::{EmailService, EmployeeInfo};
 use anyhow::Result;
 use chrono::{DateTime, Datelike, Duration, Utc};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, Set,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -59,7 +59,10 @@ impl DigestService {
         }
     }
 
-    pub fn with_email_service(db: Arc<DatabaseConnection>, email_service: Arc<EmailService>) -> Self {
+    pub fn with_email_service(
+        db: Arc<DatabaseConnection>,
+        email_service: Arc<EmailService>,
+    ) -> Self {
         Self {
             db,
             email_service: Some(email_service),
@@ -100,7 +103,8 @@ impl DigestService {
                 .await?;
 
             content.total_syncs = sync_logs.len() as i32;
-            content.successful_syncs = sync_logs.iter().filter(|s| s.status == "success").count() as i32;
+            content.successful_syncs =
+                sync_logs.iter().filter(|s| s.status == "success").count() as i32;
             content.failed_syncs = sync_logs.iter().filter(|s| s.status == "failed").count() as i32;
 
             // Calculate average sync duration
@@ -123,7 +127,8 @@ impl DigestService {
                 .all(&*self.db)
                 .await?;
 
-            content.conflicts_detected = conflict_reports.iter().map(|r| r.total_discrepancies).sum();
+            content.conflicts_detected =
+                conflict_reports.iter().map(|r| r.total_discrepancies).sum();
 
             // Count resolved conflicts (those with completed status)
             content.conflicts_resolved = conflict_reports
@@ -209,11 +214,7 @@ impl DigestService {
         );
 
         // Create email subject
-        let subject = format!(
-            "{} - {} Digest",
-            digest_name,
-            period_label
-        );
+        let subject = format!("{} - {} Digest", digest_name, period_label);
 
         let (success, error_message) = if let Some(email_service) = &self.email_service {
             // Create email data
@@ -237,7 +238,10 @@ impl DigestService {
             );
 
             // Send the email
-            match email_service.send_digest(recipients.clone(), subject, email_data).await {
+            match email_service
+                .send_digest(recipients.clone(), subject, email_data)
+                .await
+            {
                 Ok(send_result) => {
                     if send_result.failed_count == 0 {
                         tracing::info!(
@@ -320,10 +324,7 @@ impl DigestService {
     }
 
     /// Get digest configuration by ID
-    pub async fn get_digest(
-        &self,
-        digest_id: Uuid,
-    ) -> Result<Option<email_digests::Model>> {
+    pub async fn get_digest(&self, digest_id: Uuid) -> Result<Option<email_digests::Model>> {
         Ok(email_digests::Entity::find_by_id(digest_id)
             .one(&*self.db)
             .await?)
@@ -347,7 +348,7 @@ impl DigestService {
             .filter(
                 email_digests::Column::NextSendAt
                     .lte(now)
-                    .or(email_digests::Column::NextSendAt.is_null())
+                    .or(email_digests::Column::NextSendAt.is_null()),
             )
             .all(&*self.db)
             .await?)
@@ -381,7 +382,9 @@ impl DigestService {
                 // Daily at 9 AM - next occurrence
                 let mut next = after.date_naive().and_hms_opt(9, 0, 0)?;
                 if after.time() >= chrono::NaiveTime::from_hms_opt(9, 0, 0)? {
-                    next = (after + Duration::days(1)).date_naive().and_hms_opt(9, 0, 0)?;
+                    next = (after + Duration::days(1))
+                        .date_naive()
+                        .and_hms_opt(9, 0, 0)?;
                 }
                 Some(DateTime::from_naive_utc_and_offset(next, Utc))
             }
@@ -406,8 +409,7 @@ impl DigestService {
             "0 9 1 * *" => {
                 // Monthly on 1st at 9 AM
                 let next_month = if after.day() >= 1 {
-                    (after + Duration::days(32)).date_naive()
-                        .with_day(1)?
+                    (after + Duration::days(32)).date_naive().with_day(1)?
                 } else {
                     after.date_naive().with_day(1)?
                 };
@@ -508,12 +510,10 @@ mod tests {
             failed_syncs: 2,
             conflicts_detected: 5,
             conflicts_resolved: 3,
-            new_employees: vec![
-                EmployeeInfo {
-                    name: "John Doe".to_string(),
-                    email: "john@example.com".to_string(),
-                },
-            ],
+            new_employees: vec![EmployeeInfo {
+                name: "John Doe".to_string(),
+                email: "john@example.com".to_string(),
+            }],
             updated_employees: vec![],
             data_quality_score: 95.5,
             uptime_percentage: 99.9,

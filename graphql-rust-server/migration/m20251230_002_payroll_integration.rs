@@ -102,44 +102,42 @@ impl MigrationTrait for Migration {
                     .add_column_if_not_exists(
                         ColumnDef::new(Users::CompensationType)
                             .custom(Alias::new("hr_public.compensation_type"))
-                            .null()
+                            .null(),
                     )
                     // Annual salary for SALARY compensation type (validated by check constraint)
                     .add_column_if_not_exists(
                         ColumnDef::new(Users::AnnualSalary)
                             .decimal_len(12, 2)
-                            .null()
+                            .null(),
                     )
                     // Hourly rate for HOURLY compensation type (validated by check constraint)
                     .add_column_if_not_exists(
-                        ColumnDef::new(Users::HourlyRate)
-                            .decimal_len(8, 2)
-                            .null()
+                        ColumnDef::new(Users::HourlyRate).decimal_len(8, 2).null(),
                     )
                     // Pay schedule (references enum created above)
                     .add_column_if_not_exists(
                         ColumnDef::new(Users::PaySchedule)
                             .custom(Alias::new("hr_public.pay_schedule"))
-                            .null()
+                            .null(),
                     )
                     // QuickBooks payroll item ID (external system integration)
                     .add_column_if_not_exists(
                         ColumnDef::new(Users::QuickbooksPayrollItemId)
                             .string_len(255)
-                            .null()
+                            .null(),
                     )
                     // Commission rate (percentage) for COMMISSION compensation type (validated by check constraint)
                     .add_column_if_not_exists(
                         ColumnDef::new(Users::CommissionRate)
                             .decimal_len(5, 2)
-                            .null()
+                            .null(),
                     )
                     // Bonus eligibility flag (defaults to false)
                     .add_column_if_not_exists(
                         ColumnDef::new(Users::BonusEligible)
                             .boolean()
                             .default(false)
-                            .not_null()
+                            .not_null(),
                     )
                     .to_owned(),
             )
@@ -239,7 +237,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_payroll_sync_history_user_id")
-                    .from((Schema::HrPublic, PayrollSyncHistory::Table), PayrollSyncHistory::UserId)
+                    .from(
+                        (Schema::HrPublic, PayrollSyncHistory::Table),
+                        PayrollSyncHistory::UserId,
+                    )
                     .to((Schema::HrPublic, Users::Table), Users::Id)
                     .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),
@@ -252,7 +253,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_payroll_sync_history_changed_by")
-                    .from((Schema::HrPublic, PayrollSyncHistory::Table), PayrollSyncHistory::ChangedBy)
+                    .from(
+                        (Schema::HrPublic, PayrollSyncHistory::Table),
+                        PayrollSyncHistory::ChangedBy,
+                    )
                     .to((Schema::HrPublic, Users::Table), Users::Id)
                     .on_delete(ForeignKeyAction::SetNull)
                     .to_owned(),
@@ -326,7 +330,7 @@ impl MigrationTrait for Migration {
                     CHECK (hourly_rate IS NULL OR (hourly_rate >= 0 AND hourly_rate <= 1000));
                 EXCEPTION
                     WHEN duplicate_object THEN null;
-                END $$;"
+                END $$;",
             )
             .await?;
 
@@ -354,21 +358,21 @@ impl MigrationTrait for Migration {
         manager
             .get_connection()
             .execute_unprepared(
-                "ALTER TABLE hr_public.users DROP CONSTRAINT IF EXISTS check_commission_rate_range"
+                "ALTER TABLE hr_public.users DROP CONSTRAINT IF EXISTS check_commission_rate_range",
             )
             .await?;
 
         manager
             .get_connection()
             .execute_unprepared(
-                "ALTER TABLE hr_public.users DROP CONSTRAINT IF EXISTS check_hourly_rate_range"
+                "ALTER TABLE hr_public.users DROP CONSTRAINT IF EXISTS check_hourly_rate_range",
             )
             .await?;
 
         manager
             .get_connection()
             .execute_unprepared(
-                "ALTER TABLE hr_public.users DROP CONSTRAINT IF EXISTS check_annual_salary_range"
+                "ALTER TABLE hr_public.users DROP CONSTRAINT IF EXISTS check_annual_salary_range",
             )
             .await?;
 

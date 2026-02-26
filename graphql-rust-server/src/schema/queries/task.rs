@@ -1,13 +1,17 @@
 use async_graphql::{Context, Object, Result};
-use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use uuid::Uuid;
 
 use crate::{
-    auth::{UserContext, RlsFilterable},
+    auth::{RlsFilterable, UserContext},
     database::get_db_from_context,
     models::{
-        task::{TaskStatus, TaskPriority, Model as Task, Entity as TaskEntity, Column as TaskColumn},
-        tasks::task_type::{Model as TaskTypeModel, Entity as TaskTypeEntity, Column as TaskTypeColumn},
+        task::{
+            Column as TaskColumn, Entity as TaskEntity, Model as Task, TaskPriority, TaskStatus,
+        },
+        tasks::task_type::{
+            Column as TaskTypeColumn, Entity as TaskTypeEntity, Model as TaskTypeModel,
+        },
     },
 };
 
@@ -45,11 +49,11 @@ impl TaskQueries {
         let offset = offset.unwrap_or(0).max(0);
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
-        let mut query = TaskEntity::find()
-            .filter(TaskColumn::DeletedAt.is_null());
+        let mut query = TaskEntity::find().filter(TaskColumn::DeletedAt.is_null());
 
         // Apply RLS filter FIRST (before user-provided filters)
         query = TaskEntity::apply_rls(query, user_context);
@@ -115,8 +119,9 @@ impl TaskQueries {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Build query with RLS filter
         let mut query = TaskEntity::find()
@@ -144,10 +149,7 @@ impl TaskQueries {
             query = query.filter(TaskTypeColumn::IsActive.eq(active));
         }
 
-        let task_types = query
-            .order_by_asc(TaskTypeColumn::Name)
-            .all(&db)
-            .await?;
+        let task_types = query.order_by_asc(TaskTypeColumn::Name).all(&db).await?;
 
         Ok(task_types)
     }
@@ -155,10 +157,7 @@ impl TaskQueries {
     /// Get a single task type by ID
     async fn task_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<TaskTypeModel>> {
         let db = get_db_from_context(ctx)?;
-        let task_type = TaskTypeEntity::find_by_id(id)
-            .one(&db)
-            .await?;
+        let task_type = TaskTypeEntity::find_by_id(id).one(&db).await?;
         Ok(task_type)
     }
 }
-

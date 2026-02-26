@@ -1,30 +1,32 @@
 <script lang="ts">
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
 	import {
-		AlertCircle,
-		CheckCircle2,
-		RefreshCw,
-		ArrowLeft,
-		Clock,
 		Activity,
-		Zap,
-		XCircle,
+		AlertCircle,
+		ArrowLeft,
+		CheckCircle2,
+		Clock,
+		RefreshCw,
 		RotateCw,
-		Webhook
+		Webhook,
+		XCircle,
+		Zap
 	} from '@lucide/svelte';
-	import { invalidate, goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { goto, invalidate } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
 	import WebhookSyncModal from '$lib/components/webhooks/WebhookSyncModal.svelte';
+
+	interface WebhookFilters {
+		status?: string;
+		eventType?: string;
+	}
 
 	let { data, form } = $props();
 	let webhookStatus = $derived(data.webhookStatus);
 	let events = $derived(data.events);
 	let statistics = $derived(data.statistics);
 	let selectedEvent = $derived(data.selectedEvent);
-	let filters = $derived(data.filters || {});
+	let filters = $derived((data.filters || {}) as WebhookFilters);
 
 	let refreshing = $state(false);
 	let showRegisterDialog = $state(false);
@@ -34,8 +36,8 @@
 	let currentBatchId = $state('');
 
 	// Derived filter values from URL params
-	let selectedStatus = $derived((filters as any).status || 'all');
-	let selectedEventType = $derived((filters as any).eventType || 'all');
+	let selectedStatus = $derived(filters.status || 'all');
+	let selectedEventType = $derived(filters.eventType || 'all');
 
 	// Event types for filter
 	const eventTypes = [

@@ -12,8 +12,8 @@ pub const SEEDING_ORDER: &[&str] = &[
     "role_permissions",
     "leave_types",
     // Phase 2: Core entities
-    "departments", // Created with manager_id=NULL
-    "users",       // Assigned to departments
+    "departments",                // Created with manager_id=NULL
+    "users",                      // Assigned to departments
     "department_managers_update", // Resolve circular dependency
     "user_role_assignments",
     // Phase 3: Extended entities

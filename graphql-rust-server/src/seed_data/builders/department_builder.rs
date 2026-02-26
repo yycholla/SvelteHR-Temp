@@ -15,13 +15,25 @@ use crate::seed_data::Result;
 
 /// Fixed departments for the organization
 const DEPARTMENTS: &[(&str, &str)] = &[
-    ("Engineering", "Software development and technical infrastructure"),
-    ("Human Resources", "Employee relations, recruitment, and compliance"),
+    (
+        "Engineering",
+        "Software development and technical infrastructure",
+    ),
+    (
+        "Human Resources",
+        "Employee relations, recruitment, and compliance",
+    ),
     ("Finance", "Financial planning, accounting, and payroll"),
-    ("Marketing", "Brand management, campaigns, and market research"),
+    (
+        "Marketing",
+        "Brand management, campaigns, and market research",
+    ),
     ("Sales", "Customer acquisition and revenue generation"),
     ("Operations", "Business operations and process optimization"),
-    ("Product Management", "Product strategy and roadmap planning"),
+    (
+        "Product Management",
+        "Product strategy and roadmap planning",
+    ),
     ("Customer Support", "Customer service and technical support"),
     ("Legal", "Legal compliance and contract management"),
     ("IT", "Information technology infrastructure and support"),

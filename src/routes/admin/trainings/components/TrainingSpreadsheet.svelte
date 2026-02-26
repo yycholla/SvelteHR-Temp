@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Edit, Trash2, GraduationCap, Users, Calendar } from '@lucide/svelte';
+	import { Edit, GraduationCap, Trash2, Users } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { Badge } from '$lib/components/ui/badge';
 	import { SpreadsheetTable } from '$lib/components/ui/spreadsheet';
 	import type {
-		SpreadsheetConfig,
 		ColumnDefinition,
-		RowEdit
+		RowEdit,
+		SpreadsheetConfig
 	} from '$lib/components/ui/spreadsheet';
 
 	interface Training {

@@ -18,16 +18,8 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()".to_string()),
                     )
-                    .col(
-                        ColumnDef::new(RefreshTokens::UserId)
-                            .uuid()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(RefreshTokens::TokenHash)
-                            .text()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(RefreshTokens::UserId).uuid().not_null())
+                    .col(ColumnDef::new(RefreshTokens::TokenHash).text().not_null())
                     .col(
                         ColumnDef::new(RefreshTokens::TokenFamilyId)
                             .uuid()
@@ -54,20 +46,15 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(RefreshTokens::DeviceInfo)
-                            .text()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(RefreshTokens::IpAddress)
-                            .string()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(RefreshTokens::DeviceInfo).text().null())
+                    .col(ColumnDef::new(RefreshTokens::IpAddress).string().null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_refresh_tokens_user_id")
-                            .from((Schema::HrPublic, RefreshTokens::Table), RefreshTokens::UserId)
+                            .from(
+                                (Schema::HrPublic, RefreshTokens::Table),
+                                RefreshTokens::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -131,7 +118,11 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, RefreshTokens::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, RefreshTokens::Table))
+                    .to_owned(),
+            )
             .await
     }
 }

@@ -1,24 +1,18 @@
 <script lang="ts">
-	import { logger } from '$lib/utils/logger';
-	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { browser } from '$app/environment';
 	import {
 		ArrowLeft,
 		Calendar,
-		FileText,
-		UserPlus,
-		Building,
-		UserMinus,
-		Search,
 		Edit,
+		FileText,
+		Search,
+		UserMinus,
+		UserPlus,
 		Users
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Separator } from '$lib/components/ui/separator';
-	import { Label } from '$lib/components/ui/label';
 	import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { Calendar as CalendarComponent } from '$lib/components/ui/calendar';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
@@ -26,10 +20,64 @@
 	import { cn } from '$lib/utils';
 	import { formatDistanceToNow } from 'date-fns';
 
-	const { data } = $props();
+	interface OnboardingModuleDetail {
+		id: string;
+		title: string;
+		description?: string | null;
+		isActive: boolean;
+		createdAt: string;
+		tags?: string[] | null;
+	}
+
+	interface OnboardingAssignmentUser {
+		displayName?: string | null;
+		email?: string | null;
+	}
+
+	interface OnboardingAssignment {
+		id: string;
+		user?: OnboardingAssignmentUser | null;
+		dueDate?: string | null;
+		completedAt?: string | null;
+	}
+
+	interface OnboardingContentBlock {
+		id: string;
+		title: string;
+		type: string;
+		sequenceOrder: number;
+	}
+
+	interface UserOptionSource {
+		id: string;
+		email?: string | null;
+		displayName?: string | null;
+		display_name?: string | null;
+		firstName?: string | null;
+		first_name?: string | null;
+		lastName?: string | null;
+		last_name?: string | null;
+	}
+
+	interface DepartmentOptionSource {
+		id: string;
+		name: string;
+	}
+
+	interface OnboardingDetailPageData {
+		module: OnboardingModuleDetail;
+		assignments: OnboardingAssignment[];
+		contentBlocks: OnboardingContentBlock[];
+		allUsers: UserOptionSource[];
+		departments: DepartmentOptionSource[];
+	}
+
+	const { data }: { data: OnboardingDetailPageData } = $props();
 
 	// Stats
-	const completedAssignments = $derived(data.assignments.filter((a: any) => a.completedAt).length);
+	const completedAssignments = $derived(
+		data.assignments.filter((assignment) => assignment.completedAt).length
+	);
 	const totalAssignments = $derived(data.assignments.length);
 	const completionRate = $derived(
 		totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0
@@ -47,7 +95,7 @@
 	const df = new DateFormatter('en-US', { dateStyle: 'long' });
 
 	// Transform allUsers for MultiSearchInput options
-	const userOptions = data.allUsers.map((user: any) => {
+	const userOptions = data.allUsers.map((user) => {
 		const displayName = user.displayName || user.display_name || '';
 		const firstName = user.firstName || user.first_name || '';
 		const lastName = user.lastName || user.last_name || '';
@@ -59,7 +107,7 @@
 	});
 
 	// Transform departments for Select options
-	const departmentOptions = data.departments.map((dept: any) => ({
+	const departmentOptions = data.departments.map((dept) => ({
 		value: dept.id,
 		label: dept.name
 	}));
@@ -97,8 +145,7 @@
 			if (successCount > 0) alert(`Successfully assigned to ${successCount} targets.`);
 			if (failCount > 0) alert(`Failed to assign to ${failCount} targets.`);
 			goto($page.url.pathname, { invalidateAll: true });
-		} catch (error) {
-			console.error(error);
+		} catch {
 			alert('An error occurred during assignment');
 		} finally {
 			isAssigning = false;
@@ -117,7 +164,7 @@
 			const response = await fetch(`?/unassign`, { method: 'POST', body: formData });
 			if (response.ok) goto($page.url.pathname, { invalidateAll: true });
 			else alert(`Failed to unassign user`);
-		} catch (error) {
+		} catch {
 			alert('An error occurred during unassignment');
 		} finally {
 			isAssigning = false;
@@ -127,7 +174,7 @@
 	const filteredAssignments = $derived.by(() => {
 		if (searchTerms.length === 0) return data.assignments;
 		const lowerSearchTerms = searchTerms.map((term) => term.toLowerCase());
-		return data.assignments.filter((assignment: any) => {
+		return data.assignments.filter((assignment) => {
 			const displayName = (assignment.user?.displayName || '').toLowerCase();
 			const email = (assignment.user?.email || '').toLowerCase();
 			return lowerSearchTerms.some((term) => displayName.includes(term) || email.includes(term));
@@ -208,7 +255,7 @@
 						</div>
 						{#if data.module.tags && data.module.tags.length > 0}
 							<div class="flex flex-wrap gap-1 pt-1">
-								{#each data.module.tags as tag}
+								{#each data.module.tags as tag (tag)}
 									<Badge variant="outline" class="text-[10px] h-5 px-1">{tag}</Badge>
 								{/each}
 							</div>
@@ -228,7 +275,7 @@
 						{#if data.contentBlocks.length === 0}
 							<div class="p-3 text-center text-xs text-muted-foreground">No content yet.</div>
 						{:else}
-							{#each data.contentBlocks as block}
+							{#each data.contentBlocks as block (block.id)}
 								<div class="p-2 flex items-center gap-2 text-xs hover:bg-muted/50">
 									<span class="font-mono text-muted-foreground w-4 text-center"
 										>{block.sequenceOrder + 1}</span

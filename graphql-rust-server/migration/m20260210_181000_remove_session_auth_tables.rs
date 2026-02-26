@@ -52,8 +52,17 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(Sessions::SessionToken).string().not_null().unique_key())
-                    .col(ColumnDef::new(Sessions::ExpiresAt).timestamp_with_time_zone().not_null())
+                    .col(
+                        ColumnDef::new(Sessions::SessionToken)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Sessions::ExpiresAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(Sessions::CreatedAt)
                             .timestamp_with_time_zone()
@@ -94,16 +103,22 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_user_sessions_user_id")
-                            .from((Schema::HrPublic, UserSessions::Table), UserSessions::UserId)
+                            .from(
+                                (Schema::HrPublic, UserSessions::Table),
+                                UserSessions::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_user_sessions_session_id")
-                            .from((Schema::HrPublic, UserSessions::Table), UserSessions::SessionId)
+                            .from(
+                                (Schema::HrPublic, UserSessions::Table),
+                                UserSessions::SessionId,
+                            )
                             .to((Schema::HrPublic, Sessions::Table), Sessions::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )

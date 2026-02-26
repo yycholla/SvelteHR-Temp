@@ -2,7 +2,7 @@
  * Field Alignment Logic
  * Helper functions for aligning fields across GraphQL, Database, and API layers
  */
-import type { FieldAlignment, FieldReference, DatabaseColumn, ApiField } from '../types/models.js';
+import type { ApiField, DatabaseColumn, FieldAlignment, FieldReference } from '../types/models.js';
 import { AlignmentStatus } from '../types/enums.js';
 import { TypeComparator } from './type-comparator.js';
 /**

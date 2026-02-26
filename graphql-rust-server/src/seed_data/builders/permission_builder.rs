@@ -14,58 +14,76 @@ use crate::seed_data::Result;
 const PERMISSIONS: &[(&str, &str, &str)] = &[
     // Employee permissions
     ("employees:read", "employees", "View employee information"),
-    ("employees:write", "employees", "Create and update employees"),
+    (
+        "employees:write",
+        "employees",
+        "Create and update employees",
+    ),
     ("employees:delete", "employees", "Delete employees"),
-
     // Department permissions
     ("departments:read", "departments", "View departments"),
-    ("departments:write", "departments", "Create and update departments"),
+    (
+        "departments:write",
+        "departments",
+        "Create and update departments",
+    ),
     ("departments:delete", "departments", "Delete departments"),
-
     // Role permissions
     ("roles:read", "roles", "View roles"),
     ("roles:write", "roles", "Create and update roles"),
     ("roles:delete", "roles", "Delete roles"),
-
     // Permission permissions
     ("permissions:read", "permissions", "View permissions"),
-    ("permissions:write", "permissions", "Create and update permissions"),
+    (
+        "permissions:write",
+        "permissions",
+        "Create and update permissions",
+    ),
     ("permissions:delete", "permissions", "Delete permissions"),
-
     // Leave permissions
     ("leave:read", "leave", "View leave requests"),
     ("leave:write", "leave", "Create and update leave requests"),
     ("leave:approve", "leave", "Approve or reject leave requests"),
     ("leave:delete", "leave", "Delete leave requests"),
-
     // Event permissions
     ("events:read", "events", "View events"),
     ("events:write", "events", "Create and update events"),
     ("events:delete", "events", "Delete events"),
-
     // Document permissions
     ("documents:read", "documents", "View documents"),
-    ("documents:write", "documents", "Upload and update documents"),
+    (
+        "documents:write",
+        "documents",
+        "Upload and update documents",
+    ),
     ("documents:delete", "documents", "Delete documents"),
-
     // Performance review permissions
     ("reviews:read", "reviews", "View performance reviews"),
-    ("reviews:write", "reviews", "Create and update performance reviews"),
+    (
+        "reviews:write",
+        "reviews",
+        "Create and update performance reviews",
+    ),
     ("reviews:delete", "reviews", "Delete performance reviews"),
-
     // Task permissions
     ("tasks:read", "tasks", "View tasks"),
     ("tasks:write", "tasks", "Create and update tasks"),
     ("tasks:delete", "tasks", "Delete tasks"),
-
     // Time entry permissions
     ("time:read", "time", "View time entries"),
     ("time:write", "time", "Create and update time entries"),
     ("time:delete", "time", "Delete time entries"),
-
     // System settings permissions
-    ("system_settings:read", "system_settings", "View system settings"),
-    ("system_settings:write", "system_settings", "Update system settings"),
+    (
+        "system_settings:read",
+        "system_settings",
+        "View system settings",
+    ),
+    (
+        "system_settings:write",
+        "system_settings",
+        "Update system settings",
+    ),
 ];
 
 /// Seed permissions into the database
@@ -119,7 +137,9 @@ pub async fn seed_permissions(
             }
             Err(e) => {
                 result.failed_count += 1;
-                result.errors.push(format!("Failed to create permission {}: {}", name, e));
+                result
+                    .errors
+                    .push(format!("Failed to create permission {}: {}", name, e));
                 tracing::error!("Failed to create permission {}: {}", name, e);
             }
         }

@@ -1,10 +1,7 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { logger } from '$lib/utils/logger';
 	import { invalidateAll } from '$app/navigation';
-	import { onDestroy, onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import { ArrowLeft, Loader2 } from '@lucide/svelte';
+	import { onMount } from 'svelte';
+	import { ArrowLeft } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 
@@ -12,13 +9,41 @@
 	import BlockWorkspace from '$lib/components/onboarding/BlockWorkspace.svelte';
 	import BlockProperties from './components/BlockProperties.svelte';
 
-	const { data, form } = $props();
+	type BlockType = 'TEXT' | 'DOCUMENT' | 'FORM' | 'FILE_UPLOAD' | 'SIGNATURE';
+
+	interface OnboardingContentBlock {
+		id: string;
+		title: string;
+		type: BlockType;
+		sequenceOrder: number;
+		isRequired: boolean;
+		textContent?: string | null;
+		documentUrl?: string | null;
+		formTemplateId?: string | null;
+		inlineFormElements?: unknown[] | null;
+	}
+
+	interface FormTemplate {
+		id: string;
+		name: string;
+	}
+
+	interface OnboardingModule {
+		id: string;
+		title: string;
+	}
+
+	interface OnboardingContentPageData {
+		contents: OnboardingContentBlock[];
+		module?: OnboardingModule | null;
+		formTemplates: FormTemplate[];
+	}
+
+	const { data }: { data: OnboardingContentPageData } = $props();
 
 	// State
-	let items = $state(
-		data?.contents
-			? [...data.contents].sort((a: any, b: any) => a.sequenceOrder - b.sequenceOrder)
-			: []
+	let items = $state<OnboardingContentBlock[]>(
+		data?.contents ? [...data.contents].sort((a, b) => a.sequenceOrder - b.sequenceOrder) : []
 	);
 
 	let selectedId = $state<string | null>(null);
@@ -37,9 +62,7 @@
 	// Keep items in sync with server data
 	$effect(() => {
 		if (data?.contents) {
-			const newItems = [...data.contents].sort(
-				(a: any, b: any) => a.sequenceOrder - b.sequenceOrder
-			);
+			const newItems = [...data.contents].sort((a, b) => a.sequenceOrder - b.sequenceOrder);
 			if (newItems.length !== items.length) {
 				items = newItems;
 				if (!selectedId && items.length > 0) selectedId = items[0].id;
@@ -56,7 +79,7 @@
 		formData.append('isRequired', 'false');
 
 		isSaving = true;
-		const response = await fetch('?/create', { method: 'POST', body: formData });
+		await fetch('?/create', { method: 'POST', body: formData });
 		await invalidateAll();
 		isSaving = false;
 	}
@@ -76,11 +99,11 @@
 		}
 	}
 
-	async function handleReorder(newItems: any[]) {
+	async function handleReorder(newItems: OnboardingContentBlock[]) {
 		items = newItems;
 	}
 
-	function handleUpdateBlock(updatedBlock: any) {
+	function handleUpdateBlock(updatedBlock: OnboardingContentBlock) {
 		const index = items.findIndex((i) => i.id === updatedBlock.id);
 		if (index !== -1) {
 			const newItems = [...items];
@@ -115,7 +138,7 @@
 		isSaving = false;
 	}
 
-	function handleSelect(item: any) {
+	function handleSelect(item: OnboardingContentBlock) {
 		selectedId = item.id;
 		sidebarMode = 'properties'; // Drill down on select
 	}

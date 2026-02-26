@@ -201,7 +201,11 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(OnboardingForms::OnboardingModuleId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(OnboardingForms::OnboardingModuleId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(OnboardingForms::Title).string().not_null())
                     .col(ColumnDef::new(OnboardingForms::Description).text())
                     .col(
@@ -231,8 +235,14 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_onboarding_forms_module_id")
-                            .from((Schema::HrPublic, OnboardingForms::Table), OnboardingForms::OnboardingModuleId)
-                            .to((Schema::HrPublic, Alias::new("onboarding_modules")), Alias::new("id"))
+                            .from(
+                                (Schema::HrPublic, OnboardingForms::Table),
+                                OnboardingForms::OnboardingModuleId,
+                            )
+                            .to(
+                                (Schema::HrPublic, Alias::new("onboarding_modules")),
+                                Alias::new("id"),
+                            )
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -255,7 +265,11 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(OnboardingFormBlocks::OnboardingFormId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(OnboardingFormBlocks::OnboardingFormId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(OnboardingFormBlocks::Title).string())
                     .col(
                         ColumnDef::new(OnboardingFormBlocks::Type)
@@ -290,15 +304,27 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_form_blocks_form_id")
-                            .from((Schema::HrPublic, OnboardingFormBlocks::Table), OnboardingFormBlocks::OnboardingFormId)
-                            .to((Schema::HrPublic, OnboardingForms::Table), OnboardingForms::Id)
+                            .from(
+                                (Schema::HrPublic, OnboardingFormBlocks::Table),
+                                OnboardingFormBlocks::OnboardingFormId,
+                            )
+                            .to(
+                                (Schema::HrPublic, OnboardingForms::Table),
+                                OnboardingForms::Id,
+                            )
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_form_blocks_template_id")
-                            .from((Schema::HrPublic, OnboardingFormBlocks::Table), OnboardingFormBlocks::FormTemplateId)
-                            .to((Schema::HrPublic, Alias::new("onboarding_form_templates")), Alias::new("id"))
+                            .from(
+                                (Schema::HrPublic, OnboardingFormBlocks::Table),
+                                OnboardingFormBlocks::FormTemplateId,
+                            )
+                            .to(
+                                (Schema::HrPublic, Alias::new("onboarding_form_templates")),
+                                Alias::new("id"),
+                            )
                             .on_delete(ForeignKeyAction::SetNull),
                     )
                     .to_owned(),
@@ -321,8 +347,16 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(OnboardingFormProgress::UserId).uuid().not_null())
-                    .col(ColumnDef::new(OnboardingFormProgress::OnboardingFormId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(OnboardingFormProgress::UserId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(OnboardingFormProgress::OnboardingFormId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(OnboardingFormProgress::Status)
                             .string()
@@ -330,9 +364,18 @@ impl MigrationTrait for Migration {
                             .default("NOT_STARTED"),
                     )
                     .col(ColumnDef::new(OnboardingFormProgress::FormData).json_binary())
-                    .col(ColumnDef::new(OnboardingFormProgress::StartedAt).timestamp_with_time_zone())
-                    .col(ColumnDef::new(OnboardingFormProgress::CompletedAt).timestamp_with_time_zone())
-                    .col(ColumnDef::new(OnboardingFormProgress::LastAccessedAt).timestamp_with_time_zone())
+                    .col(
+                        ColumnDef::new(OnboardingFormProgress::StartedAt)
+                            .timestamp_with_time_zone(),
+                    )
+                    .col(
+                        ColumnDef::new(OnboardingFormProgress::CompletedAt)
+                            .timestamp_with_time_zone(),
+                    )
+                    .col(
+                        ColumnDef::new(OnboardingFormProgress::LastAccessedAt)
+                            .timestamp_with_time_zone(),
+                    )
                     .col(
                         ColumnDef::new(OnboardingFormProgress::CreatedAt)
                             .timestamp_with_time_zone()
@@ -348,15 +391,24 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_form_progress_user_id")
-                            .from((Schema::HrPublic, OnboardingFormProgress::Table), OnboardingFormProgress::UserId)
+                            .from(
+                                (Schema::HrPublic, OnboardingFormProgress::Table),
+                                OnboardingFormProgress::UserId,
+                            )
                             .to((Schema::HrPublic, Alias::new("users")), Alias::new("id"))
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_form_progress_form_id")
-                            .from((Schema::HrPublic, OnboardingFormProgress::Table), OnboardingFormProgress::OnboardingFormId)
-                            .to((Schema::HrPublic, OnboardingForms::Table), OnboardingForms::Id)
+                            .from(
+                                (Schema::HrPublic, OnboardingFormProgress::Table),
+                                OnboardingFormProgress::OnboardingFormId,
+                            )
+                            .to(
+                                (Schema::HrPublic, OnboardingForms::Table),
+                                OnboardingForms::Id,
+                            )
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -493,7 +545,7 @@ impl MigrationTrait for Migration {
                 Table::drop()
                     .table((Schema::HrPublic, OnboardingFormProgress::Table))
                     .if_exists()
-                    .to_owned()
+                    .to_owned(),
             )
             .await?;
 
@@ -503,7 +555,7 @@ impl MigrationTrait for Migration {
                 Table::drop()
                     .table((Schema::HrPublic, OnboardingFormBlocks::Table))
                     .if_exists()
-                    .to_owned()
+                    .to_owned(),
             )
             .await?;
 
@@ -513,7 +565,7 @@ impl MigrationTrait for Migration {
                 Table::drop()
                     .table((Schema::HrPublic, OnboardingForms::Table))
                     .if_exists()
-                    .to_owned()
+                    .to_owned(),
             )
             .await?;
 

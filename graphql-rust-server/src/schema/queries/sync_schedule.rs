@@ -1,11 +1,11 @@
 use async_graphql::*;
-use sea_orm::*;
 use chrono::{DateTime, Utc};
+use sea_orm::*;
 use uuid::Uuid;
 
+use crate::auth::context::UserContext;
 use crate::models::{sync_schedule, sync_schedule_history};
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::auth::context::UserContext;
 
 #[derive(Default)]
 pub struct SyncScheduleQuery;
@@ -120,7 +120,10 @@ impl SyncScheduleQuery {
             })
             .collect();
 
-        Ok(SyncSchedulesResponse { schedules, total: total as i64 })
+        Ok(SyncSchedulesResponse {
+            schedules,
+            total: total as i64,
+        })
     }
 
     /// Get a specific sync schedule by ID
@@ -137,8 +140,8 @@ impl SyncScheduleQuery {
             .require(user_ctx, SyncPermission::ManageSyncSchedules)
             .await?;
 
-        let schedule_uuid = Uuid::parse_str(&schedule_id)
-            .map_err(|_| Error::new("Invalid schedule ID"))?;
+        let schedule_uuid =
+            Uuid::parse_str(&schedule_id).map_err(|_| Error::new("Invalid schedule ID"))?;
 
         let schedule = sync_schedule::Entity::find_by_id(schedule_uuid)
             .one(db)
@@ -179,8 +182,8 @@ impl SyncScheduleQuery {
             .require(user_ctx, SyncPermission::ManageSyncSchedules)
             .await?;
 
-        let schedule_uuid = Uuid::parse_str(&schedule_id)
-            .map_err(|_| Error::new("Invalid schedule ID"))?;
+        let schedule_uuid =
+            Uuid::parse_str(&schedule_id).map_err(|_| Error::new("Invalid schedule ID"))?;
 
         let mut query = sync_schedule_history::Entity::find()
             .filter(sync_schedule_history::Column::ScheduleId.eq(schedule_uuid))

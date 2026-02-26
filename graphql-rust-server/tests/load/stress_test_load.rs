@@ -9,7 +9,7 @@
 //! ```
 
 use hr_graphql_server::testing::load_testing::{
-    LoadTestConfig, LoadTestOperation, RoleDistribution, run_load_test,
+    run_load_test, LoadTestConfig, LoadTestOperation, RoleDistribution,
 };
 use std::time::Duration;
 
@@ -23,11 +23,8 @@ async fn test_high_concurrency_stress() {
         .with_ramp_up(Duration::from_secs(30)) // Slow ramp-up to observe degradation
         .with_role_distribution(RoleDistribution::realistic())
         .add_operation(
-            LoadTestOperation::new(
-                "simple_query",
-                "query { users(limit: 10) { id email } }",
-            )
-            .with_weight(1.0),
+            LoadTestOperation::new("simple_query", "query { users(limit: 10) { id email } }")
+                .with_weight(1.0),
         );
 
     let metrics = run_load_test(config)
@@ -120,11 +117,8 @@ async fn test_spike_stress() {
         .with_duration(Duration::from_secs(30))
         // No ramp-up - sudden spike
         .add_operation(
-            LoadTestOperation::new(
-                "spike_query",
-                "query { departments { id name } }",
-            )
-            .with_weight(1.0),
+            LoadTestOperation::new("spike_query", "query { departments { id name } }")
+                .with_weight(1.0),
         );
 
     let metrics = run_load_test(config)
@@ -228,11 +222,8 @@ async fn test_connection_pool_exhaustion() {
         .with_duration(Duration::from_secs(30))
         .with_ramp_up(Duration::from_secs(5))
         .add_operation(
-            LoadTestOperation::new(
-                "pool_query",
-                "query { users(limit: 1) { id } }",
-            )
-            .with_weight(1.0),
+            LoadTestOperation::new("pool_query", "query { users(limit: 1) { id } }")
+                .with_weight(1.0),
         );
 
     let metrics = run_load_test(config)

@@ -44,7 +44,33 @@
 	import { browser } from '$app/environment';
 	import { invalidate } from '$app/navigation';
 
-	let { data } = $props();
+	type MappingEntityType = 'Employee' | 'Department';
+	type MappingDirection = 'Pull' | 'Push' | 'Bidirectional';
+
+	interface FieldOption {
+		fieldName: string;
+		fieldType: string;
+		description: string;
+		isRequired: boolean;
+	}
+
+	interface FieldMapping {
+		id: string;
+		entityType: MappingEntityType;
+		localField: string;
+		quickbooksField: string;
+		direction: MappingDirection;
+		transformation: string | null;
+		isActive: boolean;
+	}
+
+	interface FieldMappingsPageData {
+		mappings: FieldMapping[];
+		total: number;
+		error?: string;
+	}
+
+	let { data }: { data: FieldMappingsPageData } = $props();
 
 	let mappings = $derived(data.mappings || []);
 	let total = $derived(data.total || 0);
@@ -53,7 +79,6 @@
 	let createDialogOpen = $state(false);
 	let editDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
-	let availableFieldsDialogOpen = $state(false);
 
 	// Form states
 	let selectedEntityType = $state('Employee');
@@ -66,9 +91,8 @@
 	let deletingMappingId = $state<string | null>(null);
 
 	// Available fields
-	let availableLocalFields = $state<any[]>([]);
-	let availableQuickbooksFields = $state<any[]>([]);
-	let loadingFields = $state(false);
+	let availableLocalFields = $state<FieldOption[]>([]);
+	let availableQuickbooksFields = $state<FieldOption[]>([]);
 
 	// UI states
 	let submitting = $state(false);
@@ -76,7 +100,7 @@
 	let success = $state<string | null>(null);
 
 	// Entity type filter
-	let entityTypeFilter = $state<string | null>(null);
+	let entityTypeFilter = $state<MappingEntityType | null>(null);
 
 	const entityTypes = [
 		{ value: 'Employee', label: 'Employee' },
@@ -87,24 +111,31 @@
 		{ value: 'Pull', label: 'Pull from QuickBooks', icon: ArrowLeft },
 		{ value: 'Push', label: 'Push to QuickBooks', icon: ArrowRight },
 		{ value: 'Bidirectional', label: 'Bidirectional Sync', icon: ArrowLeftRight }
-	];
+	] as const;
+
+	function parseEntityType(value: string): MappingEntityType {
+		return value === 'Department' ? 'Department' : 'Employee';
+	}
+
+	function parseDirection(value: string): MappingDirection {
+		return value === 'Pull' || value === 'Push' ? value : 'Bidirectional';
+	}
 
 	// Filter mappings by entity type
 	let filteredMappings = $derived(
-		entityTypeFilter ? mappings.filter((m: any) => m.entityType === entityTypeFilter) : mappings
+		entityTypeFilter ? mappings.filter((m) => m.entityType === entityTypeFilter) : mappings
 	);
 
 	// Calculated KPIs
-	let activeMappings = $derived(filteredMappings.filter((m: any) => m.isActive).length);
-	let inactiveMappings = $derived(filteredMappings.filter((m: any) => !m.isActive).length);
+	let activeMappings = $derived(filteredMappings.filter((m) => m.isActive).length);
+	let inactiveMappings = $derived(filteredMappings.filter((m) => !m.isActive).length);
 	let bidirectionalCount = $derived(
-		filteredMappings.filter((m: any) => m.direction === 'Bidirectional').length
+		filteredMappings.filter((m) => m.direction === 'Bidirectional').length
 	);
 
 	async function loadAvailableFields(entityType: string) {
 		if (!browser) return;
 
-		loadingFields = true;
 		try {
 			const client = createUrqlClient(fetch);
 			const result = await client.query(GET_AVAILABLE_FIELDS, { entityType }).toPromise();
@@ -116,10 +147,8 @@
 				availableLocalFields = data?.localFields || [];
 				availableQuickbooksFields = data?.quickbooksFields || [];
 			}
-		} catch (e: any) {
-			error = e.message || 'Failed to load available fields';
-		} finally {
-			loadingFields = false;
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Failed to load available fields';
 		}
 	}
 
@@ -129,7 +158,7 @@
 		loadAvailableFields(selectedEntityType);
 	}
 
-	function openEditDialog(mapping: any) {
+	function openEditDialog(mapping: FieldMapping) {
 		editingMappingId = mapping.id;
 		selectedEntityType = mapping.entityType;
 		selectedLocalField = mapping.localField;
@@ -194,8 +223,8 @@
 				resetForm();
 				await invalidate('app:field-mappings');
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while creating mapping';
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'An error occurred while creating mapping';
 		} finally {
 			submitting = false;
 		}
@@ -232,8 +261,8 @@
 				resetForm();
 				await invalidate('app:field-mappings');
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while updating mapping';
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'An error occurred while updating mapping';
 		} finally {
 			submitting = false;
 		}
@@ -264,8 +293,8 @@
 				deletingMappingId = null;
 				await invalidate('app:field-mappings');
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while deleting mapping';
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'An error occurred while deleting mapping';
 		} finally {
 			submitting = false;
 		}
@@ -385,9 +414,9 @@
 			<Label for="entityFilter" class="text-sm font-medium">Filter:</Label>
 			<Select
 				type="single"
-				value={entityTypeFilter as any}
-				onValueChange={(value: any) => {
-					entityTypeFilter = value === 'All' ? null : value;
+				value={entityTypeFilter ?? 'All'}
+				onValueChange={(value: string) => {
+					entityTypeFilter = value === 'All' ? null : parseEntityType(value);
 				}}
 			>
 				<SelectTrigger id="entityFilter" class="w-48">
@@ -498,12 +527,12 @@
 				<Label for="create-entity-type">Entity Type</Label>
 				<Select
 					type="single"
-					value={selectedEntityType as any}
-					onValueChange={(value: any) => {
-						selectedEntityType = value;
+					value={selectedEntityType}
+					onValueChange={(value: string) => {
+						selectedEntityType = parseEntityType(value);
 						selectedLocalField = '';
 						selectedQuickbooksField = '';
-						loadAvailableFields(value);
+						loadAvailableFields(selectedEntityType);
 					}}
 				>
 					<SelectTrigger id="create-entity-type">
@@ -522,8 +551,8 @@
 					<Label for="create-local-field">Local Field</Label>
 					<Select
 						type="single"
-						value={selectedLocalField as any}
-						onValueChange={(value: any) => {
+						value={selectedLocalField}
+						onValueChange={(value: string) => {
 							selectedLocalField = value;
 						}}
 					>
@@ -547,8 +576,8 @@
 					<Label for="create-qb-field">QuickBooks Field</Label>
 					<Select
 						type="single"
-						value={selectedQuickbooksField as any}
-						onValueChange={(value: any) => {
+						value={selectedQuickbooksField}
+						onValueChange={(value: string) => {
 							selectedQuickbooksField = value;
 						}}
 					>
@@ -573,9 +602,9 @@
 				<Label for="create-direction">Sync Direction</Label>
 				<Select
 					type="single"
-					value={selectedDirection as any}
-					onValueChange={(value: any) => {
-						selectedDirection = value;
+					value={selectedDirection}
+					onValueChange={(value: string) => {
+						selectedDirection = parseDirection(value);
 					}}
 				>
 					<SelectTrigger id="create-direction">
@@ -660,8 +689,8 @@
 				<Label for="edit-qb-field">QuickBooks Field</Label>
 				<Select
 					type="single"
-					value={selectedQuickbooksField as any}
-					onValueChange={(value: any) => {
+					value={selectedQuickbooksField}
+					onValueChange={(value: string) => {
 						selectedQuickbooksField = value;
 					}}
 				>
@@ -685,9 +714,9 @@
 				<Label for="edit-direction">Sync Direction</Label>
 				<Select
 					type="single"
-					value={selectedDirection as any}
-					onValueChange={(value: any) => {
-						selectedDirection = value;
+					value={selectedDirection}
+					onValueChange={(value: string) => {
+						selectedDirection = parseDirection(value);
 					}}
 				>
 					<SelectTrigger id="edit-direction">

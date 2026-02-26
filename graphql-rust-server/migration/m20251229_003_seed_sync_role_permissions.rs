@@ -211,16 +211,19 @@ impl MigrationTrait for Migration {
         // Soft delete all sync and integration role_permissions
         // Uses UPDATE with deleted_at to preserve audit history
         // Removes permissions for sync and integrations resources
-        manager.get_connection().execute_unprepared(
-            r#"
+        manager
+            .get_connection()
+            .execute_unprepared(
+                r#"
             UPDATE hr_public.role_permissions rp
             SET deleted_at = NOW()
             FROM hr_public.permissions p
             WHERE rp.permission_id = p.id
             AND p.resource IN ('sync', 'integrations')
             AND rp.deleted_at IS NULL
-            "#
-        ).await?;
+            "#,
+            )
+            .await?;
 
         Ok(())
     }

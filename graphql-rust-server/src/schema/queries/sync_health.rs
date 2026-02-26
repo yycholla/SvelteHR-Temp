@@ -6,9 +6,9 @@ use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 use crate::auth::UserContext;
+use crate::models::{sync_health_alerts, sync_health_metrics};
 use crate::services::health_monitor::{HealthMonitor, SyncHealthSnapshot};
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::models::{sync_health_alerts, sync_health_metrics};
 
 #[derive(Default)]
 pub struct SyncHealthQueries;
@@ -58,7 +58,9 @@ impl SyncHealthQueries {
     async fn sync_health_alerts(
         &self,
         ctx: &Context<'_>,
-        #[graphql(desc = "Status filter: 'active' or 'resolved' (default: all)")] status: Option<String>,
+        #[graphql(desc = "Status filter: 'active' or 'resolved' (default: all)")] status: Option<
+            String,
+        >,
         #[graphql(desc = "Maximum number of alerts to return (default: 20)")] limit: Option<i32>,
     ) -> Result<Vec<SyncHealthAlert>> {
         let user_ctx = ctx.data::<UserContext>()?;

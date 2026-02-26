@@ -142,14 +142,18 @@ impl Model {
     /// Employee being reviewed
     async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let employee = super::user::Entity::find_by_id(self.employee_id).one(&db).await?;
+        let employee = super::user::Entity::find_by_id(self.employee_id)
+            .one(&db)
+            .await?;
         Ok(employee)
     }
 
     /// Reviewer (manager conducting the review)
     async fn reviewer(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let reviewer = super::user::Entity::find_by_id(self.reviewer_id).one(&db).await?;
+        let reviewer = super::user::Entity::find_by_id(self.reviewer_id)
+            .one(&db)
+            .await?;
         Ok(reviewer)
     }
 
@@ -208,8 +212,6 @@ impl Model {
         self.status == "completed"
     }
 }
-
-
 
 /// PerformanceReview creation input
 #[derive(Debug, Clone, InputObject)]

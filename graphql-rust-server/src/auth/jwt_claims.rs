@@ -259,7 +259,10 @@ mod tests {
         let dept_id = claims.department_uuid().expect("Should parse UUID");
 
         assert!(dept_id.is_some());
-        assert_eq!(dept_id.unwrap().to_string(), "770e8400-e29b-41d4-a716-446655440002");
+        assert_eq!(
+            dept_id.unwrap().to_string(),
+            "770e8400-e29b-41d4-a716-446655440002"
+        );
     }
 
     #[test]
@@ -370,7 +373,10 @@ mod tests {
         let claims = create_test_refresh_claims();
         let family_id = claims.family_uuid().expect("Should parse UUID");
 
-        assert_eq!(family_id.to_string(), "880e8400-e29b-41d4-a716-446655440003");
+        assert_eq!(
+            family_id.to_string(),
+            "880e8400-e29b-41d4-a716-446655440003"
+        );
     }
 
     #[test]
@@ -390,7 +396,8 @@ mod tests {
     fn test_access_claims_roundtrip() {
         let original = create_test_access_claims();
         let json = serde_json::to_string(&original).expect("Should serialize");
-        let deserialized: AccessTokenClaims = serde_json::from_str(&json).expect("Should deserialize");
+        let deserialized: AccessTokenClaims =
+            serde_json::from_str(&json).expect("Should deserialize");
 
         assert_eq!(original, deserialized);
     }
@@ -399,7 +406,8 @@ mod tests {
     fn test_refresh_claims_roundtrip() {
         let original = create_test_refresh_claims();
         let json = serde_json::to_string(&original).expect("Should serialize");
-        let deserialized: RefreshTokenClaims = serde_json::from_str(&json).expect("Should deserialize");
+        let deserialized: RefreshTokenClaims =
+            serde_json::from_str(&json).expect("Should deserialize");
 
         assert_eq!(original, deserialized);
     }
@@ -419,7 +427,8 @@ mod tests {
             "display_name": "Test User"
         }"#;
 
-        let claims: AccessTokenClaims = serde_json::from_str(json).expect("Should deserialize without department_id");
+        let claims: AccessTokenClaims =
+            serde_json::from_str(json).expect("Should deserialize without department_id");
 
         assert!(claims.department_id.is_none());
         assert_eq!(claims.roles, vec!["Employee"]);

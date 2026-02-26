@@ -163,7 +163,7 @@
 	}
 
 	function handleRowClick(detail: { row: Record<string, unknown>; index: number }) {
-		goto(resolve(`/tasks/${detail.row.id}`));
+		goto(resolve(`/dashboard/tasks/${String(detail.row.id)}`));
 	}
 
 	function handleSelectionChange(detail: TaskType[]) {
@@ -225,7 +225,7 @@
 
 		<div>
 			{#if auth.user && auth.hasPermission('task:create')}
-				<Button variant="default" onclick={() => goto(resolve('/tasks/new'))}>
+				<Button variant="default" onclick={() => goto(resolve('/dashboard/tasks/new'))}>
 					<Plus class="mr-2 h-4 w-4" />
 					Create Task
 				</Button>

@@ -36,15 +36,13 @@ async fn table_exists(db: &DatabaseConnection, table: &str) -> Result<bool, DbEr
         ))
         .await?;
 
-    Ok(result.map(|row| row.try_get::<bool>("", "exists").unwrap_or(false)).unwrap_or(false))
+    Ok(result
+        .map(|row| row.try_get::<bool>("", "exists").unwrap_or(false))
+        .unwrap_or(false))
 }
 
 /// Helper to check if a column exists in a table
-async fn column_exists(
-    db: &DatabaseConnection,
-    table: &str,
-    column: &str,
-) -> Result<bool, DbErr> {
+async fn column_exists(db: &DatabaseConnection, table: &str, column: &str) -> Result<bool, DbErr> {
     let result = db
         .query_one(Statement::from_sql_and_values(
             db.get_database_backend(),
@@ -60,7 +58,9 @@ async fn column_exists(
         ))
         .await?;
 
-    Ok(result.map(|row| row.try_get::<bool>("", "exists").unwrap_or(false)).unwrap_or(false))
+    Ok(result
+        .map(|row| row.try_get::<bool>("", "exists").unwrap_or(false))
+        .unwrap_or(false))
 }
 
 /// Helper to check if an index exists
@@ -78,7 +78,9 @@ async fn index_exists(db: &DatabaseConnection, index_name: &str) -> Result<bool,
         ))
         .await?;
 
-    Ok(result.map(|row| row.try_get::<bool>("", "exists").unwrap_or(false)).unwrap_or(false))
+    Ok(result
+        .map(|row| row.try_get::<bool>("", "exists").unwrap_or(false))
+        .unwrap_or(false))
 }
 
 /// Helper to get column data type
@@ -138,11 +140,16 @@ async fn test_migration_compiles() {
 
 #[tokio::test]
 async fn test_up_migration_creates_tables() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify validation_rules table exists
     assert!(
@@ -163,11 +170,16 @@ async fn test_up_migration_creates_tables() {
 
 #[tokio::test]
 async fn test_validation_rules_columns() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify all columns exist
     let columns = vec![
@@ -199,11 +211,16 @@ async fn test_validation_rules_columns() {
 
 #[tokio::test]
 async fn test_validation_failures_columns() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify all columns exist
     let columns = vec![
@@ -233,11 +250,16 @@ async fn test_validation_failures_columns() {
 
 #[tokio::test]
 async fn test_validation_rules_column_types() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify id is UUID
     let id_type = get_column_type(&db, "validation_rules", "id")
@@ -266,11 +288,16 @@ async fn test_validation_rules_column_types() {
 
 #[tokio::test]
 async fn test_validation_rules_defaults() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify severity defaults to 'ERROR'
     let severity_default = get_column_default(&db, "validation_rules", "severity")
@@ -296,11 +323,16 @@ async fn test_validation_rules_defaults() {
 
 #[tokio::test]
 async fn test_validation_failures_defaults() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify severity defaults to 'ERROR'
     let severity_default = get_column_default(&db, "validation_failures", "severity")
@@ -318,11 +350,16 @@ async fn test_validation_failures_defaults() {
 
 #[tokio::test]
 async fn test_indexes_created() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify validation_rules indexes
     assert!(
@@ -357,11 +394,16 @@ async fn test_indexes_created() {
 
 #[tokio::test]
 async fn test_foreign_key_relationship() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Insert a validation rule
     db.execute(Statement::from_string(
@@ -386,7 +428,10 @@ async fn test_foreign_key_relationship() {
         ))
         .await;
 
-    assert!(result.is_ok(), "Should allow inserting failure with valid rule_id");
+    assert!(
+        result.is_ok(),
+        "Should allow inserting failure with valid rule_id"
+    );
 
     // Try to insert failure with non-existent rule_id - should fail
     let invalid_result = db
@@ -424,11 +469,16 @@ async fn test_foreign_key_relationship() {
 
 #[tokio::test]
 async fn test_cascade_delete() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Insert a validation rule
     db.execute(Statement::from_string(
@@ -479,12 +529,20 @@ async fn test_cascade_delete() {
 
 #[tokio::test]
 async fn test_idempotent_up_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run migration twice
-    Migration.up(&schema_manager).await.expect("Failed to run first up migration");
-    Migration.up(&schema_manager).await.expect("Failed to run second up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run first up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run second up migration");
 
     // Verify tables still exist
     assert!(
@@ -504,11 +562,16 @@ async fn test_idempotent_up_migration() {
 
 #[tokio::test]
 async fn test_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run up migration first
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify tables exist
     assert!(
@@ -519,7 +582,10 @@ async fn test_down_migration() {
     );
 
     // Run down migration
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    Migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run down migration");
 
     // Verify tables are removed
     assert!(
@@ -539,15 +605,26 @@ async fn test_down_migration() {
 
 #[tokio::test]
 async fn test_idempotent_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run up migration first
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Run down migration twice
-    Migration.down(&schema_manager).await.expect("Failed to run first down migration");
-    Migration.down(&schema_manager).await.expect("Failed to run second down migration");
+    Migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run first down migration");
+    Migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run second down migration");
 
     // Verify tables remain removed
     assert!(
@@ -560,11 +637,16 @@ async fn test_idempotent_down_migration() {
 
 #[tokio::test]
 async fn test_full_migration_cycle() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run up migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify tables exist
     assert!(
@@ -575,7 +657,10 @@ async fn test_full_migration_cycle() {
     );
 
     // Run down migration
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    Migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run down migration");
 
     // Verify tables removed
     assert!(
@@ -586,7 +671,10 @@ async fn test_full_migration_cycle() {
     );
 
     // Run up migration again
-    Migration.up(&schema_manager).await.expect("Failed to run up migration again");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration again");
 
     // Verify tables exist again
     assert!(

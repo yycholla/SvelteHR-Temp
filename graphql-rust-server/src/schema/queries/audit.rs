@@ -4,9 +4,9 @@ use async_graphql::{Context, InputObject, Object, Result};
 use chrono::{DateTime, Utc};
 
 use crate::auth::UserContext;
-use crate::services::audit_logger::{AuditLogger, AuditLogFilters};
-use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 use crate::models::audit_logs;
+use crate::services::audit_logger::{AuditLogFilters, AuditLogger};
+use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 
 use std::sync::Arc;
 use uuid::Uuid;
@@ -36,15 +36,17 @@ impl AuditQueries {
         let audit_logger = AuditLogger::new(Arc::new(db.clone()));
 
         // Convert filters
-        let service_filters = filters.map(|f| AuditLogFilters {
-            event_category: f.event_category,
-            user_id: f.user_id,
-            entity_type: f.entity_type,
-            entity_id: f.entity_id,
-            sync_job_id: f.sync_job_id,
-            start_date: f.start_date,
-            end_date: f.end_date,
-        }).unwrap_or_default();
+        let service_filters = filters
+            .map(|f| AuditLogFilters {
+                event_category: f.event_category,
+                user_id: f.user_id,
+                entity_type: f.entity_type,
+                entity_id: f.entity_id,
+                sync_job_id: f.sync_job_id,
+                start_date: f.start_date,
+                end_date: f.end_date,
+            })
+            .unwrap_or_default();
 
         let (logs, total) = audit_logger
             .get_logs(
@@ -396,7 +398,11 @@ impl From<crate::services::audit_logger::ComplianceReport> for AuditComplianceSu
             total_actions: report.total_actions,
             data_modifications: report.data_modifications,
             failed_operations: report.failed_operations,
-            user_activity: report.user_activity.into_iter().map(UserActivityResult::from).collect(),
+            user_activity: report
+                .user_activity
+                .into_iter()
+                .map(UserActivityResult::from)
+                .collect(),
         }
     }
 }

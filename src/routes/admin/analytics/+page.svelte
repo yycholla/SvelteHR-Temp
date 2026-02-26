@@ -3,12 +3,11 @@
 		Activity,
 		BarChart3,
 		Building2,
+		RefreshCw,
 		Shield,
-		TrendingDown,
 		TrendingUp,
 		UserCheck,
-		Users,
-		RefreshCw
+		Users
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 

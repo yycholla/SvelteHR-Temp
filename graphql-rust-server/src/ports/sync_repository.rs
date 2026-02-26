@@ -93,7 +93,12 @@ pub mod mock {
             &self,
             entity_type: EntityType,
         ) -> Result<Option<DateTime<Utc>>, SyncError> {
-            Ok(self.last_sync_times.lock().unwrap().get(&entity_type).copied())
+            Ok(self
+                .last_sync_times
+                .lock()
+                .unwrap()
+                .get(&entity_type)
+                .copied())
         }
 
         async fn mark_synced(&self, entities: &[SyncEntity]) -> Result<(), SyncError> {
@@ -111,7 +116,10 @@ pub mod mock {
                     .max();
 
                 if let Some(max_time) = max_time {
-                    self.last_sync_times.lock().unwrap().insert(entity_type, max_time);
+                    self.last_sync_times
+                        .lock()
+                        .unwrap()
+                        .insert(entity_type, max_time);
                 }
             }
             Ok(())

@@ -1,6 +1,6 @@
 use async_graphql::*;
-use sea_orm::*;
 use chrono::Utc;
+use sea_orm::*;
 
 use crate::auth::context::UserContext;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
@@ -46,15 +46,14 @@ impl IncrementalSyncMutation {
             last_full_sync_at: Some(Utc::now().to_rfc3339()),
             employee_sync_token: Some("emp_token_abc123".to_string()),
             department_sync_token: Some("dept_token_xyz789".to_string()),
-            description: "Incremental sync reduces API calls by only syncing changes since last sync".to_string(),
+            description:
+                "Incremental sync reduces API calls by only syncing changes since last sync"
+                    .to_string(),
         })
     }
 
     /// Enable incremental sync mode
-    async fn enable_incremental_sync(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<IncrementalSyncResponse> {
+    async fn enable_incremental_sync(&self, ctx: &Context<'_>) -> Result<IncrementalSyncResponse> {
         let db = ctx.data::<DatabaseConnection>()?;
         let user_ctx = ctx.data::<UserContext>()?;
 
@@ -78,10 +77,7 @@ impl IncrementalSyncMutation {
     }
 
     /// Disable incremental sync mode (force full sync)
-    async fn disable_incremental_sync(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<IncrementalSyncResponse> {
+    async fn disable_incremental_sync(&self, ctx: &Context<'_>) -> Result<IncrementalSyncResponse> {
         let db = ctx.data::<DatabaseConnection>()?;
         let user_ctx = ctx.data::<UserContext>()?;
 
@@ -121,7 +117,9 @@ impl IncrementalSyncMutation {
         // Validate entity type if provided
         if let Some(ref ent_type) = entity_type {
             if !["Employee", "Department", "All"].contains(&ent_type.as_str()) {
-                return Err(Error::new("Invalid entity type. Must be 'Employee', 'Department', or 'All'"));
+                return Err(Error::new(
+                    "Invalid entity type. Must be 'Employee', 'Department', or 'All'",
+                ));
             }
         }
 
@@ -133,9 +131,15 @@ impl IncrementalSyncMutation {
         // 3. Record the action in audit log
 
         let message = match entity_type.as_deref() {
-            Some("Employee") => "Employee sync tokens cleared. Next sync will be full for employees",
-            Some("Department") => "Department sync tokens cleared. Next sync will be full for departments",
-            Some("All") | None => "All sync tokens cleared. Next sync will be a full sync for all entities",
+            Some("Employee") => {
+                "Employee sync tokens cleared. Next sync will be full for employees"
+            }
+            Some("Department") => {
+                "Department sync tokens cleared. Next sync will be full for departments"
+            }
+            Some("All") | None => {
+                "All sync tokens cleared. Next sync will be a full sync for all entities"
+            }
             _ => "Sync tokens cleared",
         };
 
@@ -162,7 +166,9 @@ impl IncrementalSyncMutation {
 
         // Validate entity type
         if !["Employee", "Department", "All"].contains(&entity_type.as_str()) {
-            return Err(Error::new("Invalid entity type. Must be 'Employee', 'Department', or 'All'"));
+            return Err(Error::new(
+                "Invalid entity type. Must be 'Employee', 'Department', or 'All'",
+            ));
         }
 
         // TODO: Queue a one-time full sync job

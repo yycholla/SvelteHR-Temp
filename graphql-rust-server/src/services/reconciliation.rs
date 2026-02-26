@@ -2,12 +2,12 @@
 //!
 //! Verifies data consistency between local system and QuickBooks
 
-use crate::integrations::intuit::{IntuitClient, EmployeeExtended};
-use crate::models::{reconciliation_reports, reconciliation_discrepancies, user};
+use crate::integrations::intuit::{EmployeeExtended, IntuitClient};
+use crate::models::{reconciliation_discrepancies, reconciliation_reports, user};
 use chrono::Utc;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, Set,
 };
 use serde_json::json;
 use std::collections::HashMap;
@@ -174,9 +174,10 @@ impl ReconciliationService {
         }
 
         // Check for missing in remote and data mismatches
-        for (local_id, local_emp) in local_employees.iter().filter_map(|e| {
-            e.intuit_employee_id.as_ref().map(|id| (id, e))
-        }) {
+        for (local_id, local_emp) in local_employees
+            .iter()
+            .filter_map(|e| e.intuit_employee_id.as_ref().map(|id| (id, e)))
+        {
             if let Some(qb_emp) = remote_map.get(local_id) {
                 // Compare data
                 let field_diffs = self.compare_employee_fields(local_emp, qb_emp);
@@ -196,8 +197,10 @@ impl ReconciliationService {
                             Some(&field_name),
                             Some(&local_val),
                             Some(&remote_val),
-                            &format!("Field '{}' differs: local='{}' vs remote='{}'",
-                                field_name, local_val, remote_val),
+                            &format!(
+                                "Field '{}' differs: local='{}' vs remote='{}'",
+                                field_name, local_val, remote_val
+                            ),
                             "Review and decide which value is correct",
                         ));
                     }
@@ -213,8 +216,10 @@ impl ReconciliationService {
                     None,
                     Some(&format!("{} {}", local_emp.first_name, local_emp.last_name)),
                     None,
-                    &format!("Employee '{} {}' exists locally but not in QuickBooks",
-                        local_emp.first_name, local_emp.last_name),
+                    &format!(
+                        "Employee '{} {}' exists locally but not in QuickBooks",
+                        local_emp.first_name, local_emp.last_name
+                    ),
                     "Push this employee to QuickBooks or remove local record",
                 ));
             }
@@ -504,10 +509,7 @@ impl ReconciliationService {
     }
 
     /// Delete a specific reconciliation report and all its discrepancies
-    pub async fn delete_report(
-        &self,
-        report_id: Uuid,
-    ) -> Result<(), sea_orm::DbErr> {
+    pub async fn delete_report(&self, report_id: Uuid) -> Result<(), sea_orm::DbErr> {
         // Delete all discrepancies first (due to foreign key constraint)
         reconciliation_discrepancies::Entity::delete_many()
             .filter(reconciliation_discrepancies::Column::ReportId.eq(report_id))

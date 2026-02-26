@@ -5,6 +5,26 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { DELETE_TRAINING_MUTATION } from '$lib/graphql/training-operations';
 
+interface TrainingRecord {
+	id: string;
+	title: string;
+	description?: string | null;
+	startDate?: string | null;
+	endDate?: string | null;
+	isActive: boolean;
+}
+
+interface TrainingAssignmentRecord {
+	id: string;
+	trainingId: string;
+	userId: string;
+	user?: {
+		id: string;
+		displayName?: string | null;
+		email?: string | null;
+	} | null;
+}
+
 export const load: PageServerLoad = async (event) => {
 	requireAuth(event, { requiredRoles: ['Admin', 'HR Manager'] });
 
@@ -42,12 +62,15 @@ export const load: PageServerLoad = async (event) => {
 	const response = await client.query(query);
 	const assignmentsResponse = await client.query(assignmentsQuery);
 
-	const trainings = response.data?.trainings || [];
-	const allAssignments = assignmentsResponse.data?.allTrainingAssignments || [];
+	const trainings: TrainingRecord[] = response.data?.trainings || [];
+	const allAssignments: TrainingAssignmentRecord[] =
+		assignmentsResponse.data?.allTrainingAssignments || [];
 
 	// Group assignments by training ID and add count to each training
-	const trainingsWithAssignments = trainings.map((training: any) => {
-		const assignments = allAssignments.filter((a: any) => a.trainingId === training.id);
+	const trainingsWithAssignments = trainings.map((training) => {
+		const assignments = allAssignments.filter(
+			(assignment) => assignment.trainingId === training.id
+		);
 		return {
 			...training,
 			assignmentCount: assignments.length,

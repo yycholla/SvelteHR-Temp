@@ -101,10 +101,8 @@ impl Model {
             .await?;
 
         // Extract permission IDs from active role_permission records
-        let permission_ids: Vec<Uuid> = role_permissions
-            .iter()
-            .map(|rp| rp.permission_id)
-            .collect();
+        let permission_ids: Vec<Uuid> =
+            role_permissions.iter().map(|rp| rp.permission_id).collect();
 
         if permission_ids.is_empty() {
             return Ok(vec![]);
@@ -174,8 +172,8 @@ pub struct UpdateRoleInput {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::Model as Role;
+    use super::*;
 
     #[test]
     fn test_role_model_compiles() {

@@ -195,8 +195,7 @@ mod tests {
         let local = vec![local_only_entity("local-1")];
         let remote = vec![remote_only_entity("remote-1")];
 
-        let (conflicts, local_only, remote_only) =
-            ChangeDetector::partition_changes(local, remote);
+        let (conflicts, local_only, remote_only) = ChangeDetector::partition_changes(local, remote);
 
         assert!(conflicts.is_empty());
         assert_eq!(local_only.len(), 1);
@@ -208,8 +207,7 @@ mod tests {
         let local = vec![entity("emp-1", "qb-1", ChangeType::Updated)];
         let remote = vec![entity("emp-1", "qb-1", ChangeType::Updated)];
 
-        let (conflicts, local_only, remote_only) =
-            ChangeDetector::partition_changes(local, remote);
+        let (conflicts, local_only, remote_only) = ChangeDetector::partition_changes(local, remote);
 
         assert_eq!(conflicts.len(), 1);
         assert!(local_only.is_empty());
@@ -227,8 +225,7 @@ mod tests {
             remote_only_entity("qb-3"),                   // Remote only
         ];
 
-        let (conflicts, local_only, remote_only) =
-            ChangeDetector::partition_changes(local, remote);
+        let (conflicts, local_only, remote_only) = ChangeDetector::partition_changes(local, remote);
 
         assert_eq!(conflicts.len(), 1);
         assert_eq!(local_only.len(), 1);

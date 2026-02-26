@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { createUrqlClient } from '$lib/graphql/client';
 	import {
-		EMAIL_DIGESTS_QUERY,
 		EMAIL_DIGEST_LOGS_QUERY,
 		CREATE_EMAIL_DIGEST_MUTATION,
 		UPDATE_EMAIL_DIGEST_MUTATION,

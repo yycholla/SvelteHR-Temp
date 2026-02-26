@@ -5,10 +5,11 @@
 	import * as Card from '$lib/components/ui/card';
 	import { AlertCircle, Eye, EyeOff, Lock, Save, User } from '@lucide/svelte';
 	import { timezoneOptions } from '$lib/graphql/settings-operations';
+	import type { PasswordFormState, ProfileFormState } from '../types';
 
 	interface Props {
-		profileForm: any;
-		passwordForm: any;
+		profileForm: ProfileFormState;
+		passwordForm: PasswordFormState;
 		canUpdateProfile: boolean;
 		canChangePassword: boolean;
 		isUpdating: boolean;

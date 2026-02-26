@@ -4,8 +4,8 @@
 
 use async_graphql::{Context, InputObject, Object, Result, SimpleObject, Union};
 use bcrypt::verify;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use chrono::{Duration, Utc};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 use crate::{
@@ -358,18 +358,22 @@ impl AuthMutations {
             Err(e) => {
                 tracing::warn!("Token refresh failed: {:?}", e);
                 let (code, message) = match e {
-                    crate::auth::JwtError::TokenExpired => {
-                        ("TOKEN_EXPIRED", "Refresh token has expired. Please log in again.")
-                    }
-                    crate::auth::JwtError::RefreshTokenReused => {
-                        ("TOKEN_REUSED", "Refresh token was already used. Possible security breach detected.")
-                    }
-                    crate::auth::JwtError::TokenRevoked => {
-                        ("TOKEN_REVOKED", "Token has been revoked. Please log in again.")
-                    }
-                    crate::auth::JwtError::RefreshTokenNotFound => {
-                        ("INVALID_TOKEN", "Invalid refresh token. Please log in again.")
-                    }
+                    crate::auth::JwtError::TokenExpired => (
+                        "TOKEN_EXPIRED",
+                        "Refresh token has expired. Please log in again.",
+                    ),
+                    crate::auth::JwtError::RefreshTokenReused => (
+                        "TOKEN_REUSED",
+                        "Refresh token was already used. Possible security breach detected.",
+                    ),
+                    crate::auth::JwtError::TokenRevoked => (
+                        "TOKEN_REVOKED",
+                        "Token has been revoked. Please log in again.",
+                    ),
+                    crate::auth::JwtError::RefreshTokenNotFound => (
+                        "INVALID_TOKEN",
+                        "Invalid refresh token. Please log in again.",
+                    ),
                     _ => ("AUTH_ERROR", "Token refresh failed. Please log in again."),
                 };
 
@@ -442,7 +446,9 @@ impl AuthMutations {
                 // Don't reveal whether email exists - always return success
                 return Ok(PasswordResetRequestResult {
                     success: true,
-                    message: "If an account with that email exists, a password reset link has been sent.".to_string(),
+                    message:
+                        "If an account with that email exists, a password reset link has been sent."
+                            .to_string(),
                 });
             }
         };
@@ -495,9 +501,9 @@ impl AuthMutations {
             .await?;
 
         // Find matching token by comparing hashes
-        let valid_token = all_tokens.iter().find(|t| {
-            bcrypt::verify(&input.token, &t.token).unwrap_or(false) && t.is_valid()
-        });
+        let valid_token = all_tokens
+            .iter()
+            .find(|t| bcrypt::verify(&input.token, &t.token).unwrap_or(false) && t.is_valid());
 
         let token_model = match valid_token {
             Some(token) => token,

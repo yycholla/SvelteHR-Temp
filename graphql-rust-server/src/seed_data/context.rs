@@ -87,17 +87,11 @@ impl SeedResult {
     }
 
     pub fn total_created(&self) -> usize {
-        self.entity_results
-            .iter()
-            .map(|r| r.created_count)
-            .sum()
+        self.entity_results.iter().map(|r| r.created_count).sum()
     }
 
     pub fn total_skipped(&self) -> usize {
-        self.entity_results
-            .iter()
-            .map(|r| r.skipped_count)
-            .sum()
+        self.entity_results.iter().map(|r| r.skipped_count).sum()
     }
 
     pub fn total_failed(&self) -> usize {

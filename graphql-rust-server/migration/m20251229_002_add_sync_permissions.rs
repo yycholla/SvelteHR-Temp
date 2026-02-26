@@ -178,11 +178,7 @@ impl MigrationTrait for Migration {
                             .boolean()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(SyncPermissionAudit::Reason)
-                            .text()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(SyncPermissionAudit::Reason).text().null())
                     .col(
                         ColumnDef::new(SyncPermissionAudit::CheckedAt)
                             .timestamp_with_time_zone()
@@ -333,8 +329,10 @@ impl MigrationTrait for Migration {
         // Data cleanup: Soft delete sync permissions (preserves audit history)
         // Note: Uses deleted_at instead of hard DELETE to maintain referential integrity
         // Raw SQL required for bulk UPDATE with complex WHERE clause
-        manager.get_connection().execute_unprepared(
-            r#"
+        manager
+            .get_connection()
+            .execute_unprepared(
+                r#"
             UPDATE hr_public.permissions
             SET deleted_at = NOW()
             WHERE resource IN ('sync', 'integrations')
@@ -345,8 +343,9 @@ impl MigrationTrait for Migration {
                 'manage_validation_rules', 'view_history', 'view_audit_trail',
                 'view_metrics', 'export_data', 'manage', 'manage_permissions', 'view_system_logs'
             )
-            "#
-        ).await?;
+            "#,
+            )
+            .await?;
 
         Ok(())
     }

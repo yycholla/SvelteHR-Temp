@@ -11,11 +11,11 @@ use crate::{
     database::get_db_from_context,
     error::AppError,
     models::{
-        CreateEmployeeCertificationInput, CreateEmployeeGoalInput, CreateEmployeeSkillInput,
-        CreateEmployeeVehicleInput, CreateEmergencyContactInput, EmergencyContact,
+        CreateEmergencyContactInput, CreateEmployeeCertificationInput, CreateEmployeeGoalInput,
+        CreateEmployeeSkillInput, CreateEmployeeVehicleInput, EmergencyContact,
         EmployeeCertification, EmployeeGoal, EmployeeSkill, EmployeeVehicle, GoalStatus,
-        UpdateEmployeeGoalInput, UpdateEmployeeSkillInput, UpdateEmployeeVehicleInput,
-        UpdateEmergencyContactInput,
+        UpdateEmergencyContactInput, UpdateEmployeeGoalInput, UpdateEmployeeSkillInput,
+        UpdateEmployeeVehicleInput,
     },
 };
 
@@ -176,7 +176,8 @@ impl EmployeeMutations {
             .ok_or_else(|| AppError::NotFound("Employee vehicle not found".to_string()))?;
 
         // Build active model with updates
-        let mut vehicle: crate::models::employee::employee_vehicle::ActiveModel = existing_vehicle.into();
+        let mut vehicle: crate::models::employee::employee_vehicle::ActiveModel =
+            existing_vehicle.into();
 
         if let Some(make) = input.make {
             vehicle.make = Set(make);
@@ -259,7 +260,8 @@ impl EmployeeMutations {
             .ok_or_else(|| AppError::NotFound("Emergency contact not found".to_string()))?;
 
         // Build active model with updates
-        let mut contact: crate::models::employee::emergency_contact::ActiveModel = existing_contact.into();
+        let mut contact: crate::models::employee::emergency_contact::ActiveModel =
+            existing_contact.into();
 
         if let Some(name) = input.name {
             contact.name = Set(name);

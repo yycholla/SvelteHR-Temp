@@ -12,8 +12,11 @@ export const usersQuery = `
 export const departmentsQuery = `
 	query GetDepartments {
 		departments(limit: 10) {
-			id
-			name
+			items {
+				id
+				name
+				managerId
+			}
 		}
 	}
 `;

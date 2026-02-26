@@ -10,18 +10,36 @@
 		Plus,
 		Search,
 		Trash2,
-		Users,
-		XCircle,
-		Filter
+		Users
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
-	import * as Table from '$lib/components/ui/table';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 
-	const { data } = $props();
+	interface TrainingAssignmentPreview {
+		user?: {
+			displayName?: string | null;
+			email?: string | null;
+		} | null;
+	}
+
+	interface TrainingSummary {
+		id: string;
+		title: string;
+		description?: string | null;
+		isActive: boolean;
+		startDate?: string | null;
+		endDate?: string | null;
+		assignmentCount: number;
+		assignments?: TrainingAssignmentPreview[];
+	}
+
+	interface TrainingsPageData {
+		trainings?: TrainingSummary[];
+	}
+
+	const { data }: { data: TrainingsPageData } = $props();
 
 	let searchQuery = $state('');
 	let trainingToDelete = $state<{ id: string; title: string } | null>(null);
@@ -30,21 +48,24 @@
 	// Derived state for filtering
 	const filteredTrainings = $derived(
 		(data.trainings || []).filter(
-			(t: any) =>
-				t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+			(training) =>
+				training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				training.description?.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
 
 	// Statistics
 	const totalTrainings = $derived(data.trainings?.length || 0);
-	const activeTrainings = $derived(data.trainings?.filter((t: any) => t.isActive).length || 0);
+	const activeTrainings = $derived(
+		data.trainings?.filter((training) => training.isActive).length || 0
+	);
 	const upcomingTrainings = $derived(
-		data.trainings?.filter((t: any) => t.startDate && new Date(t.startDate) > new Date()).length ||
-			0
+		data.trainings?.filter(
+			(training) => training.startDate && new Date(training.startDate) > new Date()
+		).length || 0
 	);
 
-	function formatDate(dateStr: string | null) {
+	function formatDate(dateStr: string | null | undefined) {
 		if (!dateStr) return '—';
 		return new Date(dateStr).toLocaleDateString(undefined, {
 			year: 'numeric',
@@ -173,7 +194,7 @@
 									{#if training.assignments && training.assignments.length > 0}
 										<div class="text-xs text-muted-foreground truncate max-w-[200px]">
 											{training.assignments
-												.map((a: any) => a.user?.displayName || a.user?.email)
+												.map((assignment) => assignment.user?.displayName || assignment.user?.email)
 												.slice(0, 2)
 												.join(', ')}
 											{#if training.assignmentCount > 2}

@@ -44,8 +44,8 @@ export async function getDepartments(filters?: {
 		}
 
 		return {
-			departments: result.data?.departments || [],
-			totalCount: result.data?.departments_aggregate?.aggregate?.count || 0
+			departments: result.data?.departments?.items || [],
+			totalCount: result.data?.departments?.totalCount || 0
 		};
 	} catch (error) {
 		logger.error('Catch failed', error as Error);
@@ -86,11 +86,11 @@ export async function createDepartment(input: CreateDepartmentInput): Promise<De
 			throw new Error(`Failed to create department: ${result.error.message}`);
 		}
 
-		if (!result.data?.createDepartment?.department) {
+		if (!result.data?.createDepartment) {
 			throw new Error('Department creation failed - no data returned');
 		}
 
-		return result.data.createDepartment.department;
+		return result.data.createDepartment;
 	} catch (error) {
 		logger.error('Catch failed', error as Error);
 		throw error;
@@ -116,11 +116,11 @@ export async function updateDepartment(
 			throw new Error(`Failed to update department: ${result.error.message}`);
 		}
 
-		if (!result.data?.updateDepartment?.department) {
+		if (!result.data?.updateDepartment) {
 			throw new Error('Department update failed - no data returned');
 		}
 
-		return result.data.updateDepartment.department;
+		return result.data.updateDepartment;
 	} catch (error) {
 		logger.error('Catch failed', error as Error);
 		throw error;
@@ -140,7 +140,7 @@ export async function deleteDepartment(id: string): Promise<boolean> {
 			throw new Error(`Failed to delete department: ${result.error.message}`);
 		}
 
-		return result.data?.deleteDepartment?.deletedDepartmentId !== null;
+		return result.data?.deleteDepartment === true;
 	} catch (error) {
 		logger.error('Catch failed', error as Error);
 		throw error;

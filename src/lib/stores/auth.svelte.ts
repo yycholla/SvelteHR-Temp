@@ -81,6 +81,43 @@ export interface User {
 	};
 }
 
+interface AuthResponseUser {
+	id: string;
+	email: string;
+	displayName?: string;
+	role?: string;
+	force_password_change?: boolean;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
+
+function getStringValue(obj: Record<string, unknown>, key: string): string | undefined {
+	const value = obj[key];
+	return typeof value === 'string' ? value : undefined;
+}
+
+function getBooleanValue(obj: Record<string, unknown>, key: string): boolean | undefined {
+	const value = obj[key];
+	return typeof value === 'boolean' ? value : undefined;
+}
+
+function parseAuthResponseUser(value: unknown): AuthResponseUser | null {
+	if (!isRecord(value)) return null;
+	const id = getStringValue(value, 'id');
+	const email = getStringValue(value, 'email');
+	if (!id || !email) return null;
+
+	return {
+		id,
+		email,
+		displayName: getStringValue(value, 'displayName'),
+		role: getStringValue(value, 'role'),
+		force_password_change: getBooleanValue(value, 'force_password_change')
+	};
+}
+
 class AuthStore {
 	// State
 	user = $state<User | null>(null);
@@ -158,21 +195,23 @@ class AuthStore {
 			const result = await secureAuthService.login({ email, password });
 
 			if (result.success && result.user) {
+				const authUser = parseAuthResponseUser(result.user);
+				if (!authUser) {
+					this.setError('Login failed: invalid user payload');
+					return false;
+				}
+
 				// Check for force_password_change flag
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				if ((result.user as any).force_password_change === true) {
+				if (authUser.force_password_change === true) {
 					logger.info('[Auth] User must change password on first login');
 
 					const user: User = {
-						id: result.user.id,
-						email: result.user.email,
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						displayName:
-							(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
+						id: authUser.id,
+						email: authUser.email,
+						displayName: authUser.displayName ?? authUser.email.split('@')[0] ?? 'User',
 						onboardingStatus: 'Active',
 						isActive: true,
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						role: (result.user as any).role
+						role: authUser.role
 					};
 
 					this.user = user;
@@ -187,15 +226,12 @@ class AuthStore {
 				}
 
 				const user: User = {
-					id: result.user.id,
-					email: result.user.email,
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					displayName:
-						(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
+					id: authUser.id,
+					email: authUser.email,
+					displayName: authUser.displayName ?? authUser.email.split('@')[0] ?? 'User',
 					onboardingStatus: 'Active',
 					isActive: true,
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					role: (result.user as any).role
+					role: authUser.role
 				};
 
 				// Apply theme in background (non-blocking) - login succeeds even if this fails
@@ -394,18 +430,20 @@ class AuthStore {
 				return false;
 			}
 
-			const data = await response.json();
+			const data: unknown = await response.json();
 			logger.info('validateSession: Session is valid');
 
-			if (!this.user && data.user) {
+			const parsedSessionUser = isRecord(data) ? parseAuthResponseUser(data.user) : null;
+
+			if (!this.user && parsedSessionUser) {
 				const user: User = {
-					id: data.user.id,
-					email: data.user.email,
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					displayName: (data.user as any).displayName ?? data.user.email.split('@')[0] ?? 'User',
+					id: parsedSessionUser.id,
+					email: parsedSessionUser.email,
+					displayName:
+						parsedSessionUser.displayName ?? parsedSessionUser.email.split('@')[0] ?? 'User',
 					onboardingStatus: 'Active',
 					isActive: true,
-					role: data.user.role
+					role: parsedSessionUser.role
 				};
 
 				await this.applyUserTheme(user.id);

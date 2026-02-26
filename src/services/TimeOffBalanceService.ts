@@ -436,7 +436,7 @@ export class TimeOffBalanceService {
 				year: rolloverResult.value.period.year,
 				totalHours: rolloverResult.value.totalHours.value,
 				usedHours: rolloverResult.value.usedHours.value,
-				accrualRate: rolloverResult.value.accrualRate.value,
+				accrualRate: rolloverResult.value.accrualRate.hoursPerPeriod,
 				accrualPeriod: rolloverResult.value.accrualRate.period,
 				carryoverHours: rolloverResult.value.carryoverHours.value
 			});

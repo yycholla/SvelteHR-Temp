@@ -6,11 +6,11 @@
 use async_graphql::{EmptySubscription, Request, Response, Schema};
 use sea_orm::{Database, DatabaseConnection};
 
-use crate::schema::{MutationRoot, QueryRoot};
-use crate::auth::UserContext;
 use super::auth::{TestUser, TestUserRole, TestUsers};
 use super::database::TestDatabase;
 use super::errors::TestContextError;
+use crate::auth::UserContext;
+use crate::schema::{MutationRoot, QueryRoot};
 
 /// GraphQL schema type used for testing
 pub type TestSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
@@ -50,9 +50,9 @@ impl TestContext {
         // Build GraphQL schema with a dedicated database connection.
         // DatabaseConnection doesn't implement Clone, so we create a second connection
         // to the same test database URL for use by the schema data context.
-        let schema_db = Database::connect(&db.url)
-            .await
-            .map_err(|e| TestContextError::SessionError(format!("Schema DB connection failed: {}", e)))?;
+        let schema_db = Database::connect(&db.url).await.map_err(|e| {
+            TestContextError::SessionError(format!("Schema DB connection failed: {}", e))
+        })?;
 
         let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
             .data(schema_db)
@@ -155,15 +155,9 @@ impl TestContext {
         variables: async_graphql::Variables,
         user: &TestUser,
     ) -> Response {
-        let user_context = UserContext::new(
-            user.id,
-            vec![user.role.clone()],
-            vec![],
-        );
+        let user_context = UserContext::new(user.id, vec![user.role.clone()], vec![]);
 
-        let request = Request::new(query)
-            .variables(variables)
-            .data(user_context);
+        let request = Request::new(query).variables(variables).data(user_context);
 
         self.schema.execute(request).await
     }
@@ -180,11 +174,7 @@ impl TestContext {
     /// # Returns
     /// Vector of error messages
     pub fn extract_errors(&self, response: &Response) -> Vec<String> {
-        response
-            .errors
-            .iter()
-            .map(|e| e.message.clone())
-            .collect()
+        response.errors.iter().map(|e| e.message.clone()).collect()
     }
 }
 

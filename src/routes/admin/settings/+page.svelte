@@ -13,10 +13,45 @@
 	import { logger } from '$lib/utils/logger';
 	import { Button } from '$lib/components/ui/button';
 
+	interface SettingsState {
+		general: {
+			systemName?: string;
+			systemTimezone?: string;
+		};
+		authentication: {
+			sessionTimeoutMinutes?: number;
+			minPasswordLength?: number;
+			maxLoginAttempts?: number;
+			requireMfa?: boolean;
+			passwordExpirationEnabled?: boolean;
+			passwordExpirationDays?: number;
+		};
+		notifications: {
+			emailChannels?: unknown[];
+			webhookChannels?: unknown[];
+		};
+		security: {
+			httpsEnforced?: boolean;
+			cspPolicy?: string | null;
+			xFrameOptions?: boolean;
+			hstEnabled?: boolean;
+			corsOrigins?: string[];
+			corsOriginsText?: string;
+		};
+		developer: {
+			logLevelFrontend?: string;
+			logLevelBackend?: string;
+		};
+		stats: {
+			totalUsers?: number;
+			totalDepartments?: number;
+		};
+	}
+
 	const { data } = $props();
 
-	const settings = $state(
-		data.settings || {
+	const settings = $state<SettingsState>(
+		(data.settings as SettingsState) || {
 			general: {},
 			authentication: {},
 			notifications: {},
@@ -45,7 +80,13 @@
 		successMessage = '';
 
 		try {
-			const categories = ['general', 'authentication', 'notifications', 'security', 'developer'];
+			const categories: Array<keyof Omit<SettingsState, 'stats'>> = [
+				'general',
+				'authentication',
+				'notifications',
+				'security',
+				'developer'
+			];
 			for (const category of categories) {
 				const response = await fetch('/api/settings/update', {
 					method: 'POST',
@@ -61,9 +102,9 @@
 			setTimeout(() => {
 				successMessage = '';
 			}, 3000);
-		} catch (error: any) {
+		} catch (error: unknown) {
 			logger.error('Save settings error:', error as Error);
-			errorMessage = error.message || 'Failed to save settings';
+			errorMessage = error instanceof Error ? error.message : 'Failed to save settings';
 		} finally {
 			loading = false;
 		}

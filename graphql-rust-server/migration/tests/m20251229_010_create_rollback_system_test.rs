@@ -25,15 +25,19 @@ async fn setup() -> Result<DatabaseConnection, DbErr> {
     let db = Database::connect(get_test_db_url()).await?;
 
     // Clean up any existing test tables
-    let _ = db.execute(Statement::from_string(
-        DbBackend::Postgres,
-        "DROP TABLE IF EXISTS hr_public.rollback_operations CASCADE".to_string(),
-    )).await;
+    let _ = db
+        .execute(Statement::from_string(
+            DbBackend::Postgres,
+            "DROP TABLE IF EXISTS hr_public.rollback_operations CASCADE".to_string(),
+        ))
+        .await;
 
-    let _ = db.execute(Statement::from_string(
-        DbBackend::Postgres,
-        "DROP TABLE IF EXISTS hr_public.sync_snapshots CASCADE".to_string(),
-    )).await;
+    let _ = db
+        .execute(Statement::from_string(
+            DbBackend::Postgres,
+            "DROP TABLE IF EXISTS hr_public.sync_snapshots CASCADE".to_string(),
+        ))
+        .await;
 
     Ok(db)
 }
@@ -52,37 +56,48 @@ async fn test_up_migration_creates_tables() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     // Run up migration
     migration.up(&manager).await?;
 
     // Verify sync_snapshots table exists
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT EXISTS (
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT EXISTS (
             SELECT FROM information_schema.tables
             WHERE table_schema = 'hr_public'
             AND table_name = 'sync_snapshots'
-        )".to_string(),
-    )).await?;
+        )"
+            .to_string(),
+        ))
+        .await?;
 
     assert!(result.is_some());
     let exists: bool = result.unwrap().try_get("", "exists")?;
-    assert!(exists, "sync_snapshots table should exist after up migration");
+    assert!(
+        exists,
+        "sync_snapshots table should exist after up migration"
+    );
 
     // Verify rollback_operations table exists
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT EXISTS (
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT EXISTS (
             SELECT FROM information_schema.tables
             WHERE table_schema = 'hr_public'
             AND table_name = 'rollback_operations'
-        )".to_string(),
-    )).await?;
+        )"
+            .to_string(),
+        ))
+        .await?;
 
     assert!(result.is_some());
     let exists: bool = result.unwrap().try_get("", "exists")?;
-    assert!(exists, "rollback_operations table should exist after up migration");
+    assert!(
+        exists,
+        "rollback_operations table should exist after up migration"
+    );
 
     // Cleanup
     migration.down(&manager).await?;
@@ -97,22 +112,25 @@ async fn test_sync_snapshots_columns() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     migration.up(&manager).await?;
 
     // Verify all required columns exist with correct types
-    let columns = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT column_name, data_type, is_nullable, column_default
+    let columns = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT column_name, data_type, is_nullable, column_default
          FROM information_schema.columns
          WHERE table_schema = 'hr_public' AND table_name = 'sync_snapshots'
-         ORDER BY ordinal_position".to_string(),
-    )).await?;
+         ORDER BY ordinal_position"
+                .to_string(),
+        ))
+        .await?;
 
     assert!(!columns.is_empty(), "sync_snapshots should have columns");
 
     // Check for key columns
-    let column_names: Vec<String> = columns.iter()
+    let column_names: Vec<String> = columns
+        .iter()
         .map(|c| c.try_get("", "column_name").unwrap())
         .collect();
 
@@ -138,19 +156,22 @@ async fn test_rollback_operations_columns() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     migration.up(&manager).await?;
 
     // Verify all required columns exist
-    let columns = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT column_name, data_type, is_nullable
+    let columns = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT column_name, data_type, is_nullable
          FROM information_schema.columns
          WHERE table_schema = 'hr_public' AND table_name = 'rollback_operations'
-         ORDER BY ordinal_position".to_string(),
-    )).await?;
+         ORDER BY ordinal_position"
+                .to_string(),
+        ))
+        .await?;
 
-    let column_names: Vec<String> = columns.iter()
+    let column_names: Vec<String> = columns
+        .iter()
         .map(|c| c.try_get("", "column_name").unwrap())
         .collect();
 
@@ -178,20 +199,23 @@ async fn test_foreign_keys_created() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     migration.up(&manager).await?;
 
     // Check foreign keys
-    let fks = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT constraint_name, table_name
+    let fks = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT constraint_name, table_name
          FROM information_schema.table_constraints
          WHERE table_schema = 'hr_public'
          AND constraint_type = 'FOREIGN KEY'
-         AND table_name IN ('sync_snapshots', 'rollback_operations')".to_string(),
-    )).await?;
+         AND table_name IN ('sync_snapshots', 'rollback_operations')"
+                .to_string(),
+        ))
+        .await?;
 
-    let fk_names: Vec<String> = fks.iter()
+    let fk_names: Vec<String> = fks
+        .iter()
         .map(|fk| fk.try_get("", "constraint_name").unwrap())
         .collect();
 
@@ -211,20 +235,23 @@ async fn test_indexes_created() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     migration.up(&manager).await?;
 
     // Check indexes
-    let indexes = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT indexname, tablename
+    let indexes = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT indexname, tablename
          FROM pg_indexes
          WHERE schemaname = 'hr_public'
          AND tablename IN ('sync_snapshots', 'rollback_operations')
-         AND indexname NOT LIKE '%_pkey'".to_string(),
-    )).await?;
+         AND indexname NOT LIKE '%_pkey'"
+                .to_string(),
+        ))
+        .await?;
 
-    let index_names: Vec<String> = indexes.iter()
+    let index_names: Vec<String> = indexes
+        .iter()
         .map(|idx| idx.try_get("", "indexname").unwrap())
         .collect();
 
@@ -246,7 +273,6 @@ async fn test_check_constraints_added() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     migration.up(&manager).await?;
 
     // Verify CHECK constraints exist
@@ -259,7 +285,8 @@ async fn test_check_constraints_added() -> Result<(), DbErr> {
          AND conrelid::regclass::text IN ('hr_public.sync_snapshots', 'hr_public.rollback_operations')".to_string(),
     )).await?;
 
-    let constraint_names: Vec<String> = constraints.iter()
+    let constraint_names: Vec<String> = constraints
+        .iter()
         .map(|c| c.try_get("", "conname").unwrap())
         .collect();
 
@@ -280,29 +307,37 @@ async fn test_default_values() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     migration.up(&manager).await?;
 
     // Check default values for sync_snapshots
-    let defaults = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT column_name, column_default
+    let defaults = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT column_name, column_default
          FROM information_schema.columns
          WHERE table_schema = 'hr_public'
          AND table_name = 'sync_snapshots'
-         AND column_default IS NOT NULL".to_string(),
-    )).await?;
-
-    let defaults_map: std::collections::HashMap<String, String> = defaults.iter()
-        .map(|d| (
-            d.try_get("", "column_name").unwrap(),
-            d.try_get("", "column_default").unwrap()
+         AND column_default IS NOT NULL"
+                .to_string(),
         ))
+        .await?;
+
+    let defaults_map: std::collections::HashMap<String, String> = defaults
+        .iter()
+        .map(|d| {
+            (
+                d.try_get("", "column_name").unwrap(),
+                d.try_get("", "column_default").unwrap(),
+            )
+        })
         .collect();
 
     // Verify snapshot_type default
     assert!(defaults_map.contains_key("snapshot_type"));
-    assert!(defaults_map.get("snapshot_type").unwrap().contains("before"));
+    assert!(defaults_map
+        .get("snapshot_type")
+        .unwrap()
+        .contains("before"));
 
     // Verify can_rollback default
     assert!(defaults_map.contains_key("can_rollback"));
@@ -320,7 +355,6 @@ async fn test_idempotent_up_migration() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     // Run migration twice
     migration.up(&manager).await?;
     let result = migration.up(&manager).await;
@@ -329,12 +363,15 @@ async fn test_idempotent_up_migration() -> Result<(), DbErr> {
     assert!(result.is_ok(), "Up migration should be idempotent");
 
     // Verify tables still exist
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT COUNT(*) as count FROM information_schema.tables
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT COUNT(*) as count FROM information_schema.tables
          WHERE table_schema = 'hr_public'
-         AND table_name IN ('sync_snapshots', 'rollback_operations')".to_string(),
-    )).await?;
+         AND table_name IN ('sync_snapshots', 'rollback_operations')"
+                .to_string(),
+        ))
+        .await?;
 
     let count: i64 = result.unwrap().try_get("", "count")?;
     assert_eq!(count, 2, "Both tables should exist after idempotent up");
@@ -351,18 +388,20 @@ async fn test_down_migration_removes_tables() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     // Run up then down
     migration.up(&manager).await?;
     migration.down(&manager).await?;
 
     // Verify tables are removed
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT COUNT(*) as count FROM information_schema.tables
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT COUNT(*) as count FROM information_schema.tables
          WHERE table_schema = 'hr_public'
-         AND table_name IN ('sync_snapshots', 'rollback_operations')".to_string(),
-    )).await?;
+         AND table_name IN ('sync_snapshots', 'rollback_operations')"
+                .to_string(),
+        ))
+        .await?;
 
     let count: i64 = result.unwrap().try_get("", "count")?;
     assert_eq!(count, 0, "Tables should be removed after down migration");
@@ -376,7 +415,6 @@ async fn test_idempotent_down_migration() -> Result<(), DbErr> {
     let manager = SchemaManager::new(&db);
 
     let migration = Migration;
-
 
     // Run up migration first
     migration.up(&manager).await?;
@@ -398,17 +436,19 @@ async fn test_full_migration_cycle() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     // Up migration
     migration.up(&manager).await?;
 
     // Verify tables exist
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT COUNT(*) as count FROM information_schema.tables
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT COUNT(*) as count FROM information_schema.tables
          WHERE table_schema = 'hr_public'
-         AND table_name IN ('sync_snapshots', 'rollback_operations')".to_string(),
-    )).await?;
+         AND table_name IN ('sync_snapshots', 'rollback_operations')"
+                .to_string(),
+        ))
+        .await?;
 
     let count: i64 = result.unwrap().try_get("", "count")?;
     assert_eq!(count, 2, "Tables should exist after up migration");
@@ -417,12 +457,15 @@ async fn test_full_migration_cycle() -> Result<(), DbErr> {
     migration.down(&manager).await?;
 
     // Verify tables are removed
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT COUNT(*) as count FROM information_schema.tables
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT COUNT(*) as count FROM information_schema.tables
          WHERE table_schema = 'hr_public'
-         AND table_name IN ('sync_snapshots', 'rollback_operations')".to_string(),
-    )).await?;
+         AND table_name IN ('sync_snapshots', 'rollback_operations')"
+                .to_string(),
+        ))
+        .await?;
 
     let count: i64 = result.unwrap().try_get("", "count")?;
     assert_eq!(count, 0, "Tables should be removed after down migration");
@@ -431,12 +474,15 @@ async fn test_full_migration_cycle() -> Result<(), DbErr> {
     migration.up(&manager).await?;
 
     // Verify tables exist again
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT COUNT(*) as count FROM information_schema.tables
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT COUNT(*) as count FROM information_schema.tables
          WHERE table_schema = 'hr_public'
-         AND table_name IN ('sync_snapshots', 'rollback_operations')".to_string(),
-    )).await?;
+         AND table_name IN ('sync_snapshots', 'rollback_operations')"
+                .to_string(),
+        ))
+        .await?;
 
     let count: i64 = result.unwrap().try_get("", "count")?;
     assert_eq!(count, 2, "Tables should exist after second up migration");
@@ -454,24 +500,27 @@ async fn test_table_comments_added() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     migration.up(&manager).await?;
 
     // Check table comments
-    let comments = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT c.relname as table_name, d.description
+    let comments = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT c.relname as table_name, d.description
          FROM pg_class c
          JOIN pg_namespace n ON n.oid = c.relnamespace
          LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = 0
          WHERE n.nspname = 'hr_public'
          AND c.relname IN ('sync_snapshots', 'rollback_operations')
-         AND d.description IS NOT NULL".to_string(),
-    )).await?;
+         AND d.description IS NOT NULL"
+                .to_string(),
+        ))
+        .await?;
 
     assert!(!comments.is_empty(), "Table comments should exist");
 
-    let table_names: Vec<String> = comments.iter()
+    let table_names: Vec<String> = comments
+        .iter()
         .map(|c| c.try_get("", "table_name").unwrap())
         .collect();
 
@@ -490,22 +539,25 @@ async fn test_primary_keys_created() -> Result<(), DbErr> {
 
     let migration = Migration;
 
-
     migration.up(&manager).await?;
 
     // Verify primary keys exist
-    let pks = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT constraint_name, table_name
+    let pks = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT constraint_name, table_name
          FROM information_schema.table_constraints
          WHERE table_schema = 'hr_public'
          AND constraint_type = 'PRIMARY KEY'
-         AND table_name IN ('sync_snapshots', 'rollback_operations')".to_string(),
-    )).await?;
+         AND table_name IN ('sync_snapshots', 'rollback_operations')"
+                .to_string(),
+        ))
+        .await?;
 
     assert_eq!(pks.len(), 2, "Both tables should have primary keys");
 
-    let table_names: Vec<String> = pks.iter()
+    let table_names: Vec<String> = pks
+        .iter()
         .map(|pk| pk.try_get("", "table_name").unwrap())
         .collect();
 

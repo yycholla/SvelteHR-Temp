@@ -1,16 +1,19 @@
 use async_graphql::*;
-use sea_orm::*;
-use chrono::{Utc, Datelike, Timelike};
-use uuid::Uuid;
-use std::str::FromStr;
+use chrono::{Datelike, Timelike, Utc};
 use chrono_tz::Tz;
+use sea_orm::*;
+use std::str::FromStr;
+use uuid::Uuid;
 
+use crate::auth::context::UserContext;
 use crate::models::sync_schedule;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::auth::context::UserContext;
 
 /// Calculate the next run time for a cron expression in a specific timezone
-fn calculate_next_run(cron_expression: &str, timezone: &str) -> Result<chrono::DateTime<chrono::FixedOffset>> {
+fn calculate_next_run(
+    cron_expression: &str,
+    timezone: &str,
+) -> Result<chrono::DateTime<chrono::FixedOffset>> {
     use chrono::TimeZone;
 
     // Parse the cron expression
@@ -18,7 +21,8 @@ fn calculate_next_run(cron_expression: &str, timezone: &str) -> Result<chrono::D
         .map_err(|e| Error::new(format!("Invalid cron expression: {}", e)))?;
 
     // Parse the timezone
-    let tz: Tz = timezone.parse()
+    let tz: Tz = timezone
+        .parse()
         .map_err(|_| Error::new(format!("Invalid timezone: {}", timezone)))?;
 
     // Get current time in UTC
@@ -26,7 +30,8 @@ fn calculate_next_run(cron_expression: &str, timezone: &str) -> Result<chrono::D
 
     // Find next occurrence - croner works with the timestamp, not timezone-aware
     // So we need to work in UTC and then interpret the result in the target timezone
-    let next_run_naive = cron.find_next_occurrence(&now_utc, false)
+    let next_run_naive = cron
+        .find_next_occurrence(&now_utc, false)
         .map_err(|e| Error::new(format!("Could not calculate next run time: {}", e)))?;
 
     // Get the naive date/time components from the result
@@ -34,17 +39,20 @@ fn calculate_next_run(cron_expression: &str, timezone: &str) -> Result<chrono::D
         chrono::NaiveDate::from_ymd_opt(
             next_run_naive.year(),
             next_run_naive.month(),
-            next_run_naive.day()
-        ).ok_or_else(|| Error::new("Invalid date"))?,
+            next_run_naive.day(),
+        )
+        .ok_or_else(|| Error::new("Invalid date"))?,
         chrono::NaiveTime::from_hms_opt(
             next_run_naive.hour(),
             next_run_naive.minute(),
-            next_run_naive.second()
-        ).ok_or_else(|| Error::new("Invalid time"))?
+            next_run_naive.second(),
+        )
+        .ok_or_else(|| Error::new("Invalid time"))?,
     );
 
     // Interpret these components as being in the SCHEDULE's timezone
-    let next_run_in_tz = tz.from_local_datetime(&naive_dt)
+    let next_run_in_tz = tz
+        .from_local_datetime(&naive_dt)
         .single()
         .ok_or_else(|| Error::new("Ambiguous datetime in timezone"))?;
 
@@ -123,12 +131,16 @@ impl SyncScheduleMutation {
 
         // Validate entity type
         if !["Employee", "Department", "Both"].contains(&input.entity_type.as_str()) {
-            return Err(Error::new("Invalid entity type. Must be 'Employee', 'Department', or 'Both'"));
+            return Err(Error::new(
+                "Invalid entity type. Must be 'Employee', 'Department', or 'Both'",
+            ));
         }
 
         // Validate sync direction
         if !["Push", "Pull", "Bidirectional"].contains(&input.sync_direction.as_str()) {
-            return Err(Error::new("Invalid sync direction. Must be 'Push', 'Pull', or 'Bidirectional'"));
+            return Err(Error::new(
+                "Invalid sync direction. Must be 'Push', 'Pull', or 'Bidirectional'",
+            ));
         }
 
         // Calculate next run time from cron expression in the schedule's timezone
@@ -178,8 +190,8 @@ impl SyncScheduleMutation {
             .require(user_ctx, SyncPermission::ManageSyncSchedules)
             .await?;
 
-        let schedule_uuid = Uuid::parse_str(&input.schedule_id)
-            .map_err(|_| Error::new("Invalid schedule ID"))?;
+        let schedule_uuid =
+            Uuid::parse_str(&input.schedule_id).map_err(|_| Error::new("Invalid schedule ID"))?;
 
         let schedule = sync_schedule::Entity::find_by_id(schedule_uuid)
             .one(db)
@@ -203,7 +215,9 @@ impl SyncScheduleMutation {
         if let Some(cron) = input.cron_expression {
             // Validate cron expression format (basic check)
             if cron.split_whitespace().count() != 6 {
-                return Err(Error::new("Invalid cron expression format. Expected 6 fields"));
+                return Err(Error::new(
+                    "Invalid cron expression format. Expected 6 fields",
+                ));
             }
 
             active_schedule.cron_expression = ActiveValue::Set(cron);
@@ -280,8 +294,8 @@ impl SyncScheduleMutation {
             .require(user_ctx, SyncPermission::ManageSyncSchedules)
             .await?;
 
-        let schedule_uuid = Uuid::parse_str(&schedule_id)
-            .map_err(|_| Error::new("Invalid schedule ID"))?;
+        let schedule_uuid =
+            Uuid::parse_str(&schedule_id).map_err(|_| Error::new("Invalid schedule ID"))?;
 
         let schedule = sync_schedule::Entity::find_by_id(schedule_uuid)
             .one(db)
@@ -314,8 +328,8 @@ impl SyncScheduleMutation {
             .require(user_ctx, SyncPermission::ManageSyncSchedules)
             .await?;
 
-        let schedule_uuid = Uuid::parse_str(&schedule_id)
-            .map_err(|_| Error::new("Invalid schedule ID"))?;
+        let schedule_uuid =
+            Uuid::parse_str(&schedule_id).map_err(|_| Error::new("Invalid schedule ID"))?;
 
         let schedule = sync_schedule::Entity::find_by_id(schedule_uuid)
             .one(db)

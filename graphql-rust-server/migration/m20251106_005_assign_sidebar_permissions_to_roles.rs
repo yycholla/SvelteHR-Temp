@@ -56,8 +56,10 @@ impl MigrationTrait for Migration {
         // Note: This migration assumes permissions and roles already exist
 
         // Assign permissions to employee role (basic read access)
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
@@ -77,12 +79,15 @@ impl MigrationTrait for Migration {
                 ('documents', 'read'),
                 ('goals', 'read')
             )
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         // Assign permissions to manager role (employee permissions + management)
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
@@ -116,12 +121,15 @@ impl MigrationTrait for Migration {
                 ('reports', 'read'),
                 ('reports', 'generate')
             )
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         // Assign permissions to HR Manager role (manager permissions + admin)
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
@@ -175,20 +183,24 @@ impl MigrationTrait for Migration {
                 ('roles', 'read'),
                 ('permissions', 'read')
             )
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         // Assign wildcard permission to Admin role
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
             WHERE r.name = 'Admin'
             AND p.resource = '*'
             AND p.action = '*'
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         Ok(())
     }
@@ -196,8 +208,10 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Remove role-permission assignments added by this migration
         // Data cleanup operation with subqueries - intentionally raw SQL
-        manager.get_connection().execute_unprepared(
-            "DELETE FROM hr_public.role_permissions
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "DELETE FROM hr_public.role_permissions
             WHERE role_id IN (
                 SELECT id FROM hr_public.roles
                 WHERE name IN ('Employee', 'Manager', 'HR Manager', 'Admin')
@@ -229,8 +243,9 @@ impl MigrationTrait for Migration {
                     ('management', 'read'),
                     ('management', 'write')
                 )
-            )"
-        ).await?;
+            )",
+            )
+            .await?;
 
         Ok(())
     }

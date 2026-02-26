@@ -103,10 +103,7 @@ impl Model {
 
     /// Parent category relationship (lazy-loaded)
     #[graphql(name = "parentCategory")]
-    async fn parent_category(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<Option<Model>> {
+    async fn parent_category(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<Model>> {
         if let Some(parent_id) = self.parent_category_id {
             let db = get_db_from_context(ctx)?;
             let category = Entity::find_by_id(parent_id)
@@ -122,10 +119,7 @@ impl Model {
 
     /// Child categories relationship (lazy-loaded)
     #[graphql(name = "childCategories")]
-    async fn child_categories(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<Vec<Model>> {
+    async fn child_categories(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Vec<Model>> {
         let db = get_db_from_context(ctx)?;
         let categories = Entity::find()
             .filter(Column::ParentCategoryId.eq(self.id))

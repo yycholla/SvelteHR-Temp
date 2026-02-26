@@ -1,10 +1,12 @@
-use async_graphql::{SimpleObject, InputObject, Enum};
+use async_graphql::{Enum, InputObject, SimpleObject};
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(None)")]
 pub enum ProgressStatus {
     #[sea_orm(string_value = "not_started")]

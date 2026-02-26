@@ -4,9 +4,18 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 
+	interface UserRoleRecord {
+		id: string;
+		email?: string;
+		displayName?: string | null;
+		department?: { name?: string } | null;
+		role?: string | null;
+		isActive?: boolean;
+	}
+
 	interface Props {
-		filteredUsers: any[];
-		onManageRoles: (user: any) => void;
+		filteredUsers: UserRoleRecord[];
+		onManageRoles: (user: UserRoleRecord) => void;
 	}
 
 	const { filteredUsers, onManageRoles }: Props = $props();

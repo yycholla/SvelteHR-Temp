@@ -7,16 +7,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251217_001_add_inline_form_elements::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251217_001_add_inline_form_elements::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
         let db_url = std::env::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test columns after test runs
@@ -68,11 +70,15 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'onboarding_content_blocks'
-                 AND column_name = 'inline_form_elements'".to_string(),
+                 AND column_name = 'inline_form_elements'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(result_content.is_ok(), "Should be able to query onboarding_content_blocks column");
+        assert!(
+            result_content.is_ok(),
+            "Should be able to query onboarding_content_blocks column"
+        );
 
         // Verify column was added to onboarding_form_blocks
         let result_form = db
@@ -82,11 +88,15 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'onboarding_form_blocks'
-                 AND column_name = 'inline_form_elements'".to_string(),
+                 AND column_name = 'inline_form_elements'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(result_form.is_ok(), "Should be able to query onboarding_form_blocks column");
+        assert!(
+            result_form.is_ok(),
+            "Should be able to query onboarding_form_blocks column"
+        );
 
         // Clean up after test
         cleanup_test_columns(&db).await;
@@ -122,11 +132,15 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'onboarding_content_blocks'
-                 AND column_name = 'inline_form_elements'".to_string(),
+                 AND column_name = 'inline_form_elements'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(result_content.is_ok(), "Should be able to check if column exists");
+        assert!(
+            result_content.is_ok(),
+            "Should be able to check if column exists"
+        );
 
         // Verify column was dropped from onboarding_form_blocks
         let result_form = db
@@ -136,11 +150,15 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'onboarding_form_blocks'
-                 AND column_name = 'inline_form_elements'".to_string(),
+                 AND column_name = 'inline_form_elements'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(result_form.is_ok(), "Should be able to check if column exists");
+        assert!(
+            result_form.is_ok(),
+            "Should be able to check if column exists"
+        );
     }
 
     #[tokio::test]
@@ -218,11 +236,15 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'onboarding_content_blocks'
-                 AND column_name = 'inline_form_elements'".to_string(),
+                 AND column_name = 'inline_form_elements'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(result_content.is_ok(), "Should verify column data type for content_blocks");
+        assert!(
+            result_content.is_ok(),
+            "Should verify column data type for content_blocks"
+        );
 
         // Verify data type is JSONB for onboarding_form_blocks
         let result_form = db
@@ -232,11 +254,15 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'onboarding_form_blocks'
-                 AND column_name = 'inline_form_elements'".to_string(),
+                 AND column_name = 'inline_form_elements'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(result_form.is_ok(), "Should verify column data type for form_blocks");
+        assert!(
+            result_form.is_ok(),
+            "Should verify column data type for form_blocks"
+        );
 
         // Clean up after test
         cleanup_test_columns(&db).await;

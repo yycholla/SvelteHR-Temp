@@ -5,27 +5,24 @@
 
 use anyhow::{Context as AnyhowContext, Result};
 use chrono::{DateTime, Utc};
-use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, ColumnTrait, QueryFilter, PaginatorTrait};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    Set,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::integrations::intuit::{
-    IntuitClient,
-    Employee,
-    Email,
-    EmployeeExtended,
-    Department,
-};
-use crate::models::{user, department};
 use super::{
-    sync_tracker::{ChangeRecord, EntityType, SyncTracker},
-    conflict_resolver::{ConflictResolver, ConflictStrategy, ConflictRecord},
-    validation_engine::{ValidationEngine, SyncContext},
-    incremental_sync::{IncrementalSyncService, SyncMode},
+    conflict_resolver::{ConflictRecord, ConflictResolver, ConflictStrategy},
     health_monitor::HealthMonitor,
+    incremental_sync::{IncrementalSyncService, SyncMode},
+    sync_tracker::{ChangeRecord, EntityType, SyncTracker},
+    validation_engine::{SyncContext, ValidationEngine},
 };
+use crate::integrations::intuit::{Department, Email, Employee, EmployeeExtended, IntuitClient};
+use crate::models::{department, user};
 
 /// Result of a sync operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,10 +106,7 @@ impl SyncOrchestrator {
                 {
                     Ok(report) => report,
                     Err(e) => {
-                        tracing::warn!(
-                            "Incremental sync failed, falling back to full sync: {}",
-                            e
-                        );
+                        tracing::warn!("Incremental sync failed, falling back to full sync: {}", e);
                         // Fallback to full sync - now properly awaited
                         match Self::sync_bidirectional(db, client, entity_type, strategy).await {
                             Ok(report) => report,
@@ -154,13 +148,8 @@ impl SyncOrchestrator {
         // Update sync metadata if successful
         if report.errors.is_empty() || report.pushed_count > 0 || report.pulled_count > 0 {
             let sync_time = report.completed_at;
-            if let Err(e) = IncrementalSyncService::update_sync_metadata(
-                db,
-                entity_type,
-                sync_time,
-                None,
-            )
-            .await
+            if let Err(e) =
+                IncrementalSyncService::update_sync_metadata(db, entity_type, sync_time, None).await
             {
                 tracing::warn!("Failed to update sync metadata: {}", e);
             }
@@ -193,7 +182,8 @@ impl SyncOrchestrator {
         let mut conflicts_resolved = 0;
 
         // Get last sync timestamp with buffer for clock skew
-        let since = metadata.last_sync_at
+        let since = metadata
+            .last_sync_at
             .ok_or_else(|| anyhow::anyhow!("No last sync timestamp for incremental sync"))?;
         let since_with_buffer = IncrementalSyncService::calculate_since_timestamp(since);
 
@@ -240,40 +230,36 @@ impl SyncOrchestrator {
         // 3. Identify conflicts
         let conflicts = Self::identify_conflicts(&local_changes, &remote_changes);
 
-        tracing::info!("Identified {} conflicts for {:?}", conflicts.len(), entity_type);
+        tracing::info!(
+            "Identified {} conflicts for {:?}",
+            conflicts.len(),
+            entity_type
+        );
 
         // 4. Apply conflict resolution strategy
-        let (resolved_local, resolved_remote) = match ConflictResolver::resolve(
-            db,
-            conflicts.clone(),
-            strategy,
-        )
-        .await
-        {
-            Ok((local, remote)) => {
-                conflicts_resolved = conflicts.len();
-                (local, remote)
-            }
-            Err(e) => {
-                for conflict in &conflicts {
-                    errors.push(SyncError {
-                        entity_type: format!("{:?}", entity_type),
-                        entity_id: Some(conflict.entity_id.clone()),
-                        quickbooks_id: conflict.quickbooks_id.clone(),
-                        error_message: format!("Conflict requires manual review: {}", e),
-                        error_code: Some("CONFLICT_MANUAL_REVIEW".to_string()),
-                        is_retryable: false,
-                    });
+        let (resolved_local, resolved_remote) =
+            match ConflictResolver::resolve(db, conflicts.clone(), strategy).await {
+                Ok((local, remote)) => {
+                    conflicts_resolved = conflicts.len();
+                    (local, remote)
                 }
-                (Vec::new(), Vec::new())
-            }
-        };
+                Err(e) => {
+                    for conflict in &conflicts {
+                        errors.push(SyncError {
+                            entity_type: format!("{:?}", entity_type),
+                            entity_id: Some(conflict.entity_id.clone()),
+                            quickbooks_id: conflict.quickbooks_id.clone(),
+                            error_message: format!("Conflict requires manual review: {}", e),
+                            error_code: Some("CONFLICT_MANUAL_REVIEW".to_string()),
+                            is_retryable: false,
+                        });
+                    }
+                    (Vec::new(), Vec::new())
+                }
+            };
 
         // 5. Separate conflicting IDs from change lists
-        let conflict_ids: HashSet<String> = conflicts
-            .iter()
-            .map(|c| c.entity_id.clone())
-            .collect();
+        let conflict_ids: HashSet<String> = conflicts.iter().map(|c| c.entity_id.clone()).collect();
 
         let local_to_push: Vec<ChangeRecord> = local_changes
             .into_iter()
@@ -324,13 +310,8 @@ impl SyncOrchestrator {
         // 8. Mark successfully synced records
         for result in push_results.iter().chain(pull_results.iter()) {
             if result.success {
-                if let Err(e) = SyncTracker::mark_synced(
-                    db,
-                    entity_type,
-                    &result.entity_id,
-                    None,
-                )
-                .await
+                if let Err(e) =
+                    SyncTracker::mark_synced(db, entity_type, &result.entity_id, None).await
                 {
                     errors.push(SyncError {
                         entity_type: format!("{:?}", entity_type),
@@ -383,10 +364,7 @@ impl SyncOrchestrator {
     /// Returns true if:
     /// - No records have been synced (last_synced_at is NULL)
     /// - No records have QuickBooks IDs
-    async fn is_first_sync(
-        db: &DatabaseConnection,
-        entity_type: EntityType,
-    ) -> Result<bool> {
+    async fn is_first_sync(db: &DatabaseConnection, entity_type: EntityType) -> Result<bool> {
         match entity_type {
             EntityType::Employee => {
                 // Check if any users have been synced
@@ -454,54 +432,58 @@ impl SyncOrchestrator {
             .await
             .context("Failed to detect local changes")?;
 
-        tracing::info!("Detected {} local changes for {:?}", local_changes.len(), entity_type);
+        tracing::info!(
+            "Detected {} local changes for {:?}",
+            local_changes.len(),
+            entity_type
+        );
 
         // 2. Detect remote changes
         let remote_changes = SyncTracker::get_remote_changes(client, db, entity_type)
             .await
             .context("Failed to detect remote changes")?;
 
-        tracing::info!("Detected {} remote changes for {:?}", remote_changes.len(), entity_type);
+        tracing::info!(
+            "Detected {} remote changes for {:?}",
+            remote_changes.len(),
+            entity_type
+        );
 
         // 3. Identify conflicts (records changed on both sides)
         let conflicts = Self::identify_conflicts(&local_changes, &remote_changes);
 
-        tracing::info!("Identified {} conflicts for {:?}", conflicts.len(), entity_type);
+        tracing::info!(
+            "Identified {} conflicts for {:?}",
+            conflicts.len(),
+            entity_type
+        );
 
         // 4. Apply conflict resolution strategy
-        let (resolved_local, resolved_remote) = match ConflictResolver::resolve(
-            db,
-            conflicts.clone(),
-            strategy,
-        )
-        .await
-        {
-            Ok((local, remote)) => {
-                conflicts_resolved = conflicts.len();
-                (local, remote)
-            }
-            Err(e) => {
-                // If conflict resolution fails (e.g., ManualReview required), log it
-                for conflict in &conflicts {
-                    errors.push(SyncError {
-                        entity_type: format!("{:?}", entity_type),
-                        entity_id: Some(conflict.entity_id.clone()),
-                        quickbooks_id: conflict.quickbooks_id.clone(),
-                        error_message: format!("Conflict requires manual review: {}", e),
-                        error_code: Some("CONFLICT_MANUAL_REVIEW".to_string()),
-                        is_retryable: false,
-                    });
+        let (resolved_local, resolved_remote) =
+            match ConflictResolver::resolve(db, conflicts.clone(), strategy).await {
+                Ok((local, remote)) => {
+                    conflicts_resolved = conflicts.len();
+                    (local, remote)
                 }
-                // Continue with non-conflicting changes
-                (Vec::new(), Vec::new())
-            }
-        };
+                Err(e) => {
+                    // If conflict resolution fails (e.g., ManualReview required), log it
+                    for conflict in &conflicts {
+                        errors.push(SyncError {
+                            entity_type: format!("{:?}", entity_type),
+                            entity_id: Some(conflict.entity_id.clone()),
+                            quickbooks_id: conflict.quickbooks_id.clone(),
+                            error_message: format!("Conflict requires manual review: {}", e),
+                            error_code: Some("CONFLICT_MANUAL_REVIEW".to_string()),
+                            is_retryable: false,
+                        });
+                    }
+                    // Continue with non-conflicting changes
+                    (Vec::new(), Vec::new())
+                }
+            };
 
         // 5. Separate conflicting IDs from change lists
-        let conflict_ids: HashSet<String> = conflicts
-            .iter()
-            .map(|c| c.entity_id.clone())
-            .collect();
+        let conflict_ids: HashSet<String> = conflicts.iter().map(|c| c.entity_id.clone()).collect();
 
         let local_to_push: Vec<ChangeRecord> = local_changes
             .into_iter()
@@ -659,7 +641,11 @@ impl SyncOrchestrator {
             .await
             .context("Failed to detect local changes")?;
 
-        tracing::info!("Detected {} local changes to push for {:?}", local_changes.len(), entity_type);
+        tracing::info!(
+            "Detected {} local changes to push for {:?}",
+            local_changes.len(),
+            entity_type
+        );
 
         // Push local changes to QuickBooks
         let push_results = Self::push_changes(client, db, entity_type, &local_changes).await;
@@ -713,7 +699,11 @@ impl SyncOrchestrator {
             .await
             .context("Failed to detect remote changes")?;
 
-        tracing::info!("Detected {} remote changes to pull for {:?}", remote_changes.len(), entity_type);
+        tracing::info!(
+            "Detected {} remote changes to pull for {:?}",
+            remote_changes.len(),
+            entity_type
+        );
 
         // Pull remote changes to local DB
         let pull_results = Self::pull_changes(client, db, entity_type, &remote_changes).await;
@@ -754,10 +744,7 @@ impl SyncOrchestrator {
     /// A conflict occurs when:
     /// - A record has been modified both locally and remotely since last sync
     /// - The same entity_id appears in both change lists
-    fn identify_conflicts(
-        local: &[ChangeRecord],
-        remote: &[ChangeRecord],
-    ) -> Vec<ConflictRecord> {
+    fn identify_conflicts(local: &[ChangeRecord], remote: &[ChangeRecord]) -> Vec<ConflictRecord> {
         let mut conflicts = Vec::new();
 
         // Create a map of remote changes by entity_id for fast lookup
@@ -846,16 +833,22 @@ impl SyncOrchestrator {
         // 2a. VALIDATION: Validate employee data before pushing to QuickBooks
         // Use strict Push context since we're sending data TO QuickBooks
         let validation_engine = ValidationEngine::new();
-        let validation_result = validation_engine.validate_local_employee_with_context(&employee, SyncContext::Push);
+        let validation_result =
+            validation_engine.validate_local_employee_with_context(&employee, SyncContext::Push);
 
         if validation_result.has_errors() {
             // Log validation errors
-            if let Err(e) = validation_engine.save_errors(db, &validation_result.errors).await {
+            if let Err(e) = validation_engine
+                .save_errors(db, &validation_result.errors)
+                .await
+            {
                 tracing::warn!("Failed to save validation errors: {}", e);
             }
 
             // Build error message from validation errors
-            let error_details: Vec<String> = validation_result.errors.iter()
+            let error_details: Vec<String> = validation_result
+                .errors
+                .iter()
                 .map(|err| format!("{}: {}", err.field_name, err.error_message))
                 .collect();
 
@@ -879,7 +872,10 @@ impl SyncOrchestrator {
                         sync_token: current_emp.base.sync_token,
                         given_name: Some(employee.first_name.clone()),
                         family_name: Some(employee.last_name.clone()),
-                        display_name: Some(format!("{} {}", employee.first_name, employee.last_name)),
+                        display_name: Some(format!(
+                            "{} {}",
+                            employee.first_name, employee.last_name
+                        )),
                         primary_email_addr: if !employee.email.is_empty() {
                             Some(Email {
                                 address: Some(employee.email.clone()),
@@ -911,14 +907,23 @@ impl SyncOrchestrator {
                     let matching: Vec<_> = all_employees
                         .iter()
                         .filter(|emp| {
-                            emp.base.display_name.as_ref().map(|n| n.trim().eq_ignore_ascii_case(display_name.trim())).unwrap_or(false)
+                            emp.base
+                                .display_name
+                                .as_ref()
+                                .map(|n| n.trim().eq_ignore_ascii_case(display_name.trim()))
+                                .unwrap_or(false)
                         })
                         .collect();
 
                     if !matching.is_empty() {
                         // Found existing employee with same name - auto-link instead of creating duplicate
                         let existing = matching[0];
-                        let existing_id = existing.base.id.as_ref().map(|s| s.to_string()).unwrap_or_default();
+                        let existing_id = existing
+                            .base
+                            .id
+                            .as_ref()
+                            .map(|s| s.to_string())
+                            .unwrap_or_default();
 
                         tracing::info!(
                             "Auto-linking local employee '{}' (ID: {}) to existing QuickBooks employee (QB ID: {})",
@@ -964,7 +969,11 @@ impl SyncOrchestrator {
                 }
                 Err(e) => {
                     // List failed - log warning but proceed with create attempt
-                    tracing::warn!("Failed to check for duplicate employee name '{}': {}", display_name, e);
+                    tracing::warn!(
+                        "Failed to check for duplicate employee name '{}': {}",
+                        display_name,
+                        e
+                    );
 
                     let new_emp = Employee {
                         given_name: Some(employee.first_name.clone()),
@@ -1016,7 +1025,8 @@ impl SyncOrchestrator {
                 let error_msg = e.to_string();
 
                 // Detect EMPLOYEE_NOT_FOUND error - employee was deleted from QuickBooks
-                if error_msg.contains("EMPLOYEE_NOT_FOUND") || error_msg.contains("does not exist") {
+                if error_msg.contains("EMPLOYEE_NOT_FOUND") || error_msg.contains("does not exist")
+                {
                     // Automatically mark employee as inactive since they were deleted from QuickBooks
                     tracing::info!(
                         "Employee {} (QB ID: {}) no longer exists in QuickBooks - marking as inactive",
@@ -1038,7 +1048,10 @@ impl SyncOrchestrator {
                         Err(e) => SyncResult {
                             entity_id: change.entity_id.clone(),
                             success: false,
-                            error_message: Some(format!("Failed to mark employee as inactive: {}", e)),
+                            error_message: Some(format!(
+                                "Failed to mark employee as inactive: {}",
+                                e
+                            )),
                         },
                     }
                 } else {
@@ -1048,7 +1061,7 @@ impl SyncOrchestrator {
                         error_message: Some(format!("QuickBooks API error: {}", e)),
                     }
                 }
-            },
+            }
         }
     }
 
@@ -1095,12 +1108,17 @@ impl SyncOrchestrator {
 
         if validation_result.has_errors() {
             // Log validation errors
-            if let Err(e) = validation_engine.save_errors(db, &validation_result.errors).await {
+            if let Err(e) = validation_engine
+                .save_errors(db, &validation_result.errors)
+                .await
+            {
                 tracing::warn!("Failed to save validation errors: {}", e);
             }
 
             // Build error message from validation errors
-            let error_details: Vec<String> = validation_result.errors.iter()
+            let error_details: Vec<String> = validation_result
+                .errors
+                .iter()
                 .map(|err| format!("{}: {}", err.field_name, err.error_message))
                 .collect();
 
@@ -1208,7 +1226,8 @@ impl SyncOrchestrator {
                 let error_msg = e.to_string();
 
                 // Detect EMPLOYEE_NOT_FOUND error - employee was deleted from QuickBooks
-                if error_msg.contains("EMPLOYEE_NOT_FOUND") || error_msg.contains("does not exist") {
+                if error_msg.contains("EMPLOYEE_NOT_FOUND") || error_msg.contains("does not exist")
+                {
                     // Check if we have a local employee with this QB ID
                     let local_employee = user::Entity::find()
                         .filter(user::Column::IntuitEmployeeId.eq(Some(qb_id.clone())))
@@ -1230,18 +1249,25 @@ impl SyncOrchestrator {
                             active_model.last_synced_at = Set(Some(Utc::now()));
 
                             match active_model.update(db).await {
-                                Ok(_) => return SyncResult {
-                                    entity_id: change.entity_id.clone(),
-                                    success: true,
-                                    error_message: None,
-                                },
-                                Err(e) => return SyncResult {
-                                    entity_id: change.entity_id.clone(),
-                                    success: false,
-                                    error_message: Some(format!("Failed to mark employee as inactive: {}", e)),
-                                },
+                                Ok(_) => {
+                                    return SyncResult {
+                                        entity_id: change.entity_id.clone(),
+                                        success: true,
+                                        error_message: None,
+                                    }
+                                }
+                                Err(e) => {
+                                    return SyncResult {
+                                        entity_id: change.entity_id.clone(),
+                                        success: false,
+                                        error_message: Some(format!(
+                                            "Failed to mark employee as inactive: {}",
+                                            e
+                                        )),
+                                    }
+                                }
                             }
-                        },
+                        }
                         Ok(None) => {
                             // No local employee with this QB ID - nothing to do
                             return SyncResult {
@@ -1249,7 +1275,7 @@ impl SyncOrchestrator {
                                 success: true,
                                 error_message: None,
                             };
-                        },
+                        }
                         Err(e) => {
                             return SyncResult {
                                 entity_id: change.entity_id.clone(),
@@ -1272,16 +1298,25 @@ impl SyncOrchestrator {
         // Use lenient Pull context since we're receiving data FROM QuickBooks
         // This allows employees without emails to be imported (emails become warnings instead of errors)
         let validation_engine = ValidationEngine::new();
-        let validation_result = validation_engine.validate_quickbooks_employee_with_context(&qb_employee, qb_id, SyncContext::Pull);
+        let validation_result = validation_engine.validate_quickbooks_employee_with_context(
+            &qb_employee,
+            qb_id,
+            SyncContext::Pull,
+        );
 
         if validation_result.has_errors() {
             // Log validation errors
-            if let Err(e) = validation_engine.save_errors(db, &validation_result.errors).await {
+            if let Err(e) = validation_engine
+                .save_errors(db, &validation_result.errors)
+                .await
+            {
                 tracing::warn!("Failed to save validation errors: {}", e);
             }
 
             // Build error message from validation errors
-            let error_details: Vec<String> = validation_result.errors.iter()
+            let error_details: Vec<String> = validation_result
+                .errors
+                .iter()
                 .map(|err| format!("{}: {}", err.field_name, err.error_message))
                 .collect();
 
@@ -1340,8 +1375,10 @@ impl SyncOrchestrator {
                 let employee_id = local_emp.id; // Capture ID before moving
                 let mut active_model: user::ActiveModel = local_emp.into();
                 active_model.intuit_employee_id = Set(Some(qb_id.clone())); // Ensure QB ID is set
-                active_model.first_name = Set(qb_employee.base.given_name.clone().unwrap_or_default());
-                active_model.last_name = Set(qb_employee.base.family_name.clone().unwrap_or_default());
+                active_model.first_name =
+                    Set(qb_employee.base.given_name.clone().unwrap_or_default());
+                active_model.last_name =
+                    Set(qb_employee.base.family_name.clone().unwrap_or_default());
 
                 // Only update email if QuickBooks has a valid (non-empty) email
                 // This prevents overwriting valid local emails with empty values from QuickBooks
@@ -1369,20 +1406,34 @@ impl SyncOrchestrator {
             Ok(None) => {
                 // CREATE new local employee
                 // Check if employee has an email (required for user accounts)
-                let email = qb_employee.base.primary_email_addr
+                let email = qb_employee
+                    .base
+                    .primary_email_addr
                     .as_ref()
                     .and_then(|e| e.address.clone())
                     .unwrap_or_default();
 
                 if email.trim().is_empty() {
                     // Employee missing email - cannot create user account without email
-                    use super::validation_engine::{ValidationError, Severity, EntityType as ValidationEntityType};
+                    use super::validation_engine::{
+                        EntityType as ValidationEntityType, Severity, ValidationError,
+                    };
                     // Get employee name for display
                     let employee_name = format!(
                         "{} {}",
-                        qb_employee.base.given_name.as_ref().unwrap_or(&"Unknown".to_string()),
-                        qb_employee.base.family_name.as_ref().unwrap_or(&"".to_string())
-                    ).trim().to_string();
+                        qb_employee
+                            .base
+                            .given_name
+                            .as_ref()
+                            .unwrap_or(&"Unknown".to_string()),
+                        qb_employee
+                            .base
+                            .family_name
+                            .as_ref()
+                            .unwrap_or(&"".to_string())
+                    )
+                    .trim()
+                    .to_string();
                     // Log this as a data quality issue for admin to resolve
                     tracing::warn!(
                         "Cannot import QuickBooks employee (QB ID: {}, Name: {} {}) - missing email address. \
@@ -1482,8 +1533,12 @@ impl SyncOrchestrator {
                 let error_msg = e.to_string();
 
                 // Detect duplicate email constraint violation
-                if error_msg.contains("idx_users_email_unique_when_active") || error_msg.contains("duplicate key") {
-                    let email = qb_employee.base.primary_email_addr
+                if error_msg.contains("idx_users_email_unique_when_active")
+                    || error_msg.contains("duplicate key")
+                {
+                    let email = qb_employee
+                        .base
+                        .primary_email_addr
                         .as_ref()
                         .and_then(|e| e.address.as_ref())
                         .map(|s| s.as_str())
@@ -1505,7 +1560,7 @@ impl SyncOrchestrator {
                         error_message: Some(format!("Failed to update local database: {}", e)),
                     }
                 }
-            },
+            }
         }
     }
 
@@ -1536,12 +1591,17 @@ impl SyncOrchestrator {
 
         if validation_result.has_errors() {
             // Log validation errors
-            if let Err(e) = validation_engine.save_errors(db, &validation_result.errors).await {
+            if let Err(e) = validation_engine
+                .save_errors(db, &validation_result.errors)
+                .await
+            {
                 tracing::warn!("Failed to save validation errors: {}", e);
             }
 
             // Build error message from validation errors
-            let error_details: Vec<String> = validation_result.errors.iter()
+            let error_details: Vec<String> = validation_result
+                .errors
+                .iter()
                 .map(|err| format!("{}: {}", err.field_name, err.error_message))
                 .collect();
 
@@ -1635,10 +1695,7 @@ impl SyncOrchestrator {
     }
 
     /// Collect errors from sync results
-    fn _collect_errors(
-        push_results: &[SyncResult],
-        pull_results: &[SyncResult],
-    ) -> Vec<SyncError> {
+    fn _collect_errors(push_results: &[SyncResult], pull_results: &[SyncResult]) -> Vec<SyncError> {
         let mut errors = Vec::new();
 
         for result in push_results.iter().chain(pull_results) {
@@ -1667,12 +1724,12 @@ impl SyncOrchestrator {
     ) {
         let monitor = HealthMonitor::new(Arc::new(db.clone()));
 
-        let sync_duration_ms = (report.completed_at - report.started_at)
-            .num_milliseconds() as i32;
+        let sync_duration_ms = (report.completed_at - report.started_at).num_milliseconds() as i32;
 
         let records_processed = (report.pushed_count + report.pulled_count) as i32;
         let errors_count = report.errors.len() as i32;
-        let total_records = (report.pushed_count + report.pulled_count + report.updated_count) as f64;
+        let total_records =
+            (report.pushed_count + report.pulled_count + report.updated_count) as f64;
         let error_rate = if total_records > 0.0 {
             errors_count as f64 / total_records
         } else {

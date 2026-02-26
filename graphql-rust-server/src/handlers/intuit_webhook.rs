@@ -39,11 +39,10 @@ pub async fn intuit_webhook_handler(
         })?;
 
     // Get verifier token from environment
-    let verifier_token = std::env::var("INTUIT_WEBHOOK_VERIFIER_TOKEN")
-        .map_err(|_| {
-            tracing::error!("INTUIT_WEBHOOK_VERIFIER_TOKEN not configured");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let verifier_token = std::env::var("INTUIT_WEBHOOK_VERIFIER_TOKEN").map_err(|_| {
+        tracing::error!("INTUIT_WEBHOOK_VERIFIER_TOKEN not configured");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     tracing::debug!(
         verifier_token = %verifier_token,
@@ -62,9 +61,7 @@ pub async fn intuit_webhook_handler(
             tracing::debug!("Webhook signature verified successfully");
         }
         Ok(false) => {
-            tracing::warn!(
-                "Webhook signature verification failed - signature mismatch"
-            );
+            tracing::warn!("Webhook signature verification failed - signature mismatch");
             return Err(StatusCode::UNAUTHORIZED);
         }
         Err(e) => {
@@ -96,7 +93,10 @@ pub async fn intuit_webhook_handler(
 
     // Process webhook asynchronously
     // Pass verifier_token so processor can look up subscription
-    match processor.process_webhook_with_token(payload, signature, &verifier_token).await {
+    match processor
+        .process_webhook_with_token(payload, signature, &verifier_token)
+        .await
+    {
         Ok(result) => {
             tracing::info!(
                 "Webhook processed successfully: {} events processed, {} events failed",
@@ -106,7 +106,10 @@ pub async fn intuit_webhook_handler(
 
             Ok(Json(WebhookResponse {
                 success: true,
-                message: format!("Webhook processed: {} events processed, {} failed", result.events_processed, result.events_failed),
+                message: format!(
+                    "Webhook processed: {} events processed, {} failed",
+                    result.events_processed, result.events_failed
+                ),
             }))
         }
         Err(e) => {

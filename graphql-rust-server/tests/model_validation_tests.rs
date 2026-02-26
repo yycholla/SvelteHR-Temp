@@ -268,10 +268,7 @@ mod enum_status_validation_tests {
     #[test]
     fn test_valid_enum_values_accepted() {
         assert_eq!(parse_user_status("active").unwrap(), UserStatus::Active);
-        assert_eq!(
-            parse_user_status("inactive").unwrap(),
-            UserStatus::Inactive
-        );
+        assert_eq!(parse_user_status("inactive").unwrap(), UserStatus::Inactive);
         assert_eq!(
             parse_user_status("terminated").unwrap(),
             UserStatus::Terminated
@@ -519,9 +516,7 @@ mod url_validation_tests {
         }
 
         // Simplified URL validation
-        let url_regex = Regex::new(
-            r"^https?://[a-zA-Z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+$"
-        ).unwrap();
+        let url_regex = Regex::new(r"^https?://[a-zA-Z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+$").unwrap();
 
         if !url_regex.is_match(url) {
             return Err("Invalid URL format".to_string());
@@ -632,7 +627,9 @@ mod rrule_validation_tests {
         let has_valid_freq = valid_freqs.iter().any(|f| rrule.contains(f));
 
         if !has_valid_freq {
-            return Err("RRULE must contain valid FREQ (DAILY, WEEKLY, MONTHLY, or YEARLY)".to_string());
+            return Err(
+                "RRULE must contain valid FREQ (DAILY, WEEKLY, MONTHLY, or YEARLY)".to_string(),
+            );
         }
 
         Ok(())

@@ -126,7 +126,10 @@ function extractArgumentValue(arg) {
       return value.values.map((v) => extractArgumentValue({ name: arg.name, value: v }));
     case 'ObjectValue':
       return value.fields.reduce((obj, field) => {
-        obj[field.name.value] = extractArgumentValue({ name: field.name, value: field.value });
+        obj[field.name.value] = extractArgumentValue({
+          name: field.name,
+          value: field.value,
+        });
         return obj;
       }, {});
     case 'Variable':

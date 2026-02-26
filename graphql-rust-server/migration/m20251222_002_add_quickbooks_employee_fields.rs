@@ -79,12 +79,8 @@ impl MigrationTrait for Migration {
         .await?;
 
         // Demographics: Gender field (M/F/Other)
-        MigrationHelpers::add_column_if_not_exists(
-            manager,
-            "hr_public.users",
-            "gender VARCHAR",
-        )
-        .await?;
+        MigrationHelpers::add_column_if_not_exists(manager, "hr_public.users", "gender VARCHAR")
+            .await?;
 
         // Address components: Street address from QuickBooks PrimaryAddr
         MigrationHelpers::add_column_if_not_exists(
@@ -95,20 +91,12 @@ impl MigrationTrait for Migration {
         .await?;
 
         // Address components: City
-        MigrationHelpers::add_column_if_not_exists(
-            manager,
-            "hr_public.users",
-            "city VARCHAR",
-        )
-        .await?;
+        MigrationHelpers::add_column_if_not_exists(manager, "hr_public.users", "city VARCHAR")
+            .await?;
 
         // Address components: State/province
-        MigrationHelpers::add_column_if_not_exists(
-            manager,
-            "hr_public.users",
-            "state VARCHAR",
-        )
-        .await?;
+        MigrationHelpers::add_column_if_not_exists(manager, "hr_public.users", "state VARCHAR")
+            .await?;
 
         // Address components: Postal/ZIP code (VARCHAR for international support)
         MigrationHelpers::add_column_if_not_exists(
@@ -119,12 +107,8 @@ impl MigrationTrait for Migration {
         .await?;
 
         // Address components: Country
-        MigrationHelpers::add_column_if_not_exists(
-            manager,
-            "hr_public.users",
-            "country VARCHAR",
-        )
-        .await?;
+        MigrationHelpers::add_column_if_not_exists(manager, "hr_public.users", "country VARCHAR")
+            .await?;
 
         // Time tracking: Whether employee tracks billable hours
         MigrationHelpers::add_column_if_not_exists(
@@ -146,68 +130,26 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Cleanup: Drop QuickBooks employee fields in reverse order
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "organization",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "organization").await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "billable_time",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "billable_time")
+            .await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "country",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "country").await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "postal_code",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "postal_code").await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "state",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "state").await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "city",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "city").await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "street_address",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "street_address")
+            .await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "gender",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "gender").await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.users",
-            "employee_number",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.users", "employee_number")
+            .await?;
 
         Ok(())
     }

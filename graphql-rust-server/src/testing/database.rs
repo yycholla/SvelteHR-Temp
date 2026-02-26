@@ -4,9 +4,9 @@
 //! for complete test isolation. Each test gets its own database with
 //! migrations applied from scratch.
 
-use sea_orm::{Database, DatabaseConnection, ConnectionTrait};
+use sea_orm::{ConnectionTrait, Database, DatabaseConnection};
 use sea_orm_migration::MigratorTrait;
-use testcontainers::{ContainerAsync, runners::AsyncRunner, ImageExt};
+use testcontainers::{runners::AsyncRunner, ContainerAsync, ImageExt};
 use testcontainers_modules::postgres::Postgres;
 use uuid::Uuid;
 
@@ -74,25 +74,26 @@ impl TestDatabase {
         // Use the configured PostgreSQL image (default: postgres:15-alpine)
         // Note: testcontainers-modules v0.13 Postgres::default() uses postgres:11-alpine
         // We create a custom image to ensure we use postgres:15
-        let tag = config.postgres_image
+        let tag = config
+            .postgres_image
             .split(':')
             .last()
             .unwrap_or("15-alpine")
             .to_string();
 
-        let postgres_image = Postgres::default()
-            .with_tag(tag);
+        let postgres_image = Postgres::default().with_tag(tag);
 
-        let container = postgres_image.start().await.expect("Failed to start PostgreSQL container");
+        let container = postgres_image
+            .start()
+            .await
+            .expect("Failed to start PostgreSQL container");
 
         // Get connection details
         let host = "127.0.0.1";
         // testcontainers v0.25: get_host_port_ipv4 is now async
-        let port = container.get_host_port_ipv4(5432)
-            .await
-            .map_err(|e| TestDatabaseError::ConnectionFailed(
-                format!("Failed to get container port: {}", e)
-            ))?;
+        let port = container.get_host_port_ipv4(5432).await.map_err(|e| {
+            TestDatabaseError::ConnectionFailed(format!("Failed to get container port: {}", e))
+        })?;
         let database = "postgres"; // Initial connection to postgres database
         let user = "postgres";
         let password = "postgres";
@@ -245,17 +246,23 @@ mod tests {
 
         // Test database should have a valid connection
         let conn = db.connection();
-        assert!(conn.ping().await.is_ok(), "Database connection should be valid");
+        assert!(
+            conn.ping().await.is_ok(),
+            "Database connection should be valid"
+        );
     }
 
     #[tokio::test]
     async fn test_migrations_run() {
         // This test verifies that migrations are applied successfully
-        let db = TestDatabase::new().await.expect("Failed to create test database");
+        let db = TestDatabase::new()
+            .await
+            .expect("Failed to create test database");
 
         // Query for a table that should exist after migrations
         // (users table is created in migration 003_auth)
-        let result = db.connection()
+        let result = db
+            .connection()
             .execute(sea_orm::Statement::from_string(
                 sea_orm::DatabaseBackend::Postgres,
                 "SELECT 1 FROM hr_public.users LIMIT 1".to_string(),
@@ -263,18 +270,27 @@ mod tests {
             .await;
 
         // The query should not fail (table exists), even if it returns no rows
-        assert!(result.is_ok() || result.unwrap_err().to_string().contains("no rows"),
-                "Users table should exist after migrations");
+        assert!(
+            result.is_ok() || result.unwrap_err().to_string().contains("no rows"),
+            "Users table should exist after migrations"
+        );
     }
 
     #[tokio::test]
     async fn test_database_isolation() {
         // This test verifies that multiple test databases are isolated
-        let db1 = TestDatabase::new().await.expect("Failed to create first database");
-        let db2 = TestDatabase::new().await.expect("Failed to create second database");
+        let db1 = TestDatabase::new()
+            .await
+            .expect("Failed to create first database");
+        let db2 = TestDatabase::new()
+            .await
+            .expect("Failed to create second database");
 
         // Databases should have different names
-        assert_ne!(db1.name, db2.name, "Test databases should have unique names");
+        assert_ne!(
+            db1.name, db2.name,
+            "Test databases should have unique names"
+        );
 
         // Databases should have different URLs
         assert_ne!(db1.url, db2.url, "Test databases should have unique URLs");

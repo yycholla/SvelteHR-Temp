@@ -380,7 +380,7 @@
 								size="xs"
 								iconOnly
 								leftIcon="edit"
-								onclick={(e) => {
+								onclick={(e: MouseEvent) => {
 									e.stopPropagation();
 									goto(resolveRoute(`/departments/${row.id}/edit` as any));
 								}}
@@ -393,7 +393,7 @@
 								size="xs"
 								iconOnly
 								leftIcon="archive"
-								onclick={(e) => {
+								onclick={(e: MouseEvent) => {
 									e.stopPropagation();
 									handleDeleteDepartment(row as Department);
 								}}

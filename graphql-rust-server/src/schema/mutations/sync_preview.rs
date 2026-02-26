@@ -1,11 +1,11 @@
 use async_graphql::*;
 use sea_orm::*;
-use uuid::Uuid;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::auth::context::UserContext;
-use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 use crate::integrations::intuit::IntuitClientManager;
+use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 
 #[derive(Default)]
 pub struct SyncPreviewMutation;
@@ -150,14 +150,12 @@ impl SyncPreviewMutation {
                         quickbooks_id: Some("QB123".to_string()),
                         display_name: "John Doe (QB)".to_string(),
                         field_changes: if input.include_field_changes.unwrap_or(false) {
-                            Some(vec![
-                                FieldChange {
-                                    field_name: "email".to_string(),
-                                    current_value: None,
-                                    new_value: Some("john.doe@company.com".to_string()),
-                                    has_conflict: false,
-                                },
-                            ])
+                            Some(vec![FieldChange {
+                                field_name: "email".to_string(),
+                                current_value: None,
+                                new_value: Some("john.doe@company.com".to_string()),
+                                has_conflict: false,
+                            }])
                         } else {
                             None
                         },
@@ -171,14 +169,12 @@ impl SyncPreviewMutation {
                         quickbooks_id: Some("QB456".to_string()),
                         display_name: "Jane Smith".to_string(),
                         field_changes: if input.include_field_changes.unwrap_or(false) {
-                            Some(vec![
-                                FieldChange {
-                                    field_name: "phone".to_string(),
-                                    current_value: Some("555-0100".to_string()),
-                                    new_value: Some("555-0200".to_string()),
-                                    has_conflict: false,
-                                },
-                            ])
+                            Some(vec![FieldChange {
+                                field_name: "phone".to_string(),
+                                current_value: Some("555-0100".to_string()),
+                                new_value: Some("555-0200".to_string()),
+                                has_conflict: false,
+                            }])
                         } else {
                             None
                         },
@@ -220,14 +216,12 @@ impl SyncPreviewMutation {
                     quickbooks_id: Some("QB321".to_string()),
                     display_name: "Carol Davis".to_string(),
                     field_changes: if input.include_field_changes.unwrap_or(false) {
-                        Some(vec![
-                            FieldChange {
-                                field_name: "title".to_string(),
-                                current_value: Some("Manager".to_string()),
-                                new_value: Some("Senior Manager".to_string()),
-                                has_conflict: true,
-                            },
-                        ])
+                        Some(vec![FieldChange {
+                            field_name: "title".to_string(),
+                            current_value: Some("Manager".to_string()),
+                            new_value: Some("Senior Manager".to_string()),
+                            has_conflict: true,
+                        }])
                     } else {
                         None
                     },

@@ -2,13 +2,11 @@
 //!
 //! Tracks sync performance, uptime, and triggers alerts for degraded health
 
-use crate::models::{
-    sync_health_alerts, sync_health_metrics, intuit_sync_log,
-};
+use crate::models::{intuit_sync_log, sync_health_alerts, sync_health_metrics};
 use chrono::{DateTime, Duration, Utc};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect, Set,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -35,8 +33,8 @@ pub struct SyncHealthSnapshot {
 /// Alert configuration thresholds
 #[derive(Debug, Clone)]
 pub struct AlertThresholds {
-    pub max_error_rate: f64,          // 5% = 0.05
-    pub max_avg_duration_ms: i64,     // 2x average
+    pub max_error_rate: f64,           // 5% = 0.05
+    pub max_avg_duration_ms: i64,      // 2x average
     pub max_consecutive_failures: i32, // 3
     pub min_api_quota_percentage: f64, // 20% = 0.20
 }
@@ -44,8 +42,8 @@ pub struct AlertThresholds {
 impl Default for AlertThresholds {
     fn default() -> Self {
         Self {
-            max_error_rate: 0.05,          // 5%
-            max_avg_duration_ms: 120000,    // 2 minutes
+            max_error_rate: 0.05,        // 5%
+            max_avg_duration_ms: 120000, // 2 minutes
             max_consecutive_failures: 3,
             min_api_quota_percentage: 0.20, // 20%
         }
@@ -237,7 +235,10 @@ impl HealthMonitor {
                 .trigger_alert(
                     "consecutive_failures",
                     "critical",
-                    &format!("{} consecutive sync failures detected", consecutive_failures),
+                    &format!(
+                        "{} consecutive sync failures detected",
+                        consecutive_failures
+                    ),
                     Some(json!({
                         "consecutive_failures": consecutive_failures,
                         "threshold": thresholds.max_consecutive_failures,

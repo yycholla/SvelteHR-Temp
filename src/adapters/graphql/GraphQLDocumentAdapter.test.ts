@@ -273,7 +273,7 @@ describe('GraphQLDocumentAdapter', () => {
 			};
 
 			const result = (
-				adapter as unknown as { mapToDocument: (data: unknown) => Result<Document, unknown> }
+				adapter as unknown as { mapToDocument: (data: unknown) => Result<Document, Error> }
 			).mapToDocument(graphqlData);
 
 			expect(result.isOk).toBe(true);
@@ -304,7 +304,7 @@ describe('GraphQLDocumentAdapter', () => {
 			};
 
 			const result = (
-				adapter as unknown as { mapToDocument: (data: unknown) => Result<Document, unknown> }
+				adapter as unknown as { mapToDocument: (data: unknown) => Result<Document, Error> }
 			).mapToDocument(graphqlData);
 
 			expect(result.isError).toBe(true);
@@ -325,7 +325,7 @@ describe('GraphQLDocumentAdapter', () => {
 			};
 
 			const result = (
-				adapter as unknown as { mapToDocument: (data: unknown) => Result<Document, unknown> }
+				adapter as unknown as { mapToDocument: (data: unknown) => Result<Document, Error> }
 			).mapToDocument(graphqlData);
 
 			expect(result.isError).toBe(true);

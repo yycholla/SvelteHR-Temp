@@ -208,8 +208,16 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(AuditLogs::EventType).string_len(100).not_null())
-                    .col(ColumnDef::new(AuditLogs::EventCategory).string_len(50).not_null())
+                    .col(
+                        ColumnDef::new(AuditLogs::EventType)
+                            .string_len(100)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AuditLogs::EventCategory)
+                            .string_len(50)
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(AuditLogs::EntityType).string_len(50).null())
                     .col(ColumnDef::new(AuditLogs::EntityId).string_len(255).null())
                     .col(ColumnDef::new(AuditLogs::UserId).uuid().null())
@@ -218,14 +226,27 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(AuditLogs::Description).text().not_null())
                     .col(ColumnDef::new(AuditLogs::OldValues).json_binary().null())
                     .col(ColumnDef::new(AuditLogs::NewValues).json_binary().null())
-                    .col(ColumnDef::new(AuditLogs::ChangesSummary).json_binary().null())
+                    .col(
+                        ColumnDef::new(AuditLogs::ChangesSummary)
+                            .json_binary()
+                            .null(),
+                    )
                     .col(ColumnDef::new(AuditLogs::IpAddress).string_len(45).null())
                     .col(ColumnDef::new(AuditLogs::UserAgent).text().null())
                     .col(ColumnDef::new(AuditLogs::SessionId).uuid().null())
-                    .col(ColumnDef::new(AuditLogs::SyncDirection).string_len(20).null())
+                    .col(
+                        ColumnDef::new(AuditLogs::SyncDirection)
+                            .string_len(20)
+                            .null(),
+                    )
                     .col(ColumnDef::new(AuditLogs::SyncJobId).uuid().null())
                     .col(ColumnDef::new(AuditLogs::Source).string_len(50).not_null())
-                    .col(ColumnDef::new(AuditLogs::Status).string_len(20).not_null().default("success"))
+                    .col(
+                        ColumnDef::new(AuditLogs::Status)
+                            .string_len(20)
+                            .not_null()
+                            .default("success"),
+                    )
                     .col(ColumnDef::new(AuditLogs::ErrorMessage).text().null())
                     .col(ColumnDef::new(AuditLogs::Metadata).json_binary().null())
                     .col(
@@ -354,10 +375,29 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(AuditLogRetention::EventCategory).string_len(50).not_null().unique_key())
-                    .col(ColumnDef::new(AuditLogRetention::RetentionDays).integer().not_null().default(365))
-                    .col(ColumnDef::new(AuditLogRetention::ArchiveAfterDays).integer().null())
-                    .col(ColumnDef::new(AuditLogRetention::IsActive).boolean().not_null().default(true))
+                    .col(
+                        ColumnDef::new(AuditLogRetention::EventCategory)
+                            .string_len(50)
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(AuditLogRetention::RetentionDays)
+                            .integer()
+                            .not_null()
+                            .default(365),
+                    )
+                    .col(
+                        ColumnDef::new(AuditLogRetention::ArchiveAfterDays)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(AuditLogRetention::IsActive)
+                            .boolean()
+                            .not_null()
+                            .default(true),
+                    )
                     .col(
                         ColumnDef::new(AuditLogRetention::CreatedAt)
                             .timestamp_with_time_zone()

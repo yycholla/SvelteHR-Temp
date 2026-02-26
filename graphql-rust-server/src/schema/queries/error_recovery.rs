@@ -184,12 +184,9 @@ impl ErrorRecoveryQueries {
 
         // Get pending retries
         let service = RetryService::new(std::sync::Arc::new(db.clone()));
-        let operations = service
-            .get_operations_for_retry(limit)
-            .await
-            .map_err(|e| {
-                async_graphql::Error::new(format!("Failed to get pending retries: {}", e))
-            })?;
+        let operations = service.get_operations_for_retry(limit).await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to get pending retries: {}", e))
+        })?;
 
         Ok(operations.into_iter().map(|op| op.into()).collect())
     }
@@ -262,10 +259,9 @@ impl ErrorRecoveryQueries {
         let operation_id = Uuid::parse_str(&operation_id)
             .map_err(|e| async_graphql::Error::new(format!("Invalid UUID: {}", e)))?;
 
-        let history = service
-            .get_retry_history(operation_id)
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get retry history: {}", e)))?;
+        let history = service.get_retry_history(operation_id).await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to get retry history: {}", e))
+        })?;
 
         Ok(history.into_iter().map(|entry| entry.into()).collect())
     }

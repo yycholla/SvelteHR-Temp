@@ -1,14 +1,12 @@
 // Document upload page server-side loader (Feature 024)
 // Server-side data loading for upload page with permission checks
 
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { RBACDataLoader } from '$lib/server/route-loaders';
-import { requireAuth } from '$lib/server/rbac-utils';
 import { UPLOAD_DOCUMENT } from '$lib/graphql/document-operations';
-import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
 import { createAccessMetadata, logSuccessfulAccess } from '$lib/services/auditService';
 import type { UploadResult } from '$lib/types/document';
 
@@ -198,7 +196,7 @@ export const actions: Actions = {
 			const fileBuffer = Buffer.from(await file.arrayBuffer());
 
 			// Import encryption utilities (dynamic to ensure server-side only)
-			const { encryptFileWithNewKey, packageEncryptedData, encodeKey } =
+			const { encryptFileWithNewKey, packageEncryptedData } =
 				await import('$lib/server/encryption');
 
 			const encryptionResult = encryptFileWithNewKey(fileBuffer);

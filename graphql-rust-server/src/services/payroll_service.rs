@@ -9,7 +9,8 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    Set,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -190,10 +191,16 @@ impl PayrollService {
 
         Ok(CompensationData {
             compensation_type: employee.compensation_type,
-            annual_salary: employee.annual_salary.map(|d| d.to_string().parse().unwrap_or(0.0)),
-            hourly_rate: employee.hourly_rate.map(|d| d.to_string().parse().unwrap_or(0.0)),
+            annual_salary: employee
+                .annual_salary
+                .map(|d| d.to_string().parse().unwrap_or(0.0)),
+            hourly_rate: employee
+                .hourly_rate
+                .map(|d| d.to_string().parse().unwrap_or(0.0)),
             pay_schedule: employee.pay_schedule,
-            commission_rate: employee.commission_rate.map(|d| d.to_string().parse().unwrap_or(0.0)),
+            commission_rate: employee
+                .commission_rate
+                .map(|d| d.to_string().parse().unwrap_or(0.0)),
             bonus_eligible: Some(employee.bonus_eligible),
             quickbooks_payroll_item_id: employee.quickbooks_payroll_item_id,
         })
@@ -224,7 +231,9 @@ impl PayrollService {
                 None
             },
             pay_schedule: Some(input.pay_schedule),
-            commission_rate: input.commission_rate.map(|r| r.to_string().parse().unwrap_or(0.0)),
+            commission_rate: input
+                .commission_rate
+                .map(|r| r.to_string().parse().unwrap_or(0.0)),
             bonus_eligible: input.bonus_eligible,
             quickbooks_payroll_item_id: None,
         };
@@ -240,16 +249,16 @@ impl PayrollService {
 
         let mut active_employee: user::ActiveModel = employee.into();
         active_employee.compensation_type = Set(new_compensation.compensation_type.clone());
-        active_employee.annual_salary = Set(new_compensation.annual_salary.map(|v| {
-            Decimal::from_str_exact(&v.to_string()).unwrap_or(Decimal::ZERO)
-        }));
-        active_employee.hourly_rate = Set(new_compensation.hourly_rate.map(|v| {
-            Decimal::from_str_exact(&v.to_string()).unwrap_or(Decimal::ZERO)
-        }));
+        active_employee.annual_salary = Set(new_compensation
+            .annual_salary
+            .map(|v| Decimal::from_str_exact(&v.to_string()).unwrap_or(Decimal::ZERO)));
+        active_employee.hourly_rate = Set(new_compensation
+            .hourly_rate
+            .map(|v| Decimal::from_str_exact(&v.to_string()).unwrap_or(Decimal::ZERO)));
         active_employee.pay_schedule = Set(new_compensation.pay_schedule.clone());
-        active_employee.commission_rate = Set(new_compensation.commission_rate.map(|v| {
-            Decimal::from_str_exact(&v.to_string()).unwrap_or(Decimal::ZERO)
-        }));
+        active_employee.commission_rate = Set(new_compensation
+            .commission_rate
+            .map(|v| Decimal::from_str_exact(&v.to_string()).unwrap_or(Decimal::ZERO)));
         active_employee.bonus_eligible = Set(new_compensation.bonus_eligible.unwrap_or(false));
 
         active_employee.update(&*self.db).await?;

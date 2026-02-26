@@ -41,9 +41,27 @@
 		conflicts: ConflictDetails;
 	} | null>(null);
 
+	type RollbackAction = 'CREATE' | 'UPDATE' | 'DELETE';
+
+	function isRollbackableLog(
+		log: ActivityLogEntry
+	): log is ActivityLogEntry & { action: RollbackAction } {
+		return log.action === 'CREATE' || log.action === 'UPDATE' || log.action === 'DELETE';
+	}
+
 	// Selected logs for bulk rollback
 	let selectedLogsForRollback = $derived.by(() => {
-		return logs.filter((log) => selectedLogIds.has(log.id));
+		return logs
+			.filter((log) => selectedLogIds.has(log.id))
+			.filter(isRollbackableLog)
+			.map((log) => ({
+				id: log.id,
+				action: log.action,
+				resourceType: log.resourceType,
+				resourceId: log.resourceId,
+				employeeName: log.employeeName ?? log.performedBy ?? 'Unknown',
+				createdAt: log.createdAt ?? log.timestamp
+			}));
 	});
 
 	// Derived resource types from logs

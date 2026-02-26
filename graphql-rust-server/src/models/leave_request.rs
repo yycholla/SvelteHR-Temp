@@ -165,7 +165,9 @@ impl Model {
     /// Employee requesting leave
     async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let employee = super::user::Entity::find_by_id(self.employee_id).one(&db).await?;
+        let employee = super::user::Entity::find_by_id(self.employee_id)
+            .one(&db)
+            .await?;
         Ok(employee)
     }
 
@@ -181,9 +183,14 @@ impl Model {
     }
 
     /// Employee requesting leave (legacy resolver for compatibility)
-    async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+    async fn user_by_employee_id(
+        &self,
+        ctx: &Context<'_>,
+    ) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.employee_id).one(&db).await?;
+        let user = super::user::Entity::find_by_id(self.employee_id)
+            .one(&db)
+            .await?;
         Ok(user)
     }
 
@@ -213,8 +220,6 @@ impl Model {
         self.days_requested.to_string()
     }
 }
-
-
 
 /// LeaveRequest creation input
 #[derive(Debug, Clone, InputObject)]

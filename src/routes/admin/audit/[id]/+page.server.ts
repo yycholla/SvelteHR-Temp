@@ -5,7 +5,7 @@ import { error } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, params, cookies } = event;
+	const { params, cookies } = event;
 	const { id } = params;
 
 	// Check authentication and permissions
@@ -54,9 +54,9 @@ export const load: PageServerLoad = async (event) => {
 		return {
 			activityLog: response.data.activityLog
 		};
-	} catch (err: any) {
+	} catch (err: unknown) {
 		logger.error('[AUDIT LOG DETAIL] Load error:', err as Error);
-		if (err.status) throw err;
+		if (err && typeof err === 'object' && 'status' in err) throw err;
 		throw error(500, 'Failed to load audit log details');
 	}
 };

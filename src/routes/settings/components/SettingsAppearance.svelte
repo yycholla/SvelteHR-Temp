@@ -9,9 +9,10 @@
 		fontSizeOptions,
 		languageOptions
 	} from '$lib/graphql/settings-operations';
+	import type { AppearanceSettingsState } from '../types';
 
 	interface Props {
-		appearanceSettings: any;
+		appearanceSettings: AppearanceSettingsState;
 		isUpdating: boolean;
 		onUpdate: () => void;
 	}

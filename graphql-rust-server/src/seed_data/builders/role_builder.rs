@@ -5,17 +5,33 @@
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
-use crate::models::{role, permission, role_permission};
+use crate::models::{permission, role, role_permission};
 use crate::seed_data::audit::log_seed_creation;
 use crate::seed_data::context::{EntitySeedResult, SeedContext};
 use crate::seed_data::Result;
 
 /// Fixed roles for the system (name, description, level)
 const ROLES: &[(&str, &str, i32)] = &[
-    ("Admin", "Full system administrator with unrestricted access", 100),
-    ("HR Manager", "HR management with employee, payroll, and compliance access", 75),
-    ("Manager", "Department manager with team management capabilities", 50),
-    ("Employee", "Standard employee with basic self-service access", 25),
+    (
+        "Admin",
+        "Full system administrator with unrestricted access",
+        100,
+    ),
+    (
+        "HR Manager",
+        "HR management with employee, payroll, and compliance access",
+        75,
+    ),
+    (
+        "Manager",
+        "Department manager with team management capabilities",
+        50,
+    ),
+    (
+        "Employee",
+        "Standard employee with basic self-service access",
+        25,
+    ),
 ];
 
 /// Seed the 4 fixed roles into the database
@@ -65,7 +81,9 @@ pub async fn seed_roles(
             }
             Err(e) => {
                 result.failed_count += 1;
-                result.errors.push(format!("Failed to create role {}: {}", name, e));
+                result
+                    .errors
+                    .push(format!("Failed to create role {}: {}", name, e));
                 tracing::error!("Failed to create role {}: {}", name, e);
             }
         }
@@ -93,7 +111,10 @@ pub async fn seed_role_permissions(
         .all(db)
         .await?;
 
-    tracing::info!("Found {} active roles for permission assignment", roles.len());
+    tracing::info!(
+        "Found {} active roles for permission assignment",
+        roles.len()
+    );
 
     let admin_role = roles.iter().find(|r| r.name == "Admin");
     let hr_manager_role = roles.iter().find(|r| r.name == "HR Manager");
@@ -105,13 +126,19 @@ pub async fn seed_role_permissions(
         tracing::warn!("CRITICAL: Admin role not found! Permission assignment will be incomplete.");
     }
     if hr_manager_role.is_none() {
-        tracing::warn!("CRITICAL: HR Manager role not found! Permission assignment will be incomplete.");
+        tracing::warn!(
+            "CRITICAL: HR Manager role not found! Permission assignment will be incomplete."
+        );
     }
     if manager_role.is_none() {
-        tracing::warn!("CRITICAL: Manager role not found! Permission assignment will be incomplete.");
+        tracing::warn!(
+            "CRITICAL: Manager role not found! Permission assignment will be incomplete."
+        );
     }
     if employee_role.is_none() {
-        tracing::warn!("CRITICAL: Employee role not found! Permission assignment will be incomplete.");
+        tracing::warn!(
+            "CRITICAL: Employee role not found! Permission assignment will be incomplete."
+        );
     }
 
     // Get all active permissions (exclude soft-deleted)
@@ -124,7 +151,11 @@ pub async fn seed_role_permissions(
     if let Some(admin) = admin_role {
         for perm in &all_permissions {
             if let Err(e) = assign_permission_to_role(db, admin.id, perm.id, &mut result).await {
-                tracing::warn!("Failed to assign permission {} to Admin: {}", perm.resource, e);
+                tracing::warn!(
+                    "Failed to assign permission {} to Admin: {}",
+                    perm.resource,
+                    e
+                );
             }
         }
     }
@@ -132,9 +163,17 @@ pub async fn seed_role_permissions(
     // HR Manager gets employee, department, leave, document, review permissions
     if let Some(hr_manager) = hr_manager_role {
         let hr_resources = ["employees", "departments", "leave", "documents", "reviews"];
-        for perm in all_permissions.iter().filter(|p| hr_resources.contains(&p.resource.as_str())) {
-            if let Err(e) = assign_permission_to_role(db, hr_manager.id, perm.id, &mut result).await {
-                tracing::warn!("Failed to assign permission {} to HR Manager: {}", perm.resource, e);
+        for perm in all_permissions
+            .iter()
+            .filter(|p| hr_resources.contains(&p.resource.as_str()))
+        {
+            if let Err(e) = assign_permission_to_role(db, hr_manager.id, perm.id, &mut result).await
+            {
+                tracing::warn!(
+                    "Failed to assign permission {} to HR Manager: {}",
+                    perm.resource,
+                    e
+                );
             }
         }
     }
@@ -142,13 +181,17 @@ pub async fn seed_role_permissions(
     // Manager gets employee:read, leave:approve, task, time permissions
     if let Some(manager) = manager_role {
         for perm in all_permissions.iter().filter(|p| {
-            (p.resource == "employees" && p.action == "read") ||
-            (p.resource == "leave" && p.action == "approve") ||
-            p.resource == "tasks" ||
-            p.resource == "time"
+            (p.resource == "employees" && p.action == "read")
+                || (p.resource == "leave" && p.action == "approve")
+                || p.resource == "tasks"
+                || p.resource == "time"
         }) {
             if let Err(e) = assign_permission_to_role(db, manager.id, perm.id, &mut result).await {
-                tracing::warn!("Failed to assign permission {} to Manager: {}", perm.resource, e);
+                tracing::warn!(
+                    "Failed to assign permission {} to Manager: {}",
+                    perm.resource,
+                    e
+                );
             }
         }
     }
@@ -156,12 +199,16 @@ pub async fn seed_role_permissions(
     // Employee gets basic self-service: leave:read, leave:write, time:read, time:write, tasks:read
     if let Some(employee) = employee_role {
         for perm in all_permissions.iter().filter(|p| {
-            (p.resource == "leave" && (p.action == "read" || p.action == "write")) ||
-            (p.resource == "time" && (p.action == "read" || p.action == "write")) ||
-            (p.resource == "tasks" && p.action == "read")
+            (p.resource == "leave" && (p.action == "read" || p.action == "write"))
+                || (p.resource == "time" && (p.action == "read" || p.action == "write"))
+                || (p.resource == "tasks" && p.action == "read")
         }) {
             if let Err(e) = assign_permission_to_role(db, employee.id, perm.id, &mut result).await {
-                tracing::warn!("Failed to assign permission {} to Employee: {}", perm.resource, e);
+                tracing::warn!(
+                    "Failed to assign permission {} to Employee: {}",
+                    perm.resource,
+                    e
+                );
             }
         }
     }

@@ -7,7 +7,7 @@ export interface ValidationRule {
 	pattern?: RegExp;
 	min?: number;
 	max?: number;
-	custom?: (value: any) => boolean | string;
+	custom?: (value: unknown) => boolean | string;
 }
 
 export interface ValidationResult {
@@ -18,7 +18,7 @@ export interface ValidationResult {
 export interface FormField {
 	name: string;
 	label: string;
-	value?: any;
+	value?: unknown;
 	error?: string;
 	rules?: ValidationRule;
 }
@@ -26,7 +26,7 @@ export interface FormField {
 /**
  * Validate a single field against its rules
  */
-export function validateField(value: any, rules: ValidationRule): string | null {
+export function validateField(value: unknown, rules: ValidationRule): string | null {
 	if (rules.required && (value === null || value === undefined || value === '')) {
 		return 'This field is required';
 	}

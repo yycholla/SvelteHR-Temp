@@ -86,8 +86,7 @@ impl ConflictResolver {
         conflict: &Conflict,
         field_selections: impl IntoIterator<Item = (String, ConflictWinner)>,
     ) -> ConflictResolution {
-        let selections: HashMap<String, ConflictWinner> =
-            field_selections.into_iter().collect();
+        let selections: HashMap<String, ConflictWinner> = field_selections.into_iter().collect();
 
         // Build merged data from selections
         let mut merged_fields = HashMap::new();
@@ -206,7 +205,9 @@ mod tests {
         let resolved = ConflictResolver::resolve_all(&conflicts, ConflictStrategy::LocalWins);
 
         assert_eq!(resolved.len(), 2);
-        assert!(resolved.iter().all(|(_, r)| r.winner == ConflictWinner::Local));
+        assert!(resolved
+            .iter()
+            .all(|(_, r)| r.winner == ConflictWinner::Local));
     }
 
     #[test]

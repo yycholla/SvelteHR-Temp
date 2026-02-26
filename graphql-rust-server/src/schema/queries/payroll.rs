@@ -103,10 +103,16 @@ impl PayrollQueries {
         Ok(EmployeeCompensation {
             employee_id,
             compensation_type: employee.compensation_type.map(|ct| ct.as_str().to_string()),
-            annual_salary: employee.annual_salary.map(|d| d.to_string().parse().unwrap_or(0.0)),
-            hourly_rate: employee.hourly_rate.map(|d| d.to_string().parse().unwrap_or(0.0)),
+            annual_salary: employee
+                .annual_salary
+                .map(|d| d.to_string().parse().unwrap_or(0.0)),
+            hourly_rate: employee
+                .hourly_rate
+                .map(|d| d.to_string().parse().unwrap_or(0.0)),
             pay_schedule: employee.pay_schedule.map(|ps| ps.as_str().to_string()),
-            commission_rate: employee.commission_rate.map(|d| d.to_string().parse().unwrap_or(0.0)),
+            commission_rate: employee
+                .commission_rate
+                .map(|d| d.to_string().parse().unwrap_or(0.0)),
             bonus_eligible: employee.bonus_eligible,
             quickbooks_payroll_item_id: employee.quickbooks_payroll_item_id,
         })
@@ -157,7 +163,9 @@ impl PayrollQueries {
         let can_view_own = user_ctx.has_permission("view_own_compensation");
 
         if !can_view_all && (!can_view_own || user_ctx.user_id != employee_id) {
-            return Err("Permission denied: You can only view your own compensation history".into());
+            return Err(
+                "Permission denied: You can only view your own compensation history".into(),
+            );
         }
 
         // Create payroll service
@@ -178,11 +186,18 @@ impl PayrollQueries {
                     .old_value
                     .as_ref()
                     .and_then(|v| v.compensation_type.map(|ct| ct.as_str().to_string())),
-                new_compensation_type: record.new_value.compensation_type.map(|ct| ct.as_str().to_string()),
-                old_amount: record.old_value.as_ref().and_then(|v| {
-                    v.annual_salary.or(v.hourly_rate)
-                }),
-                new_amount: record.new_value.annual_salary.or(record.new_value.hourly_rate),
+                new_compensation_type: record
+                    .new_value
+                    .compensation_type
+                    .map(|ct| ct.as_str().to_string()),
+                old_amount: record
+                    .old_value
+                    .as_ref()
+                    .and_then(|v| v.annual_salary.or(v.hourly_rate)),
+                new_amount: record
+                    .new_value
+                    .annual_salary
+                    .or(record.new_value.hourly_rate),
                 changed_by: record.changed_by,
                 effective_date: record.effective_date,
                 created_at: record.created_at,

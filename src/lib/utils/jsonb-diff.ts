@@ -8,11 +8,17 @@
  * Identifies fields that have changed between snapshot and current state.
  */
 
+type JsonRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is JsonRecord {
+	return typeof value === 'object' && value !== null;
+}
+
 export interface ConflictDetail {
 	field: string;
-	currentValue: any;
-	targetValue: any;
-	snapshotValue: any;
+	currentValue: unknown;
+	targetValue: unknown;
+	snapshotValue: unknown;
 	conflictType: 'value_mismatch' | 'type_mismatch' | 'added' | 'removed';
 }
 
@@ -20,8 +26,8 @@ export interface DiffResult {
 	hasConflicts: boolean;
 	conflictFields: string[];
 	conflicts: ConflictDetail[];
-	currentState: Record<string, any>;
-	targetState: Record<string, any>;
+	currentState: JsonRecord;
+	targetState: JsonRecord;
 }
 
 /**
@@ -33,8 +39,8 @@ export interface DiffResult {
  * @returns Diff result with conflict details
  */
 export function detectConflicts(
-	currentState: Record<string, any> | null,
-	snapshotState: Record<string, any> | null,
+	currentState: JsonRecord | null,
+	snapshotState: JsonRecord | null,
 	excludeFields: string[] = ['updated_at', 'created_at', '_metadata', '_relationships']
 ): DiffResult {
 	const conflicts: ConflictDetail[] = [];
@@ -160,13 +166,13 @@ export function detectConflicts(
 }
 
 /**
- * Deep equality comparison for any values
+ * Deep equality comparison for arbitrary values
  *
  * @param a First value
  * @param b Second value
  * @returns True if values are deeply equal
  */
-function deepEqual(a: any, b: any): boolean {
+function deepEqual(a: unknown, b: unknown): boolean {
 	// Strict equality for primitives
 	if (a === b) return true;
 
@@ -190,7 +196,7 @@ function deepEqual(a: any, b: any): boolean {
 	}
 
 	// Handle objects
-	if (typeof a === 'object' && typeof b === 'object') {
+	if (isRecord(a) && isRecord(b)) {
 		const keysA = Object.keys(a);
 		const keysB = Object.keys(b);
 
@@ -293,11 +299,11 @@ export function formatConflictSummary(diffResult: DiffResult): string {
  * @returns Merged state
  */
 export function mergeStates(
-	currentState: Record<string, any>,
-	snapshotState: Record<string, any>,
+	currentState: JsonRecord,
+	snapshotState: JsonRecord,
 	fieldsToMerge: string[]
-): Record<string, any> {
-	const merged = { ...currentState };
+): JsonRecord {
+	const merged: JsonRecord = { ...currentState };
 
 	for (const field of fieldsToMerge) {
 		if (field in snapshotState) {
@@ -342,19 +348,19 @@ export function getConflictForField(
  * @returns Conflict detail or null
  */
 export function compareNestedField(
-	currentState: Record<string, any>,
-	snapshotState: Record<string, any>,
+	currentState: JsonRecord,
+	snapshotState: JsonRecord,
 	path: string
 ): ConflictDetail | null {
 	const pathParts = path.split('.');
 
-	let currentValue: any = currentState;
-	let snapshotValue: any = snapshotState;
+	let currentValue: unknown = currentState;
+	let snapshotValue: unknown = snapshotState;
 
 	// Traverse path
 	for (const part of pathParts) {
-		currentValue = currentValue?.[part];
-		snapshotValue = snapshotValue?.[part];
+		currentValue = isRecord(currentValue) ? currentValue[part] : undefined;
+		snapshotValue = isRecord(snapshotValue) ? snapshotValue[part] : undefined;
 	}
 
 	// Compare values

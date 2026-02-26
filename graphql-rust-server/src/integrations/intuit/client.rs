@@ -53,109 +53,98 @@ impl IntuitClient {
 
     /// Query all employees
     pub async fn list_employees(&self) -> Result<Vec<EmployeeExtended>> {
-        let query = "select * from Employee MAXRESULTS 1000";
-        let url = format!(
-            "{}/v3/company/{}/query?query={}",
-            self.base_url,
-            self.realm_id,
-            utf8_percent_encode(query, NON_ALPHANUMERIC)
-        );
+        const PAGE_SIZE: usize = 1000;
+        let mut start_position: usize = 1;
+        let mut all_employees: Vec<EmployeeExtended> = Vec::new();
+
+        loop {
+            let query = format!(
+                "select * from Employee STARTPOSITION {} MAXRESULTS {}",
+                start_position, PAGE_SIZE
+            );
+            let url = format!(
+                "{}/v3/company/{}/query?query={}",
+                self.base_url,
+                self.realm_id,
+                utf8_percent_encode(&query, NON_ALPHANUMERIC)
+            );
+
+            tracing::info!(
+                realm_id = %self.realm_id,
+                query = %query,
+                "Querying employees from QuickBooks"
+            );
+
+            let response = self
+                .http_client
+                .get(&url)
+                .bearer_auth(&self.access_token)
+                .header("Accept", "application/json")
+                .send()
+                .await
+                .context("Failed to send employee query to QuickBooks")?;
+
+            let status = response.status();
+
+            // Extract intuit_tid BEFORE consuming response
+            let intuit_tid = self.extract_intuit_tid(&response);
+            self.log_intuit_tid(intuit_tid.as_deref(), "list_employees");
+
+            tracing::info!(status = %status, "QuickBooks employee query response status");
+
+            if status == StatusCode::UNAUTHORIZED {
+                return Err(anyhow::anyhow!(
+                    "Unauthorized: Access token may be expired or invalid"
+                ));
+            }
+
+            let response_text = response
+                .text()
+                .await
+                .context("Failed to get response text")?;
+
+            let qb_response: QuickBooksResponse<Employee> = serde_json::from_str(&response_text)
+                .context(format!(
+                    "Failed to parse QuickBooks response: {}",
+                    response_text
+                ))?;
+
+            if let Some(fault) = qb_response.fault {
+                let error_msg = fault
+                    .errors
+                    .first()
+                    .map(|e| format!("{} ({})", e.message, e.detail))
+                    .unwrap_or_else(|| "Unknown error".to_string());
+                return Err(anyhow::anyhow!("QuickBooks API error: {}", error_msg));
+            }
+
+            let page = qb_response
+                .query_response
+                .and_then(|query_response| query_response.employees)
+                .unwrap_or_default();
+
+            let page_count = page.len();
+            all_employees.extend(page.into_iter().map(EmployeeExtended::from));
+
+            if page_count < PAGE_SIZE {
+                break;
+            }
+            start_position += PAGE_SIZE;
+        }
 
         tracing::info!(
-            realm_id = %self.realm_id,
-            query = query,
-            "Querying employees from QuickBooks"
+            count = all_employees.len(),
+            "Successfully retrieved employees from QuickBooks"
         );
 
-        let response = self
-            .http_client
-            .get(&url)
-            .bearer_auth(&self.access_token)
-            .header("Accept", "application/json")
-            .send()
-            .await
-            .context("Failed to send employee query to QuickBooks")?;
-
-        let status = response.status();
-
-        // Extract intuit_tid BEFORE consuming response
-        let intuit_tid = self.extract_intuit_tid(&response);
-        self.log_intuit_tid(intuit_tid.as_deref(), "list_employees");
-
-        tracing::info!(status = %status, "QuickBooks employee query response status");
-
-        if status == StatusCode::UNAUTHORIZED {
-            return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
-        }
-
-        // Get response text for debugging BEFORE parsing
-        let response_text = response
-            .text()
-            .await
-            .context("Failed to get response text")?;
-
-        tracing::debug!(
-            response_length = response_text.len(),
-            "QuickBooks employee query raw response received"
-        );
-
-        // Log first 500 chars of response for debugging
-        if response_text.len() > 500 {
-            tracing::debug!(response_preview = &response_text[..500], "Response preview (first 500 chars)");
-        } else {
-            tracing::debug!(response_full = &response_text, "Full response");
-        }
-
-        // Parse the response
-        let qb_response: QuickBooksResponse<Employee> = serde_json::from_str(&response_text)
-            .context(format!("Failed to parse QuickBooks response: {}", response_text))?;
-
-        // Check for API-level errors
-        if let Some(fault) = qb_response.fault {
-            let error_msg = fault
-                .errors
-                .first()
-                .map(|e| format!("{} ({})", e.message, e.detail))
-                .unwrap_or_else(|| "Unknown error".to_string());
-
-            tracing::error!(error = %error_msg, "QuickBooks API returned fault");
-
-            return Err(anyhow::anyhow!("QuickBooks API error: {}", error_msg));
-        }
-
-        // Extract employees with detailed logging
-        let employees = match qb_response.query_response {
-            Some(query_response) => match query_response.employees {
-                Some(emp_list) => {
-                    tracing::info!(
-                        count = emp_list.len(),
-                        "Successfully retrieved employees from QuickBooks"
-                    );
-                    emp_list
-                }
-                None => {
-                    tracing::warn!(
-                        "QuickBooks returned QueryResponse but employees field is None - this usually means the company has no employees"
-                    );
-                    Vec::new()
-                }
-            },
-            None => {
-                tracing::error!(
-                    "QuickBooks response missing QueryResponse field - unexpected response structure"
-                );
-                Vec::new()
-            }
-        };
-
-        Ok(employees
-            .into_iter()
-            .map(|emp| emp.into())
-            .collect())
+        Ok(all_employees)
     }
 
     /// Create a new employee in QuickBooks
-    pub async fn create_employee(&self, employee: super::models::EmployeeExtended) -> Result<Employee> {
+    pub async fn create_employee(
+        &self,
+        employee: super::models::EmployeeExtended,
+    ) -> Result<Employee> {
         let url = format!("{}/v3/company/{}/employee", self.base_url, self.realm_id);
 
         let response = self
@@ -173,7 +162,10 @@ impl IntuitClient {
     }
 
     /// Update an existing employee
-    pub async fn update_employee(&self, employee: super::models::EmployeeExtended) -> Result<Employee> {
+    pub async fn update_employee(
+        &self,
+        employee: super::models::EmployeeExtended,
+    ) -> Result<Employee> {
         let url = format!("{}/v3/company/{}/employee", self.base_url, self.realm_id);
 
         // Log the update request payload for debugging
@@ -201,14 +193,22 @@ impl IntuitClient {
         tracing::debug!("QuickBooks employee update response status: {}", status);
 
         // Get response text for debugging
-        let response_text = response.text().await
+        let response_text = response
+            .text()
+            .await
             .context("Failed to get response text")?;
 
-        tracing::debug!("QuickBooks employee update response body: {}", response_text);
+        tracing::debug!(
+            "QuickBooks employee update response body: {}",
+            response_text
+        );
 
         // Parse and return the employee
-        let qb_response: super::models::QuickBooksResponse<Employee> = serde_json::from_str(&response_text)
-            .context(format!("Failed to parse update response: {}", response_text))?;
+        let qb_response: super::models::QuickBooksResponse<Employee> =
+            serde_json::from_str(&response_text).context(format!(
+                "Failed to parse update response: {}",
+                response_text
+            ))?;
 
         // Check for API-level errors
         if let Some(fault) = qb_response.fault {
@@ -254,8 +254,11 @@ impl IntuitClient {
 
     /// Batch create multiple employees in QuickBooks
     /// QuickBooks supports up to 30 operations per batch request
-    pub async fn batch_create_employees(&self, employees: Vec<super::models::EmployeeExtended>) -> Result<Vec<Result<Employee>>> {
-        use super::models::{BatchRequest, BatchItemRequest, BatchOperation};
+    pub async fn batch_create_employees(
+        &self,
+        employees: Vec<super::models::EmployeeExtended>,
+    ) -> Result<Vec<Result<Employee>>> {
+        use super::models::{BatchItemRequest, BatchOperation, BatchRequest};
 
         // Split into chunks of 30 (QuickBooks batch limit)
         let chunks: Vec<_> = employees.chunks(30).collect();
@@ -286,7 +289,10 @@ impl IntuitClient {
             // Send batch request
             let url = format!("{}/v3/company/{}/batch", self.base_url, self.realm_id);
 
-            tracing::info!("Sending employee batch request to QuickBooks: {} employees", chunk.len());
+            tracing::info!(
+                "Sending employee batch request to QuickBooks: {} employees",
+                chunk.len()
+            );
 
             let response = self
                 .http_client
@@ -308,11 +314,15 @@ impl IntuitClient {
             tracing::info!("QuickBooks employee batch response status: {}", status);
 
             if status == StatusCode::UNAUTHORIZED {
-                return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
+                return Err(anyhow::anyhow!(
+                    "Unauthorized: Access token may be expired or invalid"
+                ));
             }
 
             // Get response text for debugging
-            let response_text = response.text().await
+            let response_text = response
+                .text()
+                .await
                 .context("Failed to get response text")?;
 
             tracing::debug!("QuickBooks employee batch response body: {}", response_text);
@@ -338,7 +348,9 @@ impl IntuitClient {
                 } else if let Some(employee) = item_response.employee {
                     all_results.push(Ok(employee));
                 } else {
-                    all_results.push(Err(anyhow::anyhow!("No employee or fault in batch response")));
+                    all_results.push(Err(anyhow::anyhow!(
+                        "No employee or fault in batch response"
+                    )));
                 }
             }
         }
@@ -348,81 +360,124 @@ impl IntuitClient {
 
     /// Query departments from QuickBooks
     pub async fn query_departments(&self) -> Result<Vec<super::models::Department>> {
-        let query = "SELECT%20*%20FROM%20Department";
-        let url = format!("{}/v3/company/{}/query?query={}",
-            self.base_url,
-            self.realm_id,
-            query
-        );
-
-        tracing::info!("Querying departments from QuickBooks: {}", url);
-
-        let response = self
-            .http_client
-            .get(&url)
-            .bearer_auth(&self.access_token)
-            .header("Accept", "application/json")
-            .send()
-            .await
-            .context("Failed to query departments from QuickBooks")?;
-
-        let status = response.status();
-
-        // Extract intuit_tid BEFORE consuming response
-        let intuit_tid = self.extract_intuit_tid(&response);
-        self.log_intuit_tid(intuit_tid.as_deref(), "query_departments");
-
-        tracing::info!("QuickBooks department query response status: {}", status);
-
-        if status == StatusCode::UNAUTHORIZED {
-            return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
-        }
-
-        let response_text = response.text().await
-            .context("Failed to get response text")?;
-
-        tracing::debug!("QuickBooks department query response: {}", response_text);
-
-        #[derive(serde::Deserialize)]
-        struct QueryResponse {
-            #[serde(rename = "QueryResponse")]
-            query_response: QueryResult,
-        }
-
         #[derive(serde::Deserialize)]
         struct QueryResult {
             #[serde(rename = "Department", default)]
             department: Vec<super::models::Department>,
         }
 
-        let parsed: QueryResponse = serde_json::from_str(&response_text)
-            .context(format!("Failed to parse query response: {}", response_text))?;
+        #[derive(serde::Deserialize)]
+        struct DepartmentQueryResponse {
+            #[serde(rename = "QueryResponse")]
+            query_response: Option<QueryResult>,
+            #[serde(rename = "Fault")]
+            fault: Option<super::models::ApiFault>,
+        }
 
-        tracing::info!("Found {} departments in QuickBooks", parsed.query_response.department.len());
+        const PAGE_SIZE: usize = 1000;
+        let mut start_position: usize = 1;
+        let mut all_departments: Vec<super::models::Department> = Vec::new();
 
-        Ok(parsed.query_response.department)
+        loop {
+            let query = format!(
+                "SELECT * FROM Department STARTPOSITION {} MAXRESULTS {}",
+                start_position, PAGE_SIZE
+            );
+            let url = format!(
+                "{}/v3/company/{}/query?query={}",
+                self.base_url,
+                self.realm_id,
+                utf8_percent_encode(&query, NON_ALPHANUMERIC)
+            );
+
+            tracing::info!("Querying departments from QuickBooks: {}", url);
+
+            let response = self
+                .http_client
+                .get(&url)
+                .bearer_auth(&self.access_token)
+                .header("Accept", "application/json")
+                .send()
+                .await
+                .context("Failed to query departments from QuickBooks")?;
+
+            let status = response.status();
+
+            // Extract intuit_tid BEFORE consuming response
+            let intuit_tid = self.extract_intuit_tid(&response);
+            self.log_intuit_tid(intuit_tid.as_deref(), "query_departments");
+
+            tracing::info!("QuickBooks department query response status: {}", status);
+
+            if status == StatusCode::UNAUTHORIZED {
+                return Err(anyhow::anyhow!(
+                    "Unauthorized: Access token may be expired or invalid"
+                ));
+            }
+
+            let response_text = response
+                .text()
+                .await
+                .context("Failed to get response text")?;
+
+            let parsed: DepartmentQueryResponse = serde_json::from_str(&response_text)
+                .context(format!("Failed to parse query response: {}", response_text))?;
+
+            if let Some(fault) = parsed.fault {
+                let error_msg = fault
+                    .errors
+                    .first()
+                    .map(|e| format!("{} ({})", e.message, e.detail))
+                    .unwrap_or_else(|| "Unknown error".to_string());
+                return Err(anyhow::anyhow!("QuickBooks API error: {}", error_msg));
+            }
+
+            let page = parsed
+                .query_response
+                .map(|q| q.department)
+                .unwrap_or_default();
+
+            let page_count = page.len();
+            all_departments.extend(page);
+            if page_count < PAGE_SIZE {
+                break;
+            }
+            start_position += PAGE_SIZE;
+        }
+
+        tracing::info!("Found {} departments in QuickBooks", all_departments.len());
+        Ok(all_departments)
     }
 
     /// Batch create multiple departments in QuickBooks
     /// QuickBooks supports up to 30 operations per batch request
-    pub async fn batch_create_departments(&self, departments: Vec<super::models::Department>) -> Result<Vec<Result<super::models::Department>>> {
-        use super::models::{BatchRequest, BatchItemRequest, BatchOperation};
+    pub async fn batch_create_departments(
+        &self,
+        departments: Vec<super::models::Department>,
+    ) -> Result<Vec<Result<super::models::Department>>> {
+        use super::models::{BatchItemRequest, BatchOperation, BatchRequest};
 
         // Split into chunks of 30 (QuickBooks batch limit)
         let chunks: Vec<_> = departments.chunks(30).collect();
         let mut all_results = Vec::new();
 
         for (chunk_idx, chunk) in chunks.iter().enumerate() {
-            tracing::info!("Processing department batch {}/{} with {} items",
-                chunk_idx + 1, chunks.len(), chunk.len());
+            tracing::info!(
+                "Processing department batch {}/{} with {} items",
+                chunk_idx + 1,
+                chunks.len(),
+                chunk.len()
+            );
 
             // Build batch request
             let batch_items: Vec<BatchItemRequest> = chunk
                 .iter()
                 .enumerate()
                 .map(|(index, department)| {
-                    tracing::debug!("Preparing department '{}' for batch",
-                        department.name.as_ref().unwrap_or(&"Unknown".to_string()));
+                    tracing::debug!(
+                        "Preparing department '{}' for batch",
+                        department.name.as_ref().unwrap_or(&"Unknown".to_string())
+                    );
                     BatchItemRequest {
                         batch_id: format!("bid_{}", index),
                         operation: BatchOperation::CreateDepartment {
@@ -460,11 +515,15 @@ impl IntuitClient {
             tracing::info!("QuickBooks batch response status: {}", status);
 
             if status == StatusCode::UNAUTHORIZED {
-                return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
+                return Err(anyhow::anyhow!(
+                    "Unauthorized: Access token may be expired or invalid"
+                ));
             }
 
             // Get response text for debugging
-            let response_text = response.text().await
+            let response_text = response
+                .text()
+                .await
                 .context("Failed to get response text")?;
 
             tracing::debug!("QuickBooks batch response body: {}", response_text);
@@ -480,7 +539,9 @@ impl IntuitClient {
                 } else if let Some(department) = item_response.department {
                     all_results.push(Ok(department));
                 } else {
-                    all_results.push(Err(anyhow::anyhow!("No department or fault in batch response")));
+                    all_results.push(Err(anyhow::anyhow!(
+                        "No department or fault in batch response"
+                    )));
                 }
             }
         }
@@ -515,19 +576,25 @@ impl IntuitClient {
         tracing::debug!("QuickBooks get department response status: {}", status);
 
         if status == StatusCode::UNAUTHORIZED {
-            return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
+            return Err(anyhow::anyhow!(
+                "Unauthorized: Access token may be expired or invalid"
+            ));
         }
 
         // Get response text for debugging
-        let response_text = response.text().await
+        let response_text = response
+            .text()
+            .await
             .context("Failed to get response text")?;
 
         tracing::debug!("QuickBooks get department response: {}", response_text);
 
         // Parse response
         let qb_response: super::models::QuickBooksResponse<super::models::Department> =
-            serde_json::from_str(&response_text)
-                .context(format!("Failed to parse department response: {}", response_text))?;
+            serde_json::from_str(&response_text).context(format!(
+                "Failed to parse department response: {}",
+                response_text
+            ))?;
 
         // Check for API-level errors
         if let Some(fault) = qb_response.fault {
@@ -542,12 +609,16 @@ impl IntuitClient {
         }
 
         // Extract department from response
-        qb_response.department
+        qb_response
+            .department
             .ok_or_else(|| anyhow::anyhow!("No department returned in response"))
     }
 
     /// Update an existing department in QuickBooks
-    pub async fn update_department(&self, department: super::models::Department) -> Result<super::models::Department> {
+    pub async fn update_department(
+        &self,
+        department: super::models::Department,
+    ) -> Result<super::models::Department> {
         let url = format!("{}/v3/company/{}/department", self.base_url, self.realm_id);
 
         // Log the update request payload for debugging
@@ -575,19 +646,28 @@ impl IntuitClient {
         tracing::debug!("QuickBooks department update response status: {}", status);
 
         if status == StatusCode::UNAUTHORIZED {
-            return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
+            return Err(anyhow::anyhow!(
+                "Unauthorized: Access token may be expired or invalid"
+            ));
         }
 
         // Get response text for debugging
-        let response_text = response.text().await
+        let response_text = response
+            .text()
+            .await
             .context("Failed to get response text")?;
 
-        tracing::debug!("QuickBooks department update response body: {}", response_text);
+        tracing::debug!(
+            "QuickBooks department update response body: {}",
+            response_text
+        );
 
         // Parse and return the department
         let qb_response: super::models::QuickBooksResponse<super::models::Department> =
-            serde_json::from_str(&response_text)
-                .context(format!("Failed to parse update response: {}", response_text))?;
+            serde_json::from_str(&response_text).context(format!(
+                "Failed to parse update response: {}",
+                response_text
+            ))?;
 
         // Check for API-level errors
         if let Some(fault) = qb_response.fault {
@@ -602,108 +682,102 @@ impl IntuitClient {
         }
 
         // Extract department from response
-        qb_response.department
+        qb_response
+            .department
             .ok_or_else(|| anyhow::anyhow!("No department returned in update response"))
     }
 
     /// Query employees changed since a specific timestamp (INCREMENTAL SYNC - Feature 3)
     ///
     /// Uses QuickBooks Query API with WHERE clause filtering by Metadata.LastUpdatedTime
-    pub async fn list_employees_since(&self, since: chrono::DateTime<chrono::Utc>) -> Result<Vec<EmployeeExtended>> {
+    pub async fn list_employees_since(
+        &self,
+        since: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<EmployeeExtended>> {
         // Format timestamp for QuickBooks query (RFC 3339 format)
         let since_str = since.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+        const PAGE_SIZE: usize = 1000;
+        let mut start_position: usize = 1;
+        let mut all_employees: Vec<EmployeeExtended> = Vec::new();
 
-        // QuickBooks Query API with timestamp filter
-        let query = format!(
-            "select * from Employee WHERE Metadata.LastUpdatedTime > '{}' MAXRESULTS 1000",
-            since_str
-        );
+        loop {
+            // QuickBooks Query API with timestamp filter and explicit paging
+            let query = format!(
+                "select * from Employee WHERE Metadata.LastUpdatedTime > '{}' STARTPOSITION {} MAXRESULTS {}",
+                since_str, start_position, PAGE_SIZE
+            );
 
-        let url = format!(
-            "{}/v3/company/{}/query?query={}",
-            self.base_url,
-            self.realm_id,
-            utf8_percent_encode(&query, NON_ALPHANUMERIC)
-        );
+            let url = format!(
+                "{}/v3/company/{}/query?query={}",
+                self.base_url,
+                self.realm_id,
+                utf8_percent_encode(&query, NON_ALPHANUMERIC)
+            );
 
-        tracing::debug!("Incremental employee query: {}", query);
+            tracing::debug!("Incremental employee query: {}", query);
 
-        let response = self
-            .http_client
-            .get(&url)
-            .bearer_auth(&self.access_token)
-            .header("Accept", "application/json")
-            .send()
-            .await
-            .context("Failed to query incremental employees from QuickBooks")?;
+            let response = self
+                .http_client
+                .get(&url)
+                .bearer_auth(&self.access_token)
+                .header("Accept", "application/json")
+                .send()
+                .await
+                .context("Failed to query incremental employees from QuickBooks")?;
 
-        // Extract intuit_tid BEFORE consuming response
-        let intuit_tid = self.extract_intuit_tid(&response);
-        self.log_intuit_tid(intuit_tid.as_deref(), "list_employees_since");
+            // Extract intuit_tid BEFORE consuming response
+            let intuit_tid = self.extract_intuit_tid(&response);
+            self.log_intuit_tid(intuit_tid.as_deref(), "list_employees_since");
 
-        let qb_response: QuickBooksResponse<Employee> = response
-            .json()
-            .await
-            .context("Failed to parse QuickBooks incremental response")?;
+            let qb_response: QuickBooksResponse<Employee> = response
+                .json()
+                .await
+                .context("Failed to parse QuickBooks incremental response")?;
 
-        if let Some(fault) = qb_response.fault {
-            return Err(anyhow::anyhow!(
-                "QuickBooks API error: {}",
-                fault
-                    .errors
-                    .first()
-                    .map(|e| e.message.clone())
-                    .unwrap_or_else(|| "Unknown error".to_string())
-            ));
+            if let Some(fault) = qb_response.fault {
+                return Err(anyhow::anyhow!(
+                    "QuickBooks API error: {}",
+                    fault
+                        .errors
+                        .first()
+                        .map(|e| e.message.clone())
+                        .unwrap_or_else(|| "Unknown error".to_string())
+                ));
+            }
+
+            let page: Vec<EmployeeExtended> = qb_response
+                .query_response
+                .and_then(|qr| qr.employees)
+                .unwrap_or_default()
+                .into_iter()
+                .map(EmployeeExtended::from)
+                .collect();
+
+            let page_count = page.len();
+            all_employees.extend(page);
+            if page_count < PAGE_SIZE {
+                break;
+            }
+            start_position += PAGE_SIZE;
         }
 
-        let employees: Vec<EmployeeExtended> = qb_response
-            .query_response
-            .and_then(|qr| qr.employees)
-            .unwrap_or_default()
-            .into_iter()
-            .map(|emp| emp.into())
-            .collect();
+        tracing::info!(
+            "Incremental sync found {} changed employees",
+            all_employees.len()
+        );
 
-        tracing::info!("Incremental sync found {} changed employees", employees.len());
-
-        Ok(employees)
+        Ok(all_employees)
     }
 
     /// Query departments changed since a specific timestamp (INCREMENTAL SYNC - Feature 3)
     ///
     /// Uses QuickBooks Query API with WHERE clause filtering by Metadata.LastUpdatedTime
-    pub async fn query_departments_since(&self, since: chrono::DateTime<chrono::Utc>) -> Result<Vec<super::models::Department>> {
+    pub async fn query_departments_since(
+        &self,
+        since: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<super::models::Department>> {
         // Format timestamp for QuickBooks query (RFC 3339 format)
         let since_str = since.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-
-        // QuickBooks Query API with timestamp filter
-        let query = format!(
-            "select * from Department WHERE Metadata.LastUpdatedTime > '{}' MAXRESULTS 1000",
-            since_str
-        );
-
-        let url = format!(
-            "{}/v3/company/{}/query?query={}",
-            self.base_url,
-            self.realm_id,
-            utf8_percent_encode(&query, NON_ALPHANUMERIC)
-        );
-
-        tracing::debug!("Incremental department query: {}", query);
-
-        let response = self
-            .http_client
-            .get(&url)
-            .bearer_auth(&self.access_token)
-            .header("Accept", "application/json")
-            .send()
-            .await
-            .context("Failed to query incremental departments from QuickBooks")?;
-
-        // Extract intuit_tid BEFORE consuming response
-        let intuit_tid = self.extract_intuit_tid(&response);
-        self.log_intuit_tid(intuit_tid.as_deref(), "query_departments_since");
 
         // Parse response - departments use a custom wrapper
         #[derive(Debug, serde::Deserialize)]
@@ -720,30 +794,74 @@ impl IntuitClient {
             pub fault: Option<super::models::ApiFault>,
         }
 
-        let qb_response: DepartmentResponse = response
-            .json()
-            .await
-            .context("Failed to parse QuickBooks incremental department response")?;
+        const PAGE_SIZE: usize = 1000;
+        let mut start_position: usize = 1;
+        let mut all_departments: Vec<super::models::Department> = Vec::new();
 
-        if let Some(fault) = qb_response.fault {
-            return Err(anyhow::anyhow!(
-                "QuickBooks API error: {}",
-                fault
-                    .errors
-                    .first()
-                    .map(|e| e.message.clone())
-                    .unwrap_or_else(|| "Unknown error".to_string())
-            ));
+        loop {
+            // QuickBooks Query API with timestamp filter and explicit paging
+            let query = format!(
+                "select * from Department WHERE Metadata.LastUpdatedTime > '{}' STARTPOSITION {} MAXRESULTS {}",
+                since_str, start_position, PAGE_SIZE
+            );
+
+            let url = format!(
+                "{}/v3/company/{}/query?query={}",
+                self.base_url,
+                self.realm_id,
+                utf8_percent_encode(&query, NON_ALPHANUMERIC)
+            );
+
+            tracing::debug!("Incremental department query: {}", query);
+
+            let response = self
+                .http_client
+                .get(&url)
+                .bearer_auth(&self.access_token)
+                .header("Accept", "application/json")
+                .send()
+                .await
+                .context("Failed to query incremental departments from QuickBooks")?;
+
+            // Extract intuit_tid BEFORE consuming response
+            let intuit_tid = self.extract_intuit_tid(&response);
+            self.log_intuit_tid(intuit_tid.as_deref(), "query_departments_since");
+
+            let qb_response: DepartmentResponse = response
+                .json()
+                .await
+                .context("Failed to parse QuickBooks incremental department response")?;
+
+            if let Some(fault) = qb_response.fault {
+                return Err(anyhow::anyhow!(
+                    "QuickBooks API error: {}",
+                    fault
+                        .errors
+                        .first()
+                        .map(|e| e.message.clone())
+                        .unwrap_or_else(|| "Unknown error".to_string())
+                ));
+            }
+
+            let page = qb_response
+                .query_response
+                .and_then(|qr| qr.departments)
+                .unwrap_or_default();
+
+            let page_count = page.len();
+            all_departments.extend(page);
+            if page_count < PAGE_SIZE {
+                break;
+            }
+            start_position += PAGE_SIZE;
         }
 
-        let departments = qb_response
-            .query_response
-            .and_then(|qr| qr.departments)
-            .unwrap_or_default();
+        tracing::info!(
+            "Incremental sync found {} changed departments",
+            all_departments.len()
+        );
 
-        tracing::info!("Incremental sync found {} changed departments", departments.len());
-
-        Ok(departments)
+        Ok(all_departments)
     }
 
     /// Get company information from QuickBooks
@@ -816,18 +934,12 @@ impl IntuitClient {
                 "QuickBooks API transaction ID"
             );
         } else {
-            tracing::debug!(
-                context = context,
-                "No intuit_tid in response headers"
-            );
+            tracing::debug!(context = context, "No intuit_tid in response headers");
         }
     }
 
     /// Handle QuickBooks API response
-    async fn handle_response(
-        &self,
-        response: reqwest::Response,
-    ) -> Result<Employee> {
+    async fn handle_response(&self, response: reqwest::Response) -> Result<Employee> {
         let status = response.status();
 
         // Extract intuit_tid BEFORE consuming response

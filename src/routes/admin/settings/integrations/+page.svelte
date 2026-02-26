@@ -25,7 +25,7 @@
 		syncDepartmentsBidirectional,
 		isSyncSuccessful
 	} from '$lib/api/sync';
-	import type { SyncResponse, EntityType, ConflictStrategy } from '$lib/types/sync';
+	import type { ConflictStrategy, SyncResponse } from '$lib/types/sync';
 
 	const { data } = $props();
 

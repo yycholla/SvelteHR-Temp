@@ -38,24 +38,24 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, url }) => 
 			return {
 				requests: [],
 				error: 'Failed to load rollback requests',
-				statistics: null as any,
-				selectedRequest: null as any
+				statistics: null,
+				selectedRequest: null
 			};
 		}
 
 		return {
 			requests: result.data?.rollbackRequests || [],
 			filters: { status, limit },
-			statistics: null as any,
-			selectedRequest: null as any
+			statistics: null,
+			selectedRequest: null
 		};
 	} catch (error) {
 		console.error('Error loading rollback requests:', error);
 		return {
 			requests: [],
 			error: 'Failed to load rollback requests',
-			statistics: null as any,
-			selectedRequest: null as any
+			statistics: null,
+			selectedRequest: null
 		};
 	}
 };

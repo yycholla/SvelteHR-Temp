@@ -57,7 +57,7 @@ dev: ## Start all development containers (backend, database, redis)
 	@echo ""
 	@echo "📍 Services available:"
 	@echo "   🔹 Backend API:  http://localhost:4000/graphql"
-	@echo "   🔹 GraphiQL:     http://localhost:5000/graphiql"
+	@echo "   🔹 GraphiQL:     http://localhost:4000/graphql"
 	@echo "   🔹 PostgreSQL:   localhost:5433 (user: postgres, pass: postgres123)"
 	@echo "   🔹 Redis:        localhost:6380"
 	@echo ""
@@ -68,7 +68,7 @@ backend: dev ## Alias for 'make dev' (starts backend containers)
 frontend: ## Start SvelteKit frontend development server
 	@echo "🎨 Starting SvelteKit Frontend..."
 	@echo ""
-	@if ! docker ps | grep -q sveltehr-backend-dev; then \
+	@if ! docker ps | grep -q sveltehr-graphql-rust; then \
 		echo "❌ Backend not running. Start it first with 'make dev'"; \
 		exit 1; \
 	fi

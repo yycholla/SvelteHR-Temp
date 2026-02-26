@@ -119,7 +119,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_password_reset_tokens_user_id")
-                    .from((Schema::HrPublic, PasswordResetTokens::Table), PasswordResetTokens::UserId)
+                    .from(
+                        (Schema::HrPublic, PasswordResetTokens::Table),
+                        PasswordResetTokens::UserId,
+                    )
                     .to((Schema::HrPublic, Users::Table), Users::Id)
                     .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),

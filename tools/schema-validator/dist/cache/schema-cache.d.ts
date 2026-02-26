@@ -2,7 +2,7 @@
  * Schema Cache - Multi-level caching for database, API, and operations
  * Improves validation performance by caching introspection results
  */
-import type { DatabaseColumn, ApiField, GraphQLOperation } from '../types/models.js';
+import type { ApiField, DatabaseColumn, GraphQLOperation } from '../types/models.js';
 /**
  * Cache type identifiers
  */

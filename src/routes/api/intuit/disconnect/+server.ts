@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { logger } from '$lib/utils/logger';
 
@@ -13,7 +13,7 @@ import { logger } from '$lib/utils/logger';
  * - Disconnect URL: https://hr.mtncarerx.com/api/intuit/disconnect
  */
 
-export const POST: RequestHandler = async ({ request, fetch }) => {
+export const POST: RequestHandler = async ({ request }) => {
 	try {
 		// Parse the webhook payload from Intuit
 		const payload = await request.json();
@@ -37,35 +37,15 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 			source: 'intuit_webhook'
 		});
 
-		// Forward to backend to update integration status
-		try {
-			const backendUrl = process.env.PUBLIC_API_URL || 'http://sveltehr-backend:4000';
-			const backendResponse = await fetch(`${backendUrl}/api/intuit/disconnect`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ realmId })
-			});
-
-			if (!backendResponse.ok) {
-				logger.error('Backend failed to process disconnect', undefined, {
-					status: backendResponse.status,
-					realmId
-				});
-			}
-		} catch (backendError) {
-			logger.error('Failed to notify backend of disconnection', backendError as Error, {
-				realmId
-			});
-			// Don't fail the webhook - we still acknowledge receipt
-		}
+		// NOTE: Intuit disconnect callback is treated as notification-only at this layer.
+		// Connection teardown is handled through authenticated integration flows.
 
 		// Return success to Intuit
 		return json({
 			success: true,
 			message: 'Disconnection processed successfully',
 			realmId,
+			next: '/intuit/disconnected',
 			timestamp: new Date().toISOString()
 		});
 	} catch (error) {
@@ -84,12 +64,9 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 	}
 };
 
-// GET endpoint for health check
-export const GET: RequestHandler = async () => {
-	return json({
-		endpoint: 'intuit-disconnect-webhook',
-		status: 'active',
-		timestamp: new Date().toISOString(),
-		methods: ['POST']
-	});
+// GET endpoint used as user-facing disconnect URL.
+export const GET: RequestHandler = async ({ url }) => {
+	const params = new URLSearchParams(url.searchParams);
+	const target = `/intuit/disconnected${params.toString() ? `?${params.toString()}` : ''}`;
+	throw redirect(302, target);
 };

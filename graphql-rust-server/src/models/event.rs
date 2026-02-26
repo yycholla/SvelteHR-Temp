@@ -162,7 +162,7 @@ impl Model {
     /// PostGraphile global node ID (Relay pattern)
     async fn node_id(&self) -> String {
         // Base64 encode "Event:uuid" for Relay global ID
-        use base64::{Engine as _, engine::general_purpose};
+        use base64::{engine::general_purpose, Engine as _};
         let raw_id = format!("Event:{}", self.id);
         general_purpose::STANDARD.encode(raw_id.as_bytes())
     }
@@ -297,21 +297,30 @@ impl Model {
     /// Event organizer (User who created the event)
     async fn organizer(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.organizer_id).one(&db).await?;
+        let user = super::user::Entity::find_by_id(self.organizer_id)
+            .one(&db)
+            .await?;
         Ok(user)
     }
 
     /// User who created this event (alias for organizer)
     async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.organizer_id).one(&db).await?;
+        let user = super::user::Entity::find_by_id(self.organizer_id)
+            .one(&db)
+            .await?;
         Ok(user)
     }
 
     /// PostGraphile alias: userByOrganizerId
-    async fn user_by_organizer_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+    async fn user_by_organizer_id(
+        &self,
+        ctx: &Context<'_>,
+    ) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.organizer_id).one(&db).await?;
+        let user = super::user::Entity::find_by_id(self.organizer_id)
+            .one(&db)
+            .await?;
         Ok(user)
     }
 
@@ -378,7 +387,10 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let count = super::event_attendee::Entity::find()
             .filter(super::event_attendee::Column::EventId.eq(self.id))
-            .filter(super::event_attendee::Column::ResponseStatus.eq(super::event_attendee::RsvpStatus::Accepted))
+            .filter(
+                super::event_attendee::Column::ResponseStatus
+                    .eq(super::event_attendee::RsvpStatus::Accepted),
+            )
             .count(&db)
             .await?;
         Ok(count as i64)
@@ -389,7 +401,10 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let count = super::event_attendee::Entity::find()
             .filter(super::event_attendee::Column::EventId.eq(self.id))
-            .filter(super::event_attendee::Column::ResponseStatus.eq(super::event_attendee::RsvpStatus::Accepted))
+            .filter(
+                super::event_attendee::Column::ResponseStatus
+                    .eq(super::event_attendee::RsvpStatus::Accepted),
+            )
             .count(&db)
             .await?;
         Ok(count as i64)
@@ -401,7 +416,10 @@ impl Model {
             let db = get_db_from_context(ctx)?;
             let count = super::event_attendee::Entity::find()
                 .filter(super::event_attendee::Column::EventId.eq(self.id))
-                .filter(super::event_attendee::Column::ResponseStatus.eq(super::event_attendee::RsvpStatus::Accepted))
+                .filter(
+                    super::event_attendee::Column::ResponseStatus
+                        .eq(super::event_attendee::RsvpStatus::Accepted),
+                )
                 .count(&db)
                 .await?;
             Ok(count >= cap as u64)
@@ -416,7 +434,10 @@ impl Model {
             let db = get_db_from_context(ctx)?;
             let count = super::event_attendee::Entity::find()
                 .filter(super::event_attendee::Column::EventId.eq(self.id))
-                .filter(super::event_attendee::Column::ResponseStatus.eq(super::event_attendee::RsvpStatus::Accepted))
+                .filter(
+                    super::event_attendee::Column::ResponseStatus
+                        .eq(super::event_attendee::RsvpStatus::Accepted),
+                )
                 .count(&db)
                 .await?;
             let available = cap - count as i32;
@@ -479,8 +500,8 @@ pub struct UpdateEventInput {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::Model as Event;
+    use super::*;
 
     #[test]
     fn test_event_model_compiles() {

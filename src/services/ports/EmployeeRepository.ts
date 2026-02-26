@@ -8,15 +8,6 @@ import type {
 } from '$domain';
 
 /**
- * @deprecated Use EmployeeListFilters instead
- */
-export interface EmployeeFilters {
-	departmentId?: string;
-	isActive?: boolean;
-	searchTerm?: string;
-}
-
-/**
  * Employee statistics aggregated from the repository
  */
 export interface EmployeeStatistics {

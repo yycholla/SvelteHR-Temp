@@ -94,7 +94,10 @@ impl Model {
     }
 
     /// User relationship (lazy-loaded)
-    async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+    async fn user(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::user::Model> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.user_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())

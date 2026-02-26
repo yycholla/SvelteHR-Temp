@@ -3,11 +3,7 @@
 //! This middleware adds security headers to all HTTP responses
 //! to protect against common web vulnerabilities.
 
-use axum::{
-    http::HeaderValue,
-    middleware::Next,
-    response::Response,
-};
+use axum::{http::HeaderValue, middleware::Next, response::Response};
 
 /// Security headers middleware
 ///
@@ -18,16 +14,16 @@ use axum::{
 /// - HTTPS enforcement (Strict-Transport-Security)
 /// - Content Security Policy (Content-Security-Policy)
 /// - Referrer Policy
-pub async fn security_headers_middleware(request: axum::http::Request<axum::body::Body>, next: Next) -> Response {
+pub async fn security_headers_middleware(
+    request: axum::http::Request<axum::body::Body>,
+    next: Next,
+) -> Response {
     let mut response = next.run(request).await;
 
     let headers = response.headers_mut();
 
     // Prevent clickjacking
-    headers.insert(
-        "X-Frame-Options",
-        HeaderValue::from_static("DENY"),
-    );
+    headers.insert("X-Frame-Options", HeaderValue::from_static("DENY"));
 
     // Prevent MIME type sniffing
     headers.insert(

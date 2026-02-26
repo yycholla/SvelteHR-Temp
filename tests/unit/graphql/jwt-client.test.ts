@@ -44,9 +44,9 @@ vi.mock('@urql/core', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@urql/core')>();
 
 	class TrackedClient extends actual.Client {
-		constructor(opts: Record<string, unknown>) {
-			super(opts as ConstructorParameters<typeof actual.Client>[0]);
-			capturedClientOpts.push(opts);
+		constructor(opts: ConstructorParameters<typeof actual.Client>[0]) {
+			super(opts);
+			capturedClientOpts.push(opts as unknown as Record<string, unknown>);
 		}
 	}
 
@@ -122,6 +122,21 @@ describe('JWT GraphQL Client', () => {
 			expect(capturedClientOpts[before].url).toBe(endpoint1);
 			expect(capturedClientOpts[before + 1].url).toBe(endpoint2);
 		});
+
+		test('should force POST requests with JSON content type', async () => {
+			const { createJwtGraphQLClient } = await import('$lib/graphql/jwt-client');
+
+			const before = capturedClientOpts.length;
+			createJwtGraphQLClient('http://localhost:8080/graphql');
+
+			const options = capturedClientOpts[before];
+			const fetchOptions = (options.fetchOptions as () => RequestInit)();
+			const headers = fetchOptions.headers as Record<string, string>;
+
+			expect(options.preferGetMethod).toBe(false);
+			expect(fetchOptions.method).toBe('POST');
+			expect(headers['Content-Type']).toBe('application/json');
+		});
 	});
 
 	// ========================================================================
@@ -155,7 +170,7 @@ describe('JWT GraphQL Client', () => {
 			const before = capturedClientOpts.length;
 			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
-			expect(capturedClientOpts[before].url).toBe('http://localhost:8080/graphql');
+			expect(capturedClientOpts[before].url).toBe('http://localhost:4000/graphql');
 		});
 
 		test('should include Authorization header when token provided', async () => {
@@ -256,6 +271,13 @@ describe('JWT GraphQL Client', () => {
 			const { jwtGraphQLClient } = await import('$lib/graphql/jwt-client');
 
 			expect(jwtGraphQLClient).toBeInstanceOf(RealClient);
+		});
+
+		test('should default browser endpoint to /api/graphql', async () => {
+			await import('$lib/graphql/jwt-client');
+			const lastOpts = capturedClientOpts[capturedClientOpts.length - 1];
+
+			expect(lastOpts.url).toBe('/api/graphql');
 		});
 
 		test('should initialize auth store with default client', async () => {
@@ -427,7 +449,7 @@ describe('JWT GraphQL Client', () => {
 			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
 			expect(capturedClientOpts[before].url).toBe('https://api.example.com/graphql');
-			expect(capturedClientOpts[before + 1].url).toBe('http://localhost:8080/graphql');
+			expect(capturedClientOpts[before + 1].url).toBe('http://localhost:4000/graphql');
 		});
 	});
 

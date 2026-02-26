@@ -6,12 +6,22 @@
 	import * as Card from '$lib/components/ui/card';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import RecurrencePatternInput from '$lib/components/ui/recurrence-pattern-input.svelte';
+	import type { RecurrencePattern } from '$lib/types/events';
+
+	interface TrainingFormRecord {
+		title: string;
+		description?: string | null;
+		metaTitle?: string | null;
+		metaDescription?: string | null;
+		startDate?: string | null;
+		endDate?: string | null;
+	}
 
 	interface Props {
-		training: any;
+		training: TrainingFormRecord;
 		isActive: boolean;
 		tags: string[];
-		recurrencePattern: any;
+		recurrencePattern: RecurrencePattern | null;
 	}
 
 	let {
@@ -21,7 +31,7 @@
 		recurrencePattern = $bindable()
 	}: Props = $props();
 
-	function toDatetimeLocal(isoString: string | null) {
+	function toDatetimeLocal(isoString: string | null | undefined) {
 		if (!isoString) return '';
 		const date = new Date(isoString);
 		const offset = date.getTimezoneOffset() * 60000;

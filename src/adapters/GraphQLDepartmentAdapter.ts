@@ -21,8 +21,15 @@ interface GraphQLDepartment {
 	parentDepartmentId: string | null;
 	createdAt: string;
 	updatedAt: string;
-	deletedAt: string | null;
+	deletedAt?: string | null;
 }
+
+interface GraphQLDepartmentQueryResult {
+	items: GraphQLDepartment[];
+	totalCount: number;
+}
+
+type GraphQLDepartmentsResponse = GraphQLDepartment[] | GraphQLDepartmentQueryResult;
 
 /**
  * GraphQL Department Adapter
@@ -56,7 +63,6 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 					parentDepartmentId
 					createdAt
 					updatedAt
-					deletedAt
 				}
 			}
 		`;
@@ -98,14 +104,16 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 		const query = gql`
 			query GetDepartments($limit: Int!, $offset: Int!) {
 				departments(limit: $limit, offset: $offset) {
-					id
-					name
-					description
-					managerId
-					parentDepartmentId
-					createdAt
-					updatedAt
-					deletedAt
+					items {
+						id
+						name
+						description
+						managerId
+						parentDepartmentId
+						createdAt
+						updatedAt
+					}
+					totalCount
 				}
 			}
 		`;
@@ -115,12 +123,20 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 			const page = filters?.page ?? 1;
 			const offset = (page - 1) * limit;
 
-			const result = await this.graphql.query<{ departments: GraphQLDepartment[] }>(query, {
+			const result = await this.graphql.query<{ departments: GraphQLDepartmentsResponse }>(query, {
 				limit,
 				offset
 			});
 
-			if (!result?.departments) {
+			const rawDepartments = result?.departments;
+			const departmentItems = Array.isArray(rawDepartments)
+				? rawDepartments
+				: rawDepartments?.items;
+			const totalCount = Array.isArray(rawDepartments)
+				? rawDepartments.length
+				: rawDepartments?.totalCount;
+
+			if (!departmentItems) {
 				return Result.ok({
 					departments: [],
 					total: 0,
@@ -131,14 +147,14 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 
 			// Map all departments and filter out invalid records
 			// Use simple mapping for list operations (full ancestor chains built on-demand)
-			const mappedResults = result.departments.map((dept) => this.mapToDepartmentSimple(dept));
+			const mappedResults = departmentItems.map((dept) => this.mapToDepartmentSimple(dept));
 
 			const departments = mappedResults
 				.filter((r) => r.isOk && r.value !== null)
 				.map((r) => r.value!);
 
 			// Save original count before filtering
-			const allCount = departments.length;
+			const allCount = totalCount || departments.length;
 
 			// Apply client-side filters (backend limitation)
 			const filtered = this.applyClientSideFilters(departments, filters);
@@ -179,7 +195,7 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 	): Promise<Result<Department | null, DomainError>> {
 		// Fetch all departments and filter client-side (backend limitation)
 		const allResult = await this.findAll();
-		if (allResult.isError) return allResult;
+		if (allResult.isError) return Result.error(allResult.error);
 
 		const normalizedName = name.trim().toLowerCase();
 		const found = allResult.value.departments.find(
@@ -213,7 +229,7 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 	 */
 	async exists(id: string): Promise<Result<boolean, DomainError>> {
 		const result = await this.findById(id);
-		if (result.isError) return result;
+		if (result.isError) return Result.error(result.error);
 		return Result.ok(result.value !== null);
 	}
 
@@ -290,7 +306,6 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 					parentDepartmentId
 					createdAt
 					updatedAt
-					deletedAt
 				}
 			}
 		`;
@@ -351,7 +366,6 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 					parentDepartmentId
 					createdAt
 					updatedAt
-					deletedAt
 				}
 			}
 		`;
@@ -404,7 +418,7 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 	async getChildren(departmentId: string): Promise<Result<Department[], DomainError>> {
 		// Fetch all departments and filter for children (backend limitation)
 		const allResult = await this.findAll();
-		if (allResult.isError) return allResult;
+		if (allResult.isError) return Result.error(allResult.error);
 
 		const children = allResult.value.departments
 			.filter((dept) => dept.parentId === departmentId)
@@ -480,7 +494,6 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 					parentDepartmentId
 					createdAt
 					updatedAt
-					deletedAt
 				}
 			}
 		`;
@@ -540,7 +553,6 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 					parentDepartmentId
 					createdAt
 					updatedAt
-					deletedAt
 				}
 			}
 		`;
@@ -602,7 +614,6 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 					parentDepartmentId
 					createdAt
 					updatedAt
-					deletedAt
 				}
 			}
 		`;
@@ -790,7 +801,7 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 				managerId: data.managerId,
 				description: data.description,
 				employeeCount: 0, // Will be fetched separately if needed
-				isDeleted: data.deletedAt !== null
+				isDeleted: data.deletedAt != null
 			});
 
 			if (result.isError) {
@@ -842,7 +853,7 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 				managerId: data.managerId,
 				description: data.description,
 				employeeCount: 0,
-				isDeleted: data.deletedAt !== null
+				isDeleted: data.deletedAt != null
 			});
 
 			if (result.isError) {

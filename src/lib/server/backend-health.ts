@@ -1,4 +1,5 @@
 import { logger } from '$lib/utils/logger';
+import { getGraphQLEndpoint } from '$lib/server/api-url';
 
 /**
  * Backend Health Check Utility
@@ -40,10 +41,7 @@ export async function checkBackendHealth(
 		backoffMultiplier = 2
 	} = options;
 
-	const graphqlEndpoint =
-		endpoint || process.env.VITE_API_URL
-			? `${process.env.VITE_API_URL}/graphql`
-			: 'http://localhost:4000/graphql';
+	const graphqlEndpoint = endpoint && endpoint.trim().length > 0 ? endpoint : getGraphQLEndpoint();
 
 	const startTime = Date.now();
 	let retries = 0;

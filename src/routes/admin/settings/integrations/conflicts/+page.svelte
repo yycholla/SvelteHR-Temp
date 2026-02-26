@@ -1,30 +1,41 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
 	import { invalidate } from '$app/navigation';
 	import { errorStore, showSuccess } from '$lib/stores/error.svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { AlertTriangle, ArrowLeft, CheckCircle2 } from '@lucide/svelte';
 
-	let { data } = $props();
+	interface SyncConflict {
+		entityType: string;
+		entityId: string;
+		quickbooksId: string | null;
+		description: string;
+		employeeName: string | null;
+		employeeEmail: string | null;
+		localModifiedAt: string | null;
+		remoteModifiedAt: string | null;
+		lastSyncedAt: string | null;
+	}
+
+	interface ConflictsPageData {
+		conflicts: SyncConflict[];
+	}
+
+	interface ResolveConflictResponse {
+		success: boolean;
+		error?: string;
+	}
+
+	let { data }: { data: ConflictsPageData } = $props();
 	let conflicts = $derived(data.conflicts);
 	let resolving = $state<string | null>(null);
 	let confirmDialogOpen = $state(false);
 	let pendingResolution = $state<{
-		conflict: any;
+		conflict: SyncConflict;
 		resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE';
 	} | null>(null);
 
-	// Conflict permissions from server
-	const perms = $derived(
-		data.conflictPermissions || {
-			canViewConflicts: false,
-			canResolveConflicts: false,
-			canBulkResolveConflicts: false
-		}
-	);
-
-	function openConfirmDialog(conflict: any, resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE') {
+	function openConfirmDialog(conflict: SyncConflict, resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE') {
 		pendingResolution = { conflict, resolution };
 		confirmDialogOpen = true;
 	}
@@ -42,7 +53,7 @@
 		pendingResolution = null;
 	}
 
-	async function resolveConflict(conflict: any, resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE') {
+	async function resolveConflict(conflict: SyncConflict, resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE') {
 		resolving = conflict.entityId;
 
 		try {
@@ -58,7 +69,7 @@
 				})
 			});
 
-			const result = await response.json();
+			const result = (await response.json()) as ResolveConflictResponse;
 
 			if (result.success) {
 				// Show success toast
@@ -107,10 +118,10 @@
 	const totalConflicts = $derived(conflicts.length);
 	const resolvableConflicts = $derived(
 		conflicts.filter(
-			(c: any) =>
-				!c.description.includes('has no email address') &&
-				!c.description.includes('has no name') &&
-				!c.description.includes('no longer exists in QuickBooks')
+			(conflict) =>
+				!conflict.description.includes('has no email address') &&
+				!conflict.description.includes('has no name') &&
+				!conflict.description.includes('no longer exists in QuickBooks')
 		).length
 	);
 	const actionRequiredConflicts = $derived(totalConflicts - resolvableConflicts);

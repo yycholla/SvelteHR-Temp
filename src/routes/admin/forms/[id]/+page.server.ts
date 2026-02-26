@@ -1,20 +1,19 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { client as urqlClient } from '$lib/graphql/client';
+import { createGraphQLClient } from '$lib/server/graphql/unified-client';
 import {
 	CREATE_FORM_BLOCK,
 	DELETE_FORM_BLOCK,
-	GET_FORM_BLOCKS,
 	GET_ONBOARDING_FORM,
 	type OnboardingForm,
-	type OnboardingFormBlock,
 	REORDER_FORM_BLOCKS,
 	UPDATE_FORM_BLOCK,
 	UPDATE_ONBOARDING_FORM
 } from '$lib/graphql/form-operations';
 import { logger } from '$lib/utils/logger';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async (event) => {
+	const { params, locals } = event;
 	const { user } = locals;
 
 	if (!user) {
@@ -28,30 +27,38 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	const formId = params.id;
+	const graphqlClient = createGraphQLClient(event);
 
-	// Fetch the form with its blocks
-	const result = await urqlClient.query(GET_ONBOARDING_FORM, { id: formId });
+	try {
+		// Fetch the form with its blocks
+		const result = await graphqlClient.query<{ onboardingForm?: OnboardingForm | null }>(
+			GET_ONBOARDING_FORM,
+			{ id: formId }
+		);
 
-	if (result.error) {
-		logger.error('Error fetching form:', result.error);
+		if (!result?.onboardingForm) {
+			throw error(404, 'Form not found');
+		}
+
+		const form: OnboardingForm = result.onboardingForm;
+
+		return {
+			form,
+			user
+		};
+	} catch (err) {
+		if (err && typeof err === 'object' && 'status' in err) {
+			throw err;
+		}
+		logger.error('Error fetching form', err as Error);
 		throw error(500, 'Failed to load form');
 	}
-
-	if (!result.data?.onboardingForm) {
-		throw error(404, 'Form not found');
-	}
-
-	const form: OnboardingForm = result.data.onboardingForm;
-
-	return {
-		form,
-		user
-	};
 };
 
 export const actions: Actions = {
 	// Create a new block
-	createBlock: async ({ request, locals }) => {
+	createBlock: async (event) => {
+		const { request, locals } = event;
 		const { user } = locals;
 		if (!user) {
 			throw error(401, 'Unauthorized');
@@ -60,7 +67,7 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const input = {
 			onboardingFormId: formData.get('onboardingFormId') as string,
-			type: formData.get('type') as any,
+			type: formData.get('type') as string,
 			title: formData.get('title') as string | null,
 			sequenceOrder: parseInt(formData.get('sequenceOrder') as string),
 			textContent: formData.get('textContent') as string | null,
@@ -77,18 +84,21 @@ export const actions: Actions = {
 				: null
 		};
 
-		const result = await urqlClient.mutation(CREATE_FORM_BLOCK, { input });
-
-		if (result.error) {
-			logger.error('Error creating block:', result.error);
+		try {
+			const graphqlClient = createGraphQLClient(event);
+			const result = await graphqlClient.mutate<{ createFormBlock: unknown }>(CREATE_FORM_BLOCK, {
+				input
+			});
+			return { success: true, block: result.createFormBlock };
+		} catch (err) {
+			logger.error('Error creating block', err as Error);
 			throw error(500, 'Failed to create block');
 		}
-
-		return { success: true, block: result.data.createFormBlock };
 	},
 
 	// Update a block
-	updateBlock: async ({ request, locals }) => {
+	updateBlock: async (event) => {
+		const { request, locals } = event;
 		const { user } = locals;
 		if (!user) {
 			throw error(401, 'Unauthorized');
@@ -96,7 +106,7 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
-		const input: any = {};
+		const input: Record<string, unknown> = {};
 
 		if (formData.has('title')) input.title = formData.get('title');
 		if (formData.has('sequenceOrder'))
@@ -111,18 +121,22 @@ export const actions: Actions = {
 		if (formData.has('checkboxItems'))
 			input.checkboxItems = JSON.parse(formData.get('checkboxItems') as string);
 
-		const result = await urqlClient.mutation(UPDATE_FORM_BLOCK, { id, input });
-
-		if (result.error) {
-			logger.error('Error updating block:', result.error);
+		try {
+			const graphqlClient = createGraphQLClient(event);
+			const result = await graphqlClient.mutate<{ updateFormBlock: unknown }>(UPDATE_FORM_BLOCK, {
+				id,
+				input
+			});
+			return { success: true, block: result.updateFormBlock };
+		} catch (err) {
+			logger.error('Error updating block', err as Error);
 			throw error(500, 'Failed to update block');
 		}
-
-		return { success: true, block: result.data.updateFormBlock };
 	},
 
 	// Delete a block
-	deleteBlock: async ({ request, locals }) => {
+	deleteBlock: async (event) => {
+		const { request, locals } = event;
 		const { user } = locals;
 		if (!user) {
 			throw error(401, 'Unauthorized');
@@ -131,10 +145,11 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
 
-		const result = await urqlClient.mutation(DELETE_FORM_BLOCK, { id });
-
-		if (result.error) {
-			logger.error('Error deleting block:', result.error);
+		try {
+			const graphqlClient = createGraphQLClient(event);
+			await graphqlClient.mutate(DELETE_FORM_BLOCK, { id });
+		} catch (err) {
+			logger.error('Error deleting block', err as Error);
 			throw error(500, 'Failed to delete block');
 		}
 
@@ -142,7 +157,8 @@ export const actions: Actions = {
 	},
 
 	// Reorder blocks
-	reorderBlocks: async ({ request, locals }) => {
+	reorderBlocks: async (event) => {
+		const { request, locals } = event;
 		const { user } = locals;
 		if (!user) {
 			throw error(401, 'Unauthorized');
@@ -152,13 +168,14 @@ export const actions: Actions = {
 		const onboardingFormId = formData.get('onboardingFormId') as string;
 		const blockIds = JSON.parse(formData.get('blockIds') as string);
 
-		const result = await urqlClient.mutation(REORDER_FORM_BLOCKS, {
-			onboardingFormId,
-			blockIds
-		});
-
-		if (result.error) {
-			logger.error('Error reordering blocks:', result.error);
+		try {
+			const graphqlClient = createGraphQLClient(event);
+			await graphqlClient.mutate(REORDER_FORM_BLOCKS, {
+				onboardingFormId,
+				blockIds
+			});
+		} catch (err) {
+			logger.error('Error reordering blocks', err as Error);
 			throw error(500, 'Failed to reorder blocks');
 		}
 
@@ -166,7 +183,8 @@ export const actions: Actions = {
 	},
 
 	// Update form metadata
-	updateForm: async ({ request, locals }) => {
+	updateForm: async (event) => {
+		const { request, locals } = event;
 		const { user } = locals;
 		if (!user) {
 			throw error(401, 'Unauthorized');
@@ -174,19 +192,22 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const id = formData.get('id') as string;
-		const input: any = {};
+		const input: Record<string, unknown> = {};
 
 		if (formData.has('title')) input.title = formData.get('title');
 		if (formData.has('description')) input.description = formData.get('description');
 		if (formData.has('isRequired')) input.isRequired = formData.get('isRequired') === 'true';
 
-		const result = await urqlClient.mutation(UPDATE_ONBOARDING_FORM, { id, input });
-
-		if (result.error) {
-			logger.error('Error updating form:', result.error);
+		try {
+			const graphqlClient = createGraphQLClient(event);
+			const result = await graphqlClient.mutate<{ updateOnboardingForm: unknown }>(
+				UPDATE_ONBOARDING_FORM,
+				{ id, input }
+			);
+			return { success: true, form: result.updateOnboardingForm };
+		} catch (err) {
+			logger.error('Error updating form', err as Error);
 			throw error(500, 'Failed to update form');
 		}
-
-		return { success: true, form: result.data.updateOnboardingForm };
 	}
 };

@@ -127,16 +127,8 @@ impl MigrationTrait for Migration {
                             .json_binary()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(ComplianceReports::PdfPath)
-                            .text()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(ComplianceReports::CsvPath)
-                            .text()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(ComplianceReports::PdfPath).text().null())
+                    .col(ColumnDef::new(ComplianceReports::CsvPath).text().null())
                     .col(
                         ColumnDef::new(ComplianceReports::Status)
                             .string()
@@ -168,7 +160,10 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_compliance_reports_generated_by")
-                            .from((Schema::HrPublic, ComplianceReports::Table), ComplianceReports::GeneratedBy)
+                            .from(
+                                (Schema::HrPublic, ComplianceReports::Table),
+                                ComplianceReports::GeneratedBy,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Restrict),
                     )
@@ -241,7 +236,7 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(ReportSchedules::Recipients)
                             .array(ColumnType::Text)
                             .not_null()
-                            .default(Expr::value("{}"))
+                            .default(Expr::value("{}")),
                     )
                     .col(
                         ColumnDef::new(ReportSchedules::Enabled)
@@ -259,11 +254,7 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(ReportSchedules::CreatedBy)
-                            .uuid()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(ReportSchedules::CreatedBy).uuid().not_null())
                     .col(
                         ColumnDef::new(ReportSchedules::CreatedAt)
                             .timestamp_with_time_zone()
@@ -279,7 +270,10 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_report_schedules_created_by")
-                            .from((Schema::HrPublic, ReportSchedules::Table), ReportSchedules::CreatedBy)
+                            .from(
+                                (Schema::HrPublic, ReportSchedules::Table),
+                                ReportSchedules::CreatedBy,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Restrict),
                     )
@@ -347,11 +341,21 @@ impl MigrationTrait for Migration {
 
         // Drop tables
         manager
-            .drop_table(Table::drop().if_exists().table((Schema::HrPublic, ReportSchedules::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .if_exists()
+                    .table((Schema::HrPublic, ReportSchedules::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().if_exists().table((Schema::HrPublic, ComplianceReports::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .if_exists()
+                    .table((Schema::HrPublic, ComplianceReports::Table))
+                    .to_owned(),
+            )
             .await?;
 
         Ok(())

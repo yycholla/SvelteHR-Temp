@@ -53,15 +53,23 @@ pub struct EntityChange {
 /// CloudEvents format webhook payload (v1.0)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CloudEvent {
-    pub specversion: String,
+    pub specversion: Option<String>,
     pub id: String,
-    pub source: String,
+    pub source: Option<String>,
     #[serde(rename = "type")]
     pub event_type: String,
-    pub datacontenttype: String,
+    pub datacontenttype: Option<String>,
     pub subject: Option<String>,
     pub time: Option<String>,
     pub data: serde_json::Value,
+    #[serde(rename = "intuitEntityId")]
+    pub intuit_entity_id: Option<String>,
+    #[serde(rename = "intuitAccountId")]
+    pub intuit_account_id: Option<String>,
+    #[serde(rename = "intuitObjectType")]
+    pub intuit_object_type: Option<String>,
+    #[serde(rename = "intuitEventType")]
+    pub intuit_event_type: Option<String>,
 }
 
 /// Unified webhook payload that supports both formats
@@ -91,9 +99,9 @@ impl WebhookProcessor {
         signature: &str,
         verifier_token: &str,
     ) -> Result<bool, Box<dyn std::error::Error>> {
+        use base64::{engine::general_purpose, Engine as _};
         use hmac::{Hmac, Mac};
         use sha2::Sha256;
-        use base64::{Engine as _, engine::general_purpose};
 
         type HmacSha256 = Hmac<Sha256>;
 
@@ -147,11 +155,10 @@ impl WebhookProcessor {
                 // Process legacy format
                 for notification in legacy_payload.event_notifications {
                     for entity in notification.data_change_event.entities {
-                        match self.process_entity_change(
-                            &subscription,
-                            &notification.realm_id,
-                            &entity,
-                        ).await {
+                        match self
+                            .process_entity_change(&subscription, &notification.realm_id, &entity)
+                            .await
+                        {
                             Ok(_) => {
                                 events_processed += 1;
                                 if matches!(entity.name.as_str(), "Employee" | "Department") {
@@ -174,20 +181,29 @@ impl WebhookProcessor {
             WebhookPayload::CloudEvents(cloud_events) => {
                 // Process CloudEvents format
                 for event in cloud_events {
-                    match self.process_cloud_event(&subscription, realm_id, &event).await {
+                    match self
+                        .process_cloud_event(&subscription, realm_id, &event)
+                        .await
+                    {
                         Ok(_) => {
                             events_processed += 1;
                             // Check if it's an employee or department event
-                            if event.event_type.contains("employee") || event.event_type.contains("department") {
+                            let event_type = event.event_type.to_lowercase();
+                            let object_type = event
+                                .intuit_object_type
+                                .as_deref()
+                                .unwrap_or_default()
+                                .to_lowercase();
+                            if event_type.contains("employee")
+                                || event_type.contains("department")
+                                || object_type == "employee"
+                                || object_type == "department"
+                            {
                                 sync_triggered = true;
                             }
                         }
                         Err(e) => {
-                            tracing::error!(
-                                "Failed to process CloudEvent {}: {}",
-                                event.id,
-                                e
-                            );
+                            tracing::error!("Failed to process CloudEvent {}: {}", event.id, e);
                             events_failed += 1;
                         }
                     }
@@ -234,11 +250,10 @@ impl WebhookProcessor {
                 // Process legacy format
                 for notification in legacy_payload.event_notifications {
                     for entity in notification.data_change_event.entities {
-                        match self.process_entity_change(
-                            &subscription,
-                            &notification.realm_id,
-                            &entity,
-                        ).await {
+                        match self
+                            .process_entity_change(&subscription, &notification.realm_id, &entity)
+                            .await
+                        {
                             Ok(_) => {
                                 events_processed += 1;
                                 if matches!(entity.name.as_str(), "Employee" | "Department") {
@@ -261,20 +276,29 @@ impl WebhookProcessor {
             WebhookPayload::CloudEvents(cloud_events) => {
                 // Process CloudEvents format
                 for event in cloud_events {
-                    match self.process_cloud_event(&subscription, realm_id, &event).await {
+                    match self
+                        .process_cloud_event(&subscription, realm_id, &event)
+                        .await
+                    {
                         Ok(_) => {
                             events_processed += 1;
                             // Check if it's an employee or department event
-                            if event.event_type.contains("employee") || event.event_type.contains("department") {
+                            let event_type = event.event_type.to_lowercase();
+                            let object_type = event
+                                .intuit_object_type
+                                .as_deref()
+                                .unwrap_or_default()
+                                .to_lowercase();
+                            if event_type.contains("employee")
+                                || event_type.contains("department")
+                                || object_type == "employee"
+                                || object_type == "department"
+                            {
                                 sync_triggered = true;
                             }
                         }
                         Err(e) => {
-                            tracing::error!(
-                                "Failed to process CloudEvent {}: {}",
-                                event.id,
-                                e
-                            );
+                            tracing::error!("Failed to process CloudEvent {}: {}", event.id, e);
                             events_failed += 1;
                         }
                     }
@@ -331,47 +355,58 @@ impl WebhookProcessor {
         realm_id: &str,
         event: &CloudEvent,
     ) -> Result<Uuid, Box<dyn std::error::Error>> {
-        // Parse event type (e.g., "qbo.employee.created.v1" -> entity="employee", operation="Create")
+        // Parse CloudEvents in Intuit's documented format first, then fall back to legacy assumptions.
         let parts: Vec<&str> = event.event_type.split('.').collect();
-        let entity_name = if parts.len() >= 2 {
-            // Capitalize first letter: "employee" -> "Employee"
-            let name = parts[1];
-            let mut chars = name.chars();
-            match chars.next() {
-                None => "Unknown".to_string(),
-                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-            }
-        } else {
-            "Unknown".to_string()
-        };
-        let operation = if parts.len() >= 3 {
-            // Map CloudEvents past tense to database present tense
-            // "created" -> "create", "updated" -> "update", "deleted" -> "delete"
-            let op = parts[2];
-            match op {
-                "created" => "create".to_string(),
-                "updated" => "update".to_string(),
-                "deleted" => "delete".to_string(),
-                "merged" => "merge".to_string(),
-                "voided" => "void".to_string(),
-                _ => op.to_string(), // Keep original if unknown
-            }
-        } else {
-            "unknown".to_string()
-        };
 
-        // Extract entity ID from data
-        let entity_id = event.data.get("id")
-            .or_else(|| event.data.get("entityId"))
-            .and_then(|v| v.as_str())
+        let entity_name = event
+            .intuit_object_type
+            .clone()
+            .or_else(|| {
+                if parts.len() >= 2 {
+                    Some(parts[1].to_string())
+                } else {
+                    None
+                }
+            })
+            .map(|name| {
+                let mut chars = name.chars();
+                match chars.next() {
+                    None => "Unknown".to_string(),
+                    Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                }
+            })
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        let operation = event
+            .intuit_event_type
+            .as_deref()
+            .or_else(|| parts.get(2).copied())
+            .map(normalize_operation)
+            .unwrap_or_else(|| "unknown".to_string());
+
+        // Intuit CloudEvents commonly include top-level intuitEntityId/intuitAccountId.
+        let entity_id = event
+            .intuit_entity_id
+            .as_deref()
+            .or_else(|| event.data.get("intuitEntityId").and_then(|v| v.as_str()))
+            .or_else(|| event.data.get("id").and_then(|v| v.as_str()))
+            .or_else(|| event.data.get("entityId").and_then(|v| v.as_str()))
             .unwrap_or("unknown")
+            .to_string();
+
+        let effective_realm_id = event
+            .intuit_account_id
+            .as_deref()
+            .or_else(|| event.data.get("intuitAccountId").and_then(|v| v.as_str()))
+            .or_else(|| event.data.get("realmId").and_then(|v| v.as_str()))
+            .unwrap_or(realm_id)
             .to_string();
 
         // Create webhook event record
         let webhook_event = webhook_events::ActiveModel {
             id: Set(Uuid::new_v4()),
             subscription_id: Set(subscription.id),
-            realm_id: Set(realm_id.to_string()),
+            realm_id: Set(effective_realm_id.clone()),
             event_type: Set(operation),
             entity_name: Set(entity_name.to_string()),
             entity_id: Set(entity_id.clone()),
@@ -385,6 +420,10 @@ impl WebhookProcessor {
                 "cloudevents_source": event.source,
                 "cloudevents_type": event.event_type,
                 "cloudevents_time": event.time,
+                "intuit_entity_id": event.intuit_entity_id,
+                "intuit_account_id": event.intuit_account_id,
+                "intuit_object_type": event.intuit_object_type,
+                "intuit_event_type": event.intuit_event_type,
             }))),
             received_at: Set(Utc::now().into()),
             created_at: Set(Utc::now().into()),
@@ -397,12 +436,26 @@ impl WebhookProcessor {
             event_type = %event.event_type,
             entity_name = %entity_name,
             entity_id = %entity_id,
+            realm_id = %effective_realm_id,
             "CloudEvent webhook stored successfully"
         );
 
         Ok(db_event.id)
     }
+}
 
+fn normalize_operation(op: &str) -> String {
+    match op.to_lowercase().as_str() {
+        "created" | "create" => "create".to_string(),
+        "updated" | "update" => "update".to_string(),
+        "deleted" | "delete" => "delete".to_string(),
+        "merged" | "merge" => "merge".to_string(),
+        "voided" | "void" => "void".to_string(),
+        other => other.to_string(),
+    }
+}
+
+impl WebhookProcessor {
     /// Process pending webhook events
     pub async fn process_pending_events(
         &self,
@@ -436,11 +489,7 @@ impl WebhookProcessor {
                     active_event.last_error = Set(Some(e.to_string()));
                     active_event.update(&*self.db).await?;
 
-                    tracing::error!(
-                        "Failed to process webhook event {}: {}",
-                        event.id,
-                        e
-                    );
+                    tracing::error!("Failed to process webhook event {}: {}", event.id, e);
                 }
             }
         }
@@ -459,13 +508,11 @@ impl WebhookProcessor {
                 self.sync_employee(&event.entity_id, intuit_client).await?;
             }
             "Department" => {
-                self.sync_department(&event.entity_id, intuit_client).await?;
+                self.sync_department(&event.entity_id, intuit_client)
+                    .await?;
             }
             _ => {
-                tracing::info!(
-                    "Skipping unsupported entity type: {}",
-                    event.entity_name
-                );
+                tracing::info!("Skipping unsupported entity type: {}", event.entity_name);
             }
         }
 
@@ -596,8 +643,14 @@ impl WebhookProcessor {
 
         let total = all_events.len();
         let pending = all_events.iter().filter(|e| e.status == "pending").count();
-        let processing = all_events.iter().filter(|e| e.status == "processing").count();
-        let completed = all_events.iter().filter(|e| e.status == "completed").count();
+        let processing = all_events
+            .iter()
+            .filter(|e| e.status == "processing")
+            .count();
+        let completed = all_events
+            .iter()
+            .filter(|e| e.status == "completed")
+            .count();
         let failed = all_events.iter().filter(|e| e.status == "failed").count();
         let retrying = all_events.iter().filter(|e| e.status == "retrying").count();
 
@@ -679,10 +732,7 @@ impl WebhookProcessor {
     }
 
     /// Retry a single failed webhook event
-    pub async fn retry_failed_event(
-        &self,
-        event_id: Uuid,
-    ) -> Result<RetryResult, anyhow::Error> {
+    pub async fn retry_failed_event(&self, event_id: Uuid) -> Result<RetryResult, anyhow::Error> {
         use crate::integrations::intuit::IntuitClientManager;
 
         // Get the event
@@ -695,16 +745,17 @@ impl WebhookProcessor {
         if event.status != "failed" {
             return Ok(RetryResult {
                 success: false,
-                message: format!("Event {} is not in failed status (current: {})", event_id, event.status),
+                message: format!(
+                    "Event {} is not in failed status (current: {})",
+                    event_id, event.status
+                ),
                 events_processed: 0,
             });
         }
 
         // Get QuickBooks client with automatic token refresh
         let client_manager = IntuitClientManager::new((*self.db).clone());
-        let intuit_client = client_manager
-            .get_client()
-            .await?;
+        let intuit_client = client_manager.get_client().await?;
 
         // Mark as retrying
         let mut active_event: webhook_events::ActiveModel = event.clone().into();

@@ -5,10 +5,23 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 
+	interface PermissionRecord {
+		id: string;
+		resource?: string;
+		action?: string;
+	}
+
+	interface RoleRecord {
+		id: string;
+		name: string;
+		description?: string | null;
+		permissions?: PermissionRecord[];
+	}
+
 	interface Props {
-		filteredRoles: any[];
+		filteredRoles: RoleRecord[];
 		expandedRoles: Set<string>;
-		onEditRole: (role: any) => void;
+		onEditRole: (role: RoleRecord) => void;
 	}
 
 	let { filteredRoles, expandedRoles = $bindable(), onEditRole }: Props = $props();
@@ -22,7 +35,10 @@
 		expandedRoles = new Set(expandedRoles); // Trigger reactivity
 	}
 
-	function getPermissionBadgeVariant(action: string): 'default' | 'secondary' | 'destructive' {
+	function getPermissionBadgeVariant(
+		action: string | undefined
+	): 'default' | 'secondary' | 'destructive' {
+		if (!action) return 'secondary';
 		if (action.includes('delete') || action.includes('remove')) return 'destructive';
 		if (action.includes('write') || action.includes('update')) return 'default';
 		return 'secondary';
@@ -121,7 +137,7 @@
 											variant={getPermissionBadgeVariant(permission.action)}
 											class="text-[10px] px-1.5 py-0.5 h-5"
 										>
-											{permission.resource}:{permission.action}
+											{permission.resource || 'general'}:{permission.action || 'read'}
 										</Badge>
 									{/each}
 								</div>

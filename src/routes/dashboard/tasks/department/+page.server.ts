@@ -139,16 +139,18 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				const departmentsQuery = `
 					query GetAllDepartments($limit: Int!) {
 						departments(limit: $limit) {
-							id
-							name
+							items {
+								id
+								name
+							}
 						}
 					}
 				`;
 				const deptResult = await graphqlClient.query(departmentsQuery, { limit: 100 });
 
-				if (deptResult.data?.departments) {
+				if (deptResult.data?.departments?.items) {
 					// Client-side sorting by name (Rust schema doesn't support orderBy)
-					managedDepartments = deptResult.data.departments.sort((a: any, b: any) =>
+					managedDepartments = deptResult.data.departments.items.sort((a: any, b: any) =>
 						a.name.localeCompare(b.name)
 					);
 				}

@@ -92,7 +92,6 @@ impl Model {
         self.deleted_at
     }
 
-
     /// User who owns this balance
     async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
@@ -136,8 +135,8 @@ pub struct UpdateLeaveBalanceInput {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::Model as LeaveBalance;
+    use super::*;
 
     #[test]
     fn test_leave_balance_model_compiles() {

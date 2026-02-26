@@ -10,8 +10,13 @@ export const CREATE_ROLE = gql`
 		createRole(input: $input) {
 			id
 			name
-			hierarchyLevel
-			permissions
+			level
+			permissions {
+				id
+				resource
+				action
+				fullPermission
+			}
 			description
 			createdAt
 			updatedAt
@@ -28,8 +33,13 @@ export const UPDATE_ROLE = gql`
 		updateRole(id: $id, input: $input) {
 			id
 			name
-			hierarchyLevel
-			permissions
+			level
+			permissions {
+				id
+				resource
+				action
+				fullPermission
+			}
 			description
 			createdAt
 			updatedAt
@@ -52,16 +62,8 @@ export const DELETE_ROLE = gql`
  * Backend: Dedicated mutation for adding permissions
  */
 export const ADD_PERMISSION_TO_ROLE = gql`
-	mutation AddPermissionToRole($roleId: UUID!, $permission: String!) {
-		addPermissionToRole(roleId: $roleId, permission: $permission) {
-			id
-			name
-			hierarchyLevel
-			permissions
-			description
-			createdAt
-			updatedAt
-		}
+	mutation AddPermissionToRole($roleId: UUID!, $permissionId: UUID!) {
+		assignPermissionToRole(roleId: $roleId, permissionId: $permissionId)
 	}
 `;
 
@@ -70,15 +72,7 @@ export const ADD_PERMISSION_TO_ROLE = gql`
  * Backend: Dedicated mutation for removing permissions
  */
 export const REMOVE_PERMISSION_FROM_ROLE = gql`
-	mutation RemovePermissionFromRole($roleId: UUID!, $permission: String!) {
-		removePermissionFromRole(roleId: $roleId, permission: $permission) {
-			id
-			name
-			hierarchyLevel
-			permissions
-			description
-			createdAt
-			updatedAt
-		}
+	mutation RemovePermissionFromRole($roleId: UUID!, $permissionId: UUID!) {
+		removePermissionFromRole(roleId: $roleId, permissionId: $permissionId)
 	}
 `;

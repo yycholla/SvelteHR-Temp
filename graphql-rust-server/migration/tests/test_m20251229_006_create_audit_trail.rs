@@ -140,7 +140,9 @@ async fn test_migration_compiles() {
 
 #[tokio::test]
 async fn test_up_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
 
     // Run up migration
     let schema_manager = SchemaManager::new(&db);
@@ -166,7 +168,9 @@ async fn test_up_migration() {
 
 #[tokio::test]
 async fn test_audit_logs_columns() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     Migration.up(&schema_manager).await.unwrap();
 
@@ -233,7 +237,9 @@ async fn test_audit_logs_columns() {
 
 #[tokio::test]
 async fn test_audit_log_retention_columns() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     Migration.up(&schema_manager).await.unwrap();
 
@@ -278,7 +284,9 @@ async fn test_audit_log_retention_columns() {
 
 #[tokio::test]
 async fn test_audit_logs_indexes() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     let migration = Migration;
 
@@ -319,7 +327,9 @@ async fn test_audit_logs_indexes() {
 
 #[tokio::test]
 async fn test_retention_policies_seeded() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     let migration = Migration;
 
@@ -345,17 +355,16 @@ async fn test_retention_policies_seeded() {
 
     assert!(result.is_some(), "Sync retention policy should exist");
     let row = result.unwrap();
-    assert_eq!(
-        row.try_get::<String>("", "event_category").unwrap(),
-        "sync"
-    );
+    assert_eq!(row.try_get::<String>("", "event_category").unwrap(), "sync");
     assert_eq!(row.try_get::<i32>("", "retention_days").unwrap(), 730);
     assert_eq!(row.try_get::<i32>("", "archive_after_days").unwrap(), 365);
 }
 
 #[tokio::test]
 async fn test_check_constraints() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     let migration = Migration;
 
@@ -415,7 +424,9 @@ async fn test_check_constraints() {
 
 #[tokio::test]
 async fn test_idempotent_up_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run migration twice
@@ -430,11 +441,9 @@ async fn test_idempotent_up_migration() {
 
     // Tables should still exist
     assert!(table_exists(&db, "hr_public", "audit_logs").await.unwrap());
-    assert!(
-        table_exists(&db, "hr_public", "audit_log_retention")
-            .await
-            .unwrap()
-    );
+    assert!(table_exists(&db, "hr_public", "audit_log_retention")
+        .await
+        .unwrap());
 
     // Should still have 6 policies (not 12)
     let count = count_retention_policies(&db).await.unwrap();
@@ -443,11 +452,12 @@ async fn test_idempotent_up_migration() {
 
 #[tokio::test]
 async fn test_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
-
 
     // Run up then down migration
     migration.up(&schema_manager).await.unwrap();
@@ -477,11 +487,12 @@ async fn test_down_migration() {
 
 #[tokio::test]
 async fn test_idempotent_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
-
 
     // Run up, then down twice
     migration.up(&schema_manager).await.unwrap();
@@ -496,16 +507,16 @@ async fn test_idempotent_down_migration() {
 
     // Tables should not exist
     assert!(!table_exists(&db, "hr_public", "audit_logs").await.unwrap());
-    assert!(
-        !table_exists(&db, "hr_public", "audit_log_retention")
-            .await
-            .unwrap()
-    );
+    assert!(!table_exists(&db, "hr_public", "audit_log_retention")
+        .await
+        .unwrap());
 }
 
 #[tokio::test]
 async fn test_full_migration_cycle() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Up migration
@@ -514,11 +525,9 @@ async fn test_full_migration_cycle() {
         .await
         .expect("Up migration should succeed");
     assert!(table_exists(&db, "hr_public", "audit_logs").await.unwrap());
-    assert!(
-        table_exists(&db, "hr_public", "audit_log_retention")
-            .await
-            .unwrap()
-    );
+    assert!(table_exists(&db, "hr_public", "audit_log_retention")
+        .await
+        .unwrap());
 
     // Down migration
     Migration
@@ -526,11 +535,9 @@ async fn test_full_migration_cycle() {
         .await
         .expect("Down migration should succeed");
     assert!(!table_exists(&db, "hr_public", "audit_logs").await.unwrap());
-    assert!(
-        !table_exists(&db, "hr_public", "audit_log_retention")
-            .await
-            .unwrap()
-    );
+    assert!(!table_exists(&db, "hr_public", "audit_log_retention")
+        .await
+        .unwrap());
 
     // Up migration again
     Migration
@@ -538,16 +545,16 @@ async fn test_full_migration_cycle() {
         .await
         .expect("Second up migration should succeed");
     assert!(table_exists(&db, "hr_public", "audit_logs").await.unwrap());
-    assert!(
-        table_exists(&db, "hr_public", "audit_log_retention")
-            .await
-            .unwrap()
-    );
+    assert!(table_exists(&db, "hr_public", "audit_log_retention")
+        .await
+        .unwrap());
 }
 
 #[tokio::test]
 async fn test_column_defaults() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     let migration = Migration;
 

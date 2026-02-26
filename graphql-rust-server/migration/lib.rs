@@ -62,13 +62,13 @@ pub mod m20251202_007_create_onboarding_forms;
 pub mod m20251203_001_migrate_content_blocks_to_forms;
 pub mod m20251217_001_add_inline_form_elements;
 pub mod m20251217_002_create_media_assets;
-pub mod m20251222_create_intuit_integration;
 pub mod m20251222_002_add_quickbooks_employee_fields;
 pub mod m20251222_003_fix_display_name_add_preferred_name;
+pub mod m20251222_create_intuit_integration;
 pub mod m20251223_001_add_intuit_department_id;
 pub mod m20251226_001_add_sync_tracking;
-pub mod m20251226_002_enhance_sync_log;
 pub mod m20251226_002_enforce_email_rules;
+pub mod m20251226_002_enhance_sync_log;
 pub mod m20251226_003_enforce_department_names;
 pub mod m20251229_001_create_validation_tables;
 pub mod m20251229_002_add_sync_permissions;
@@ -93,6 +93,7 @@ pub mod m20260206_001_extend_time_entries_for_sync;
 pub mod m20260210_180802_create_refresh_tokens_table;
 pub mod m20260210_180803_add_tokens_valid_after_to_users;
 pub mod m20260210_181000_remove_session_auth_tables;
+pub mod m20260225_001_fix_sync_health_alerts_parity;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -177,6 +178,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260210_180802_create_refresh_tokens_table::Migration),
             Box::new(m20260210_180803_add_tokens_valid_after_to_users::Migration),
             Box::new(m20260210_181000_remove_session_auth_tables::Migration),
+            Box::new(m20260225_001_fix_sync_health_alerts_parity::Migration),
         ]
     }
 }

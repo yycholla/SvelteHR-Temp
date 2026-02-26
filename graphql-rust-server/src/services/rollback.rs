@@ -2,9 +2,7 @@
 //!
 //! Provides comprehensive rollback capabilities for sync operations
 
-use crate::models::{
-    department, rollback_operations, sync_snapshots, user,
-};
+use crate::models::{department, rollback_operations, sync_snapshots, user};
 use crate::services::audit_logger::AuditLogger;
 use chrono::Utc;
 use sea_orm::{
@@ -118,7 +116,9 @@ impl RollbackService {
         if !snapshot.can_rollback {
             validation_errors.push(format!(
                 "Snapshot cannot be rolled back: {}",
-                snapshot.rollback_reason.unwrap_or_else(|| "No reason provided".to_string())
+                snapshot
+                    .rollback_reason
+                    .unwrap_or_else(|| "No reason provided".to_string())
             ));
         }
 
@@ -126,7 +126,8 @@ impl RollbackService {
         if let Some(expires_at) = snapshot.expires_at {
             let now: DateTimeWithTimeZone = Utc::now().into();
             if expires_at < now {
-                validation_errors.push("Snapshot has expired and cannot be rolled back".to_string());
+                validation_errors
+                    .push("Snapshot has expired and cannot be rolled back".to_string());
             }
         }
 
@@ -234,7 +235,10 @@ impl RollbackService {
         let mut failed_rollbacks = 0;
 
         // 1. Restore the entity data from the snapshot
-        match self.restore_entity_from_snapshot(&snapshot, &operation).await {
+        match self
+            .restore_entity_from_snapshot(&snapshot, &operation)
+            .await
+        {
             Ok(_) => {
                 successful_rollbacks += 1;
                 tracing::info!(
@@ -277,7 +281,10 @@ impl RollbackService {
                 &snapshot.entity_type,
                 &snapshot.entity_id.to_string(),
                 "rollback.executed",
-                &format!("Rolled back {} to previous state. Reason: {}", snapshot.entity_type, reason),
+                &format!(
+                    "Rolled back {} to previous state. Reason: {}",
+                    snapshot.entity_type, reason
+                ),
                 None,
                 Some(json!({
                     "rollback_type": rollback_type,
@@ -303,10 +310,19 @@ impl RollbackService {
 
         // Update operation record with results
         let mut active_operation: rollback_operations::ActiveModel = operation.into();
-        active_operation.status = Set(if errors.is_empty() { "completed" } else { "failed" }.to_string());
+        active_operation.status = Set(if errors.is_empty() {
+            "completed"
+        } else {
+            "failed"
+        }
+        .to_string());
         active_operation.successful_rollbacks = Set(successful_rollbacks);
         active_operation.failed_rollbacks = Set(failed_rollbacks);
-        active_operation.error_message = Set(if errors.is_empty() { None } else { Some(errors.join("; ")) });
+        active_operation.error_message = Set(if errors.is_empty() {
+            None
+        } else {
+            Some(errors.join("; "))
+        });
         active_operation.completed_at = Set(Some(end_time.into()));
         active_operation.duration_ms = Set(Some(duration_ms));
         let final_operation = active_operation.update(self.db.as_ref()).await?;
@@ -429,7 +445,11 @@ impl RollbackService {
         match snapshot.entity_type.as_str() {
             "Employee" | "employee" => self.restore_employee(snapshot).await,
             "Department" | "department" => self.restore_department(snapshot).await,
-            _ => Err(format!("Unsupported entity type for rollback: {}", snapshot.entity_type).into()),
+            _ => Err(format!(
+                "Unsupported entity type for rollback: {}",
+                snapshot.entity_type
+            )
+            .into()),
         }
     }
 
@@ -471,7 +491,10 @@ impl RollbackService {
         active_user.updated_at = Set(Utc::now().into());
         active_user.update(self.db.as_ref()).await?;
 
-        tracing::info!("Successfully restored employee with ID {}", snapshot.entity_id);
+        tracing::info!(
+            "Successfully restored employee with ID {}",
+            snapshot.entity_id
+        );
         Ok(())
     }
 
@@ -504,7 +527,10 @@ impl RollbackService {
         active_dept.updated_at = Set(Utc::now().into());
         active_dept.update(self.db.as_ref()).await?;
 
-        tracing::info!("Successfully restored department with ID {}", snapshot.entity_id);
+        tracing::info!(
+            "Successfully restored department with ID {}",
+            snapshot.entity_id
+        );
         Ok(())
     }
 
@@ -570,7 +596,8 @@ impl RollbackService {
         };
 
         // Use the main restoration logic
-        self.restore_entity_from_snapshot(&temp_snapshot, &temp_operation).await
+        self.restore_entity_from_snapshot(&temp_snapshot, &temp_operation)
+            .await
     }
 }
 

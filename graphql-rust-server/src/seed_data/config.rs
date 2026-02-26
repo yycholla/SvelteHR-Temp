@@ -6,9 +6,9 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VolumeTarget {
-    Small,   // 10-50 records per entity
-    Medium,  // 50-200 records per entity
-    Large,   // 200-1000 records per entity
+    Small,  // 10-50 records per entity
+    Medium, // 50-200 records per entity
+    Large,  // 200-1000 records per entity
 }
 
 impl Default for VolumeTarget {

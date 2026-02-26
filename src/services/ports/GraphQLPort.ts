@@ -4,7 +4,11 @@
  * Abstracts GraphQL client to enable dependency injection and testing.
  * Services depend on this interface, adapters implement it.
  */
-export interface GraphQLPort<TData = unknown, TVariables = Record<string, unknown>> {
+import type { DocumentNode } from 'graphql';
+
+export type GraphQLOperation = string | DocumentNode;
+
+export interface GraphQLPort<TData = unknown, TVariables = object> {
 	/**
 	 * Execute a GraphQL query
 	 * @param operation - GraphQL query string
@@ -12,7 +16,7 @@ export interface GraphQLPort<TData = unknown, TVariables = Record<string, unknow
 	 * @returns Promise resolving to query data
 	 * @throws {GraphQLError} on GraphQL errors
 	 */
-	query<T = TData>(operation: string, variables?: TVariables): Promise<T>;
+	query<T = TData>(operation: GraphQLOperation, variables?: TVariables): Promise<T>;
 
 	/**
 	 * Execute a GraphQL mutation
@@ -21,5 +25,10 @@ export interface GraphQLPort<TData = unknown, TVariables = Record<string, unknow
 	 * @returns Promise resolving to mutation data
 	 * @throws {GraphQLError} on GraphQL errors
 	 */
-	mutation<T = TData>(operation: string, variables?: TVariables): Promise<T>;
+	mutation<T = TData>(operation: GraphQLOperation, variables?: TVariables): Promise<T>;
+
+	/**
+	 * Alias for mutation() kept for compatibility with older service code.
+	 */
+	mutate?<T = TData>(operation: GraphQLOperation, variables?: TVariables): Promise<T>;
 }

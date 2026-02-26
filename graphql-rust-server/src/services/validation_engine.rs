@@ -10,8 +10,10 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::integrations::intuit::{EmployeeExtended as QBEmployeeExtended, Department as QBDepartment};
-use crate::models::{user, department, validation_failure, validation_rule};
+use crate::integrations::intuit::{
+    Department as QBDepartment, EmployeeExtended as QBEmployeeExtended,
+};
+use crate::models::{department, user, validation_failure, validation_rule};
 
 /// Sync direction context for validation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -319,7 +321,11 @@ impl ValidationEngine {
     }
 
     /// Validate a local employee (context-aware)
-    pub fn validate_local_employee_with_context(&self, employee: &user::Model, context: SyncContext) -> ValidationResult {
+    pub fn validate_local_employee_with_context(
+        &self,
+        employee: &user::Model,
+        context: SyncContext,
+    ) -> ValidationResult {
         let mut result = ValidationResult::pass();
 
         for rule in &self.rules {
@@ -380,7 +386,12 @@ impl ValidationEngine {
     }
 
     /// Validate a QuickBooks employee (context-aware)
-    pub fn validate_quickbooks_employee_with_context(&self, employee: &QBEmployeeExtended, qb_id: &str, context: SyncContext) -> ValidationResult {
+    pub fn validate_quickbooks_employee_with_context(
+        &self,
+        employee: &QBEmployeeExtended,
+        qb_id: &str,
+        context: SyncContext,
+    ) -> ValidationResult {
         let mut result = ValidationResult::pass();
 
         for rule in &self.rules {
@@ -394,7 +405,9 @@ impl ValidationEngine {
 
             let validation_error = match rule.field_name.as_str() {
                 "email" => {
-                    let email = employee.base.primary_email_addr
+                    let email = employee
+                        .base
+                        .primary_email_addr
                         .as_ref()
                         .and_then(|e| e.address.as_ref())
                         .map(|s| s.as_str())
@@ -413,7 +426,9 @@ impl ValidationEngine {
                     let first_name = employee.base.given_name.as_deref().unwrap_or("");
                     let last_name = employee.base.family_name.as_deref().unwrap_or("");
 
-                    if let Some(err) = self.validate_field(&adjusted_rule, first_name, Some(qb_id.to_string())) {
+                    if let Some(err) =
+                        self.validate_field(&adjusted_rule, first_name, Some(qb_id.to_string()))
+                    {
                         Some(err)
                     } else {
                         self.validate_field(&adjusted_rule, last_name, Some(qb_id.to_string()))
@@ -431,7 +446,11 @@ impl ValidationEngine {
     }
 
     /// Validate a QuickBooks employee (backward compatible - uses Pull context)
-    pub fn validate_quickbooks_employee(&self, employee: &QBEmployeeExtended, qb_id: &str) -> ValidationResult {
+    pub fn validate_quickbooks_employee(
+        &self,
+        employee: &QBEmployeeExtended,
+        qb_id: &str,
+    ) -> ValidationResult {
         self.validate_quickbooks_employee_with_context(employee, qb_id, SyncContext::Pull)
     }
 
@@ -445,11 +464,9 @@ impl ValidationEngine {
             }
 
             let validation_error = match rule.field_name.as_str() {
-                "name" => self.validate_field(
-                    rule,
-                    &department.name,
-                    Some(department.id.to_string()),
-                ),
+                "name" => {
+                    self.validate_field(rule, &department.name, Some(department.id.to_string()))
+                }
                 _ => None,
             };
 
@@ -462,7 +479,11 @@ impl ValidationEngine {
     }
 
     /// Validate a QuickBooks department before pulling to local DB
-    pub fn validate_quickbooks_department(&self, department: &QBDepartment, qb_id: &str) -> ValidationResult {
+    pub fn validate_quickbooks_department(
+        &self,
+        department: &QBDepartment,
+        qb_id: &str,
+    ) -> ValidationResult {
         let mut result = ValidationResult::pass();
 
         for rule in &self.rules {
@@ -508,7 +529,9 @@ impl ValidationEngine {
             RuleType::Length => {
                 let parts: Vec<&str> = rule.condition.split(',').collect();
                 if parts.len() == 2 {
-                    if let (Ok(min), Ok(max)) = (parts[0].parse::<usize>(), parts[1].parse::<usize>()) {
+                    if let (Ok(min), Ok(max)) =
+                        (parts[0].parse::<usize>(), parts[1].parse::<usize>())
+                    {
                         let len = value.len();
                         len >= min && len <= max
                     } else {
@@ -529,9 +552,10 @@ impl ValidationEngine {
                 entity_id,
                 field_name: rule.field_name.clone(),
                 invalid_value: value.to_string(),
-                error_message: rule.description.clone().unwrap_or_else(|| {
-                    format!("Validation failed for field: {}", rule.field_name)
-                }),
+                error_message: rule
+                    .description
+                    .clone()
+                    .unwrap_or_else(|| format!("Validation failed for field: {}", rule.field_name)),
                 severity: rule.severity,
                 auto_fix_available: rule.auto_fix != AutoFixStrategy::None,
                 detected_at: Utc::now(),
@@ -690,14 +714,13 @@ impl ValidationEngine {
         for failure in failures {
             let mut active_failure: validation_failure::ActiveModel = failure.into();
             active_failure.resolved_at = Set(Some(Utc::now()));
-            active_failure.resolution = Set(Some("Manually imported with provided information".to_string()));
+            active_failure.resolution = Set(Some(
+                "Manually imported with provided information".to_string(),
+            ));
             active_failure.update(db).await?;
         }
 
-        tracing::info!(
-            "Cleared validation errors for entity: {}",
-            entity_id
-        );
+        tracing::info!("Cleared validation errors for entity: {}", entity_id);
 
         Ok(())
     }
@@ -718,13 +741,19 @@ mod tests {
         let engine = ValidationEngine::new();
 
         // Find email format rule
-        let rule = engine.rules.iter()
+        let rule = engine
+            .rules
+            .iter()
             .find(|r| r.name == "employee_email_format")
             .expect("Email format rule should exist");
 
         // Valid emails
-        assert!(engine.validate_field(rule, "user@example.com", None).is_none());
-        assert!(engine.validate_field(rule, "test.user@company.co.uk", None).is_none());
+        assert!(engine
+            .validate_field(rule, "user@example.com", None)
+            .is_none());
+        assert!(engine
+            .validate_field(rule, "test.user@company.co.uk", None)
+            .is_none());
 
         // Invalid emails
         assert!(engine.validate_field(rule, "invalid", None).is_some());
@@ -736,7 +765,9 @@ mod tests {
     fn test_required_validation() {
         let engine = ValidationEngine::new();
 
-        let rule = engine.rules.iter()
+        let rule = engine
+            .rules
+            .iter()
             .find(|r| r.name == "employee_first_name_required")
             .expect("First name required rule should exist");
 
@@ -752,7 +783,9 @@ mod tests {
     fn test_length_validation() {
         let engine = ValidationEngine::new();
 
-        let rule = engine.rules.iter()
+        let rule = engine
+            .rules
+            .iter()
             .find(|r| r.name == "employee_name_length")
             .expect("Name length rule should exist");
 
@@ -769,7 +802,10 @@ mod tests {
     fn test_proper_case() {
         assert_eq!(ValidationEngine::to_proper_case("john smith"), "John Smith");
         assert_eq!(ValidationEngine::to_proper_case("JANE DOE"), "Jane Doe");
-        assert_eq!(ValidationEngine::to_proper_case("mary-jane watson"), "Mary-jane Watson");
+        assert_eq!(
+            ValidationEngine::to_proper_case("mary-jane watson"),
+            "Mary-jane Watson"
+        );
     }
 
     #[test]

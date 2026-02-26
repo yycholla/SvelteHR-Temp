@@ -17,6 +17,7 @@ export const GET_ROLES_WITH_PERMISSIONS = gql`
 		roles(limit: $limit, offset: $offset) {
 			id
 			name
+			level
 			description
 			createdAt
 			updatedAt
@@ -24,6 +25,7 @@ export const GET_ROLES_WITH_PERMISSIONS = gql`
 				id
 				resource
 				action
+				fullPermission
 				description
 				createdAt
 			}
@@ -40,6 +42,7 @@ export const GET_ALL_PERMISSIONS = gql`
 			id
 			resource
 			action
+			fullPermission
 			description
 			createdAt
 		}
@@ -73,10 +76,11 @@ export const GET_USERS_WITH_ROLES = gql`
  * GraphQL Query: Get specific role by ID with permissions
  */
 export const GET_ROLE_BY_ID = gql`
-	query GetRoleById($roleId: ID!) {
+	query GetRoleById($roleId: UUID!) {
 		role(id: $roleId) {
 			id
 			name
+			level
 			description
 			createdAt
 			updatedAt
@@ -84,6 +88,7 @@ export const GET_ROLE_BY_ID = gql`
 				id
 				resource
 				action
+				fullPermission
 				description
 			}
 			users {
@@ -101,12 +106,12 @@ export const GET_ROLE_BY_ID = gql`
 export const CREATE_ROLE = gql`
 	mutation CreateRole($input: CreateRoleInput!) {
 		createRole(input: $input) {
-			role {
-				id
-				name
-				description
-				createdAt
-			}
+			id
+			name
+			level
+			description
+			createdAt
+			updatedAt
 		}
 	}
 `;
@@ -115,14 +120,13 @@ export const CREATE_ROLE = gql`
  * GraphQL Mutation: Update existing role
  */
 export const UPDATE_ROLE = gql`
-	mutation UpdateRole($input: UpdateRoleInput!) {
-		updateRole(input: $input) {
-			role {
-				id
-				name
-				description
-				updatedAt
-			}
+	mutation UpdateRole($id: UUID!, $input: UpdateRoleInput!) {
+		updateRole(id: $id, input: $input) {
+			id
+			name
+			level
+			description
+			updatedAt
 		}
 	}
 `;
@@ -131,11 +135,8 @@ export const UPDATE_ROLE = gql`
  * GraphQL Mutation: Delete role
  */
 export const DELETE_ROLE = gql`
-	mutation DeleteRole($input: DeleteRoleInput!) {
-		deleteRole(input: $input) {
-			success
-			message
-		}
+	mutation DeleteRole($id: UUID!) {
+		deleteRole(id: $id)
 	}
 `;
 
@@ -143,15 +144,8 @@ export const DELETE_ROLE = gql`
  * GraphQL Mutation: Assign permission to role
  */
 export const ASSIGN_PERMISSION_TO_ROLE = gql`
-	mutation AssignPermissionToRole($input: AssignPermissionToRoleInput!) {
-		assignPermissionToRole(input: $input) {
-			rolePermission {
-				id
-				roleId
-				permissionId
-				assignedAt
-			}
-		}
+	mutation AssignPermissionToRole($roleId: UUID!, $permissionId: UUID!) {
+		assignPermissionToRole(roleId: $roleId, permissionId: $permissionId)
 	}
 `;
 
@@ -159,43 +153,33 @@ export const ASSIGN_PERMISSION_TO_ROLE = gql`
  * GraphQL Mutation: Remove permission from role
  */
 export const REMOVE_PERMISSION_FROM_ROLE = gql`
-	mutation RemovePermissionFromRole($input: RemovePermissionFromRoleInput!) {
-		removePermissionFromRole(input: $input) {
-			success
-			message
-		}
+	mutation RemovePermissionFromRole($roleId: UUID!, $permissionId: UUID!) {
+		removePermissionFromRole(roleId: $roleId, permissionId: $permissionId)
 	}
 `;
 
 /**
  * GraphQL Mutation: Assign role to user
- * IMPORTANT: Uses rbac namespace and AssignRoleInput type (matches Rust backend)
+ * Uses top-level assignRoleToUser mutation with AssignRoleInput.
  */
 export const ASSIGN_ROLE_TO_USER = gql`
 	mutation AssignRoleToUser($input: AssignRoleInput!) {
-		rbac {
-			assignRoleToUser(input: $input) {
-				id
-				userId
-				roleId
-				createdAt
-			}
+		assignRoleToUser(input: $input) {
+			id
+			userId
+			roleId
+			createdAt
 		}
 	}
 `;
 
 /**
  * GraphQL Mutation: Remove role from user
- * IMPORTANT: Uses rbac namespace and direct parameters (matches Rust backend)
+ * Uses top-level removeRoleFromUser mutation with direct parameters.
  */
 export const REMOVE_ROLE_FROM_USER = gql`
 	mutation RemoveRoleFromUser($userId: UUID!, $roleId: UUID!) {
-		rbac {
-			removeRoleFromUser(userId: $userId, roleId: $roleId) {
-				success
-				message
-			}
-		}
+		removeRoleFromUser(userId: $userId, roleId: $roleId)
 	}
 `;
 
@@ -231,6 +215,7 @@ export interface Permission {
 	id: string;
 	resource: string;
 	action: string;
+	fullPermission?: string;
 	description?: string;
 	createdAt: string;
 }
@@ -238,6 +223,7 @@ export interface Permission {
 export interface Role {
 	id: string;
 	name: string;
+	level?: number;
 	description?: string;
 	createdAt: string;
 	updatedAt?: string;
@@ -268,12 +254,13 @@ export interface UserWithRoles {
 export interface CreateRoleInput {
 	name: string;
 	description?: string;
+	level: number;
 }
 
 export interface UpdateRoleInput {
-	id: string;
 	name?: string;
 	description?: string;
+	level?: number;
 }
 
 export interface DeleteRoleInput {

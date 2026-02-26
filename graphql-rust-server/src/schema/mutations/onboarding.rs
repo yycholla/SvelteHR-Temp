@@ -1,24 +1,23 @@
 use async_graphql::{Context, Object, Result};
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set, QueryFilter, ColumnTrait};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 use crate::{
+    auth::UserContext,
     database::get_db_from_context,
     error::AppError,
     models::{
-        CreateOnboardingModuleInput, UpdateOnboardingModuleInput, OnboardingModule,
-        CreateFormTemplateInput, UpdateFormTemplateInput, FormTemplate,
-        CreateContentBlockInput, UpdateContentBlockInput, ContentBlockGraphQL,
-        CreateOnboardingFormInput, UpdateOnboardingFormInput, OnboardingFormGraphQL,
-        CreateFormBlockInput, UpdateFormBlockInput, FormBlockGraphQL,
-        SaveFormProgressInput, CompleteFormInput, FormProgressGraphQL, OnboardingFormProgressStatus,
-        CreateOnboardingAssignmentInput, UpdateOnboardingAssignmentInput, Assignment,
-        UpdateOnboardingProgressInput, ProgressGraphQL, OnboardingProgressStatus,
-        CreateFormSubmissionInput, FormSubmission,
-        CreateDocumentUploadInput, UpdateDocumentUploadInput, DocumentUpload,
+        Assignment, CompleteFormInput, ContentBlockGraphQL, CreateContentBlockInput,
+        CreateDocumentUploadInput, CreateFormBlockInput, CreateFormSubmissionInput,
+        CreateFormTemplateInput, CreateOnboardingAssignmentInput, CreateOnboardingFormInput,
+        CreateOnboardingModuleInput, DocumentUpload, FormBlockGraphQL, FormProgressGraphQL,
+        FormSubmission, FormTemplate, OnboardingFormGraphQL, OnboardingFormProgressStatus,
+        OnboardingModule, OnboardingProgressStatus, ProgressGraphQL, SaveFormProgressInput,
+        UpdateContentBlockInput, UpdateDocumentUploadInput, UpdateFormBlockInput,
+        UpdateFormTemplateInput, UpdateOnboardingAssignmentInput, UpdateOnboardingFormInput,
+        UpdateOnboardingModuleInput, UpdateOnboardingProgressInput,
     },
-    auth::UserContext,
 };
 
 pub struct OnboardingMutations;
@@ -29,7 +28,11 @@ impl OnboardingMutations {
     // Onboarding Module Mutations
     // =========================================================================
 
-    async fn create_onboarding_module(&self, ctx: &Context<'_>, input: CreateOnboardingModuleInput) -> Result<OnboardingModule> {
+    async fn create_onboarding_module(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateOnboardingModuleInput,
+    ) -> Result<OnboardingModule> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?;
         // TODO: Add RBAC check (e.g. admin or HR manager)
@@ -50,11 +53,18 @@ impl OnboardingMutations {
         Ok(res)
     }
 
-    async fn update_onboarding_module(&self, ctx: &Context<'_>, id: Uuid, input: UpdateOnboardingModuleInput) -> Result<OnboardingModule> {
+    async fn update_onboarding_module(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateOnboardingModuleInput,
+    ) -> Result<OnboardingModule> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let module = crate::models::onboarding::onboarding_module::Entity::find_by_id(id).one(&db).await?
+        let module = crate::models::onboarding::onboarding_module::Entity::find_by_id(id)
+            .one(&db)
+            .await?
             .ok_or_else(|| AppError::NotFound("Onboarding module not found".to_string()))?;
 
         let mut module: crate::models::onboarding::onboarding_module::ActiveModel = module.into();
@@ -84,7 +94,9 @@ impl OnboardingMutations {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let res = crate::models::onboarding::onboarding_module::Entity::delete_by_id(id).exec(&db).await?;
+        let res = crate::models::onboarding::onboarding_module::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 
@@ -92,7 +104,11 @@ impl OnboardingMutations {
     // Form Template Mutations
     // =========================================================================
 
-    async fn create_form_template(&self, ctx: &Context<'_>, input: CreateFormTemplateInput) -> Result<FormTemplate> {
+    async fn create_form_template(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateFormTemplateInput,
+    ) -> Result<FormTemplate> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
@@ -112,10 +128,17 @@ impl OnboardingMutations {
         Ok(res)
     }
 
-    async fn update_form_template(&self, ctx: &Context<'_>, id: Uuid, input: UpdateFormTemplateInput) -> Result<FormTemplate> {
+    async fn update_form_template(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateFormTemplateInput,
+    ) -> Result<FormTemplate> {
         let db = get_db_from_context(ctx)?;
 
-        let template = crate::models::onboarding::form_template::Entity::find_by_id(id).one(&db).await?
+        let template = crate::models::onboarding::form_template::Entity::find_by_id(id)
+            .one(&db)
+            .await?
             .ok_or_else(|| AppError::NotFound("Form template not found".to_string()))?;
 
         let mut template: crate::models::onboarding::form_template::ActiveModel = template.into();
@@ -147,7 +170,9 @@ impl OnboardingMutations {
     async fn delete_form_template(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let res = crate::models::onboarding::form_template::Entity::delete_by_id(id).exec(&db).await?;
+        let res = crate::models::onboarding::form_template::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 
@@ -155,7 +180,11 @@ impl OnboardingMutations {
     // Content Block Mutations
     // =========================================================================
 
-    async fn create_content_block(&self, ctx: &Context<'_>, input: CreateContentBlockInput) -> Result<ContentBlockGraphQL> {
+    async fn create_content_block(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateContentBlockInput,
+    ) -> Result<ContentBlockGraphQL> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
@@ -182,10 +211,17 @@ impl OnboardingMutations {
         Ok(ContentBlockGraphQL::from(res))
     }
 
-    async fn update_content_block(&self, ctx: &Context<'_>, id: Uuid, input: UpdateContentBlockInput) -> Result<ContentBlockGraphQL> {
+    async fn update_content_block(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateContentBlockInput,
+    ) -> Result<ContentBlockGraphQL> {
         let db = get_db_from_context(ctx)?;
 
-        let block = crate::models::onboarding::content_block::Entity::find_by_id(id).one(&db).await?
+        let block = crate::models::onboarding::content_block::Entity::find_by_id(id)
+            .one(&db)
+            .await?
             .ok_or_else(|| AppError::NotFound("Content block not found".to_string()))?;
 
         let mut block: crate::models::onboarding::content_block::ActiveModel = block.into();
@@ -226,7 +262,9 @@ impl OnboardingMutations {
     async fn delete_content_block(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let res = crate::models::onboarding::content_block::Entity::delete_by_id(id).exec(&db).await?;
+        let res = crate::models::onboarding::content_block::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 
@@ -234,7 +272,11 @@ impl OnboardingMutations {
     // Onboarding Form Mutations (New Forms Architecture)
     // =========================================================================
 
-    async fn create_onboarding_form(&self, ctx: &Context<'_>, input: CreateOnboardingFormInput) -> Result<OnboardingFormGraphQL> {
+    async fn create_onboarding_form(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateOnboardingFormInput,
+    ) -> Result<OnboardingFormGraphQL> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check (admin or HR manager)
 
@@ -253,11 +295,18 @@ impl OnboardingMutations {
         Ok(OnboardingFormGraphQL::from(res))
     }
 
-    async fn update_onboarding_form(&self, ctx: &Context<'_>, id: Uuid, input: UpdateOnboardingFormInput) -> Result<OnboardingFormGraphQL> {
+    async fn update_onboarding_form(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateOnboardingFormInput,
+    ) -> Result<OnboardingFormGraphQL> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let form = crate::models::onboarding::form::Entity::find_by_id(id).one(&db).await?
+        let form = crate::models::onboarding::form::Entity::find_by_id(id)
+            .one(&db)
+            .await?
             .ok_or_else(|| AppError::NotFound("Onboarding form not found".to_string()))?;
 
         let mut form: crate::models::onboarding::form::ActiveModel = form.into();
@@ -284,17 +333,26 @@ impl OnboardingMutations {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let res = crate::models::onboarding::form::Entity::delete_by_id(id).exec(&db).await?;
+        let res = crate::models::onboarding::form::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 
     /// Reorder forms within a module
-    async fn reorder_onboarding_forms(&self, ctx: &Context<'_>, _onboarding_module_id: Uuid, form_ids: Vec<Uuid>) -> Result<bool> {
+    async fn reorder_onboarding_forms(
+        &self,
+        ctx: &Context<'_>,
+        _onboarding_module_id: Uuid,
+        form_ids: Vec<Uuid>,
+    ) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
         for (index, form_id) in form_ids.iter().enumerate() {
-            let form = crate::models::onboarding::form::Entity::find_by_id(*form_id).one(&db).await?
+            let form = crate::models::onboarding::form::Entity::find_by_id(*form_id)
+                .one(&db)
+                .await?
                 .ok_or_else(|| AppError::NotFound(format!("Form {} not found", form_id)))?;
 
             let mut form: crate::models::onboarding::form::ActiveModel = form.into();
@@ -310,7 +368,11 @@ impl OnboardingMutations {
     // Form Block Mutations
     // =========================================================================
 
-    async fn create_form_block(&self, ctx: &Context<'_>, input: CreateFormBlockInput) -> Result<FormBlockGraphQL> {
+    async fn create_form_block(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateFormBlockInput,
+    ) -> Result<FormBlockGraphQL> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
@@ -337,11 +399,18 @@ impl OnboardingMutations {
         Ok(FormBlockGraphQL::from(res))
     }
 
-    async fn update_form_block(&self, ctx: &Context<'_>, id: Uuid, input: UpdateFormBlockInput) -> Result<FormBlockGraphQL> {
+    async fn update_form_block(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateFormBlockInput,
+    ) -> Result<FormBlockGraphQL> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let block = crate::models::onboarding::form_block::Entity::find_by_id(id).one(&db).await?
+        let block = crate::models::onboarding::form_block::Entity::find_by_id(id)
+            .one(&db)
+            .await?
             .ok_or_else(|| AppError::NotFound("Form block not found".to_string()))?;
 
         let mut block: crate::models::onboarding::form_block::ActiveModel = block.into();
@@ -383,17 +452,26 @@ impl OnboardingMutations {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let res = crate::models::onboarding::form_block::Entity::delete_by_id(id).exec(&db).await?;
+        let res = crate::models::onboarding::form_block::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 
     /// Reorder blocks within a form
-    async fn reorder_form_blocks(&self, ctx: &Context<'_>, _onboarding_form_id: Uuid, block_ids: Vec<Uuid>) -> Result<bool> {
+    async fn reorder_form_blocks(
+        &self,
+        ctx: &Context<'_>,
+        _onboarding_form_id: Uuid,
+        block_ids: Vec<Uuid>,
+    ) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
         for (index, block_id) in block_ids.iter().enumerate() {
-            let block = crate::models::onboarding::form_block::Entity::find_by_id(*block_id).one(&db).await?
+            let block = crate::models::onboarding::form_block::Entity::find_by_id(*block_id)
+                .one(&db)
+                .await?
                 .ok_or_else(|| AppError::NotFound(format!("Form block {} not found", block_id)))?;
 
             let mut block: crate::models::onboarding::form_block::ActiveModel = block.into();
@@ -409,7 +487,11 @@ impl OnboardingMutations {
     // Form Progress Mutations
     // =========================================================================
 
-    async fn save_form_progress(&self, ctx: &Context<'_>, input: SaveFormProgressInput) -> Result<FormProgressGraphQL> {
+    async fn save_form_progress(
+        &self,
+        ctx: &Context<'_>,
+        input: SaveFormProgressInput,
+    ) -> Result<FormProgressGraphQL> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?; // Require auth
 
@@ -417,13 +499,19 @@ impl OnboardingMutations {
 
         // Check if progress record exists
         let existing = crate::models::onboarding::form_progress::Entity::find()
-            .filter(crate::models::onboarding::form_progress::Column::UserId.eq(user_context.user_id))
-            .filter(crate::models::onboarding::form_progress::Column::OnboardingFormId.eq(input.onboarding_form_id))
+            .filter(
+                crate::models::onboarding::form_progress::Column::UserId.eq(user_context.user_id),
+            )
+            .filter(
+                crate::models::onboarding::form_progress::Column::OnboardingFormId
+                    .eq(input.onboarding_form_id),
+            )
             .one(&db)
             .await?;
 
         let res = if let Some(progress) = existing {
-            let mut progress: crate::models::onboarding::form_progress::ActiveModel = progress.into();
+            let mut progress: crate::models::onboarding::form_progress::ActiveModel =
+                progress.into();
             progress.status = Set(status_str);
             progress.form_data = Set(input.form_data);
             if input.status == OnboardingFormProgressStatus::Completed {
@@ -439,8 +527,16 @@ impl OnboardingMutations {
                 onboarding_form_id: Set(input.onboarding_form_id),
                 status: Set(status_str.clone()),
                 form_data: Set(input.form_data),
-                started_at: Set(if status_str != "NOT_STARTED" { Some(Utc::now()) } else { None }),
-                completed_at: Set(if input.status == OnboardingFormProgressStatus::Completed { Some(Utc::now()) } else { None }),
+                started_at: Set(if status_str != "NOT_STARTED" {
+                    Some(Utc::now())
+                } else {
+                    None
+                }),
+                completed_at: Set(if input.status == OnboardingFormProgressStatus::Completed {
+                    Some(Utc::now())
+                } else {
+                    None
+                }),
                 last_accessed_at: Set(Some(Utc::now())),
                 created_at: Set(Utc::now()),
                 updated_at: Set(Utc::now()),
@@ -451,19 +547,29 @@ impl OnboardingMutations {
         Ok(FormProgressGraphQL::from(res))
     }
 
-    async fn complete_form(&self, ctx: &Context<'_>, input: CompleteFormInput) -> Result<FormProgressGraphQL> {
+    async fn complete_form(
+        &self,
+        ctx: &Context<'_>,
+        input: CompleteFormInput,
+    ) -> Result<FormProgressGraphQL> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?; // Require auth
 
         // Check if progress record exists
         let existing = crate::models::onboarding::form_progress::Entity::find()
-            .filter(crate::models::onboarding::form_progress::Column::UserId.eq(user_context.user_id))
-            .filter(crate::models::onboarding::form_progress::Column::OnboardingFormId.eq(input.onboarding_form_id))
+            .filter(
+                crate::models::onboarding::form_progress::Column::UserId.eq(user_context.user_id),
+            )
+            .filter(
+                crate::models::onboarding::form_progress::Column::OnboardingFormId
+                    .eq(input.onboarding_form_id),
+            )
             .one(&db)
             .await?;
 
         let res = if let Some(progress) = existing {
-            let mut progress: crate::models::onboarding::form_progress::ActiveModel = progress.into();
+            let mut progress: crate::models::onboarding::form_progress::ActiveModel =
+                progress.into();
             progress.status = Set("COMPLETED".to_string());
             progress.form_data = Set(Some(input.form_data));
             progress.completed_at = Set(Some(Utc::now()));
@@ -493,7 +599,11 @@ impl OnboardingMutations {
     // Assignment Mutations
     // =========================================================================
 
-    async fn assign_onboarding(&self, ctx: &Context<'_>, input: CreateOnboardingAssignmentInput) -> Result<Assignment> {
+    async fn assign_onboarding(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateOnboardingAssignmentInput,
+    ) -> Result<Assignment> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?;
         // TODO: Add RBAC check
@@ -512,10 +622,17 @@ impl OnboardingMutations {
         Ok(res)
     }
 
-    async fn update_onboarding_assignment(&self, ctx: &Context<'_>, id: Uuid, input: UpdateOnboardingAssignmentInput) -> Result<Assignment> {
+    async fn update_onboarding_assignment(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateOnboardingAssignmentInput,
+    ) -> Result<Assignment> {
         let db = get_db_from_context(ctx)?;
 
-        let assignment = crate::models::onboarding::assignment::Entity::find_by_id(id).one(&db).await?
+        let assignment = crate::models::onboarding::assignment::Entity::find_by_id(id)
+            .one(&db)
+            .await?
             .ok_or_else(|| AppError::NotFound("Assignment not found".to_string()))?;
 
         let mut assignment: crate::models::onboarding::assignment::ActiveModel = assignment.into();
@@ -535,7 +652,9 @@ impl OnboardingMutations {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let res = crate::models::onboarding::assignment::Entity::delete_by_id(id).exec(&db).await?;
+        let res = crate::models::onboarding::assignment::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 
@@ -545,7 +664,7 @@ impl OnboardingMutations {
         ctx: &Context<'_>,
         onboarding_module_id: Uuid,
         department_id: Uuid,
-        due_date: Option<chrono::DateTime<Utc>>
+        due_date: Option<chrono::DateTime<Utc>>,
     ) -> Result<i32> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?;
@@ -565,7 +684,10 @@ impl OnboardingMutations {
             // Check if assignment already exists
             let existing = crate::models::onboarding::assignment::Entity::find()
                 .filter(crate::models::onboarding::assignment::Column::UserId.eq(user.id))
-                .filter(crate::models::onboarding::assignment::Column::OnboardingModuleId.eq(onboarding_module_id))
+                .filter(
+                    crate::models::onboarding::assignment::Column::OnboardingModuleId
+                        .eq(onboarding_module_id),
+                )
                 .one(&db)
                 .await?;
 
@@ -593,7 +715,12 @@ impl OnboardingMutations {
     // Progress Mutations
     // =========================================================================
 
-    async fn update_onboarding_progress(&self, ctx: &Context<'_>, content_block_id: Uuid, input: UpdateOnboardingProgressInput) -> Result<ProgressGraphQL> {
+    async fn update_onboarding_progress(
+        &self,
+        ctx: &Context<'_>,
+        content_block_id: Uuid,
+        input: UpdateOnboardingProgressInput,
+    ) -> Result<ProgressGraphQL> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?; // Require auth
 
@@ -602,7 +729,9 @@ impl OnboardingMutations {
         // Check if progress record exists
         let existing = crate::models::onboarding::progress::Entity::find()
             .filter(crate::models::onboarding::progress::Column::UserId.eq(user_context.user_id))
-            .filter(crate::models::onboarding::progress::Column::ContentBlockId.eq(content_block_id))
+            .filter(
+                crate::models::onboarding::progress::Column::ContentBlockId.eq(content_block_id),
+            )
             .one(&db)
             .await?;
 
@@ -620,8 +749,16 @@ impl OnboardingMutations {
                 user_id: Set(user_context.user_id),
                 content_block_id: Set(content_block_id),
                 status: Set(status_str.clone()),
-                started_at: Set(if status_str != "NOT_STARTED" { Some(Utc::now()) } else { None }),
-                completed_at: Set(if input.status == OnboardingProgressStatus::Completed { Some(Utc::now()) } else { None }),
+                started_at: Set(if status_str != "NOT_STARTED" {
+                    Some(Utc::now())
+                } else {
+                    None
+                }),
+                completed_at: Set(if input.status == OnboardingProgressStatus::Completed {
+                    Some(Utc::now())
+                } else {
+                    None
+                }),
                 last_accessed_at: Set(Some(Utc::now())),
             };
             progress.insert(&db).await?
@@ -634,7 +771,11 @@ impl OnboardingMutations {
     // Form Submission Mutations
     // =========================================================================
 
-    async fn submit_form(&self, ctx: &Context<'_>, input: CreateFormSubmissionInput) -> Result<FormSubmission> {
+    async fn submit_form(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateFormSubmissionInput,
+    ) -> Result<FormSubmission> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?; // Require auth
 
@@ -657,7 +798,11 @@ impl OnboardingMutations {
     // Document Upload Mutations
     // =========================================================================
 
-    async fn create_document_upload(&self, ctx: &Context<'_>, input: CreateDocumentUploadInput) -> Result<DocumentUpload> {
+    async fn create_document_upload(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateDocumentUploadInput,
+    ) -> Result<DocumentUpload> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?; // Require auth
 
@@ -665,22 +810,34 @@ impl OnboardingMutations {
         let document_id = if input.create_document.unwrap_or(false) {
             // Get "Onboarding Documents" category
             let category = crate::models::documents::document_category::Entity::find()
-                .filter(crate::models::documents::document_category::Column::Name.eq("Onboarding Documents"))
+                .filter(
+                    crate::models::documents::document_category::Column::Name
+                        .eq("Onboarding Documents"),
+                )
                 .one(&db)
                 .await?
-                .ok_or_else(|| AppError::NotFound("Onboarding Documents category not found. Please run migrations.".to_string()))?;
+                .ok_or_else(|| {
+                    AppError::NotFound(
+                        "Onboarding Documents category not found. Please run migrations."
+                            .to_string(),
+                    )
+                })?;
 
             // Create document record
             let document = crate::models::documents::document::ActiveModel {
                 id: Set(Uuid::new_v4()),
-                title: Set(input.document_title.unwrap_or_else(|| input.file_name.clone())),
+                title: Set(input
+                    .document_title
+                    .unwrap_or_else(|| input.file_name.clone())),
                 description: Set(input.document_description),
                 category_id: Set(Some(category.id)),
                 uploader_id: Set(user_context.user_id),
                 file_path: Set(input.storage_path.clone()),
                 file_size: Set(input.file_size_bytes),
                 mime_type: Set(input.mime_type.clone()),
-                access_level: Set(input.document_access_level.unwrap_or_else(|| "private".to_string())),
+                access_level: Set(input
+                    .document_access_level
+                    .unwrap_or_else(|| "private".to_string())),
                 is_encrypted: Set(false),
                 expiry_date: Set(input.document_expiry_date),
                 version_number: Set(1),
@@ -714,11 +871,18 @@ impl OnboardingMutations {
         Ok(res)
     }
 
-    async fn update_document_upload(&self, ctx: &Context<'_>, id: Uuid, input: UpdateDocumentUploadInput) -> Result<DocumentUpload> {
+    async fn update_document_upload(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateDocumentUploadInput,
+    ) -> Result<DocumentUpload> {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check (should require admin or system role)
 
-        let upload = crate::models::onboarding::document_upload::Entity::find_by_id(id).one(&db).await?
+        let upload = crate::models::onboarding::document_upload::Entity::find_by_id(id)
+            .one(&db)
+            .await?
             .ok_or_else(|| AppError::NotFound("Document upload not found".to_string()))?;
 
         let mut upload: crate::models::onboarding::document_upload::ActiveModel = upload.into();
@@ -738,7 +902,9 @@ impl OnboardingMutations {
         let db = get_db_from_context(ctx)?;
         // TODO: Add RBAC check
 
-        let res = crate::models::onboarding::document_upload::Entity::delete_by_id(id).exec(&db).await?;
+        let res = crate::models::onboarding::document_upload::Entity::delete_by_id(id)
+            .exec(&db)
+            .await?;
         Ok(res.rows_affected > 0)
     }
 }

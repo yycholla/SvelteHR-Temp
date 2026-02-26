@@ -6,18 +6,15 @@ use axum::{
 };
 use sea_orm::DatabaseConnection;
 
-use crate::{
-    dataloader::DataLoaderContext,
-    schema::GraphQLSchema,
-};
+use crate::{dataloader::DataLoaderContext, schema::GraphQLSchema};
 
 pub mod events;
-pub mod roles;
-pub mod users;
-pub mod upload;
-pub mod intuit_webhook;
 pub mod intuit_oauth;
+pub mod intuit_webhook;
 pub mod password_reset;
+pub mod roles;
+pub mod upload;
+pub mod users;
 pub mod webhook_progress;
 
 /// Application state containing shared resources
@@ -33,8 +30,7 @@ pub struct AppState {
 /// GraphQL playground handler (using GraphiQL - no external CDN dependencies)
 pub async fn graphql_playground() -> Html<String> {
     Html(async_graphql::http::graphiql_source(
-        "/graphql",
-        None,  // Subscriptions endpoint (optional)
+        "/graphql", None, // Subscriptions endpoint (optional)
     ))
 }
 

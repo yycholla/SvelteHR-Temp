@@ -46,11 +46,13 @@ export const GET_EMPLOYEES_QUERY = GET_USERS_QUERY; // Alias for compatibility
 export const GET_DEPARTMENTS_QUERY = gql`
 	query GetDepartments($limit: Int = 100, $offset: Int = 0) {
 		departments(limit: $limit, offset: $offset) {
-			id
-			name
-			description
-			createdAt
-			updatedAt
+			items {
+				id
+				name
+				description
+				createdAt
+				updatedAt
+			}
 		}
 	}
 `;
@@ -340,9 +342,11 @@ export const GET_EMPLOYEE_QUICK_STATS = gql`
 export const GET_DEPARTMENT_PERFORMANCE = gql`
 	query GetDepartmentPerformance {
 		departments(limit: 100, offset: 0) {
-			id
-			name
-			# Need backend fields: employeeCount, averageRating, budgetUtilization, activeProjects
+			items {
+				id
+				name
+				# Need backend fields: employeeCount, averageRating, budgetUtilization, activeProjects
+			}
 		}
 	}
 `;

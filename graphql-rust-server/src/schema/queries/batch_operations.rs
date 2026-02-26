@@ -4,9 +4,11 @@ use async_graphql::{Context, Object, Result};
 use chrono::{DateTime, Utc};
 
 use crate::auth::UserContext;
-use crate::services::batching_engine::{BatchingEngine, BatchingEfficiencyMetrics as ServiceMetrics};
-use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 use crate::models::batch_operations;
+use crate::services::batching_engine::{
+    BatchingEfficiencyMetrics as ServiceMetrics, BatchingEngine,
+};
+use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 
 use std::sync::Arc;
 use uuid::Uuid;
@@ -57,10 +59,7 @@ impl BatchOperationsQueries {
 
         let engine = BatchingEngine::new(Arc::new(db.clone()));
         let batches = engine
-            .get_recent_batches(
-                entity_type,
-                limit.unwrap_or(10).max(1).min(50) as u64,
-            )
+            .get_recent_batches(entity_type, limit.unwrap_or(10).max(1).min(50) as u64)
             .await?;
 
         Ok(batches.into_iter().map(BatchOperation::from).collect())
@@ -113,28 +112,72 @@ pub struct BatchOperation {
 
 #[Object]
 impl BatchOperation {
-    async fn id(&self) -> &str { &self.id }
-    async fn operation_type(&self) -> &str { &self.operation_type }
-    async fn entity_type(&self) -> &str { &self.entity_type }
-    async fn direction(&self) -> &str { &self.direction }
-    async fn status(&self) -> &str { &self.status }
-    async fn total_items(&self) -> i32 { self.total_items }
-    async fn processed_items(&self) -> i32 { self.processed_items }
-    async fn successful_items(&self) -> i32 { self.successful_items }
-    async fn failed_items(&self) -> i32 { self.failed_items }
-    async fn skipped_items(&self) -> i32 { self.skipped_items }
-    async fn progress_percentage(&self) -> &str { &self.progress_percentage }
-    async fn estimated_time_remaining(&self) -> Option<i32> { self.estimated_time_remaining }
-    async fn triggered_by(&self) -> Option<&str> { self.triggered_by.as_deref() }
-    async fn triggered_by_email(&self) -> Option<&str> { self.triggered_by_email.as_deref() }
-    async fn error_message(&self) -> Option<&str> { self.error_message.as_deref() }
-    async fn configuration(&self) -> Option<&serde_json::Value> { self.configuration.as_ref() }
-    async fn metadata(&self) -> Option<&serde_json::Value> { self.metadata.as_ref() }
-    async fn started_at(&self) -> Option<DateTime<Utc>> { self.started_at }
-    async fn completed_at(&self) -> Option<DateTime<Utc>> { self.completed_at }
-    async fn duration_ms(&self) -> Option<i32> { self.duration_ms }
-    async fn created_at(&self) -> DateTime<Utc> { self.created_at }
-    async fn updated_at(&self) -> DateTime<Utc> { self.updated_at }
+    async fn id(&self) -> &str {
+        &self.id
+    }
+    async fn operation_type(&self) -> &str {
+        &self.operation_type
+    }
+    async fn entity_type(&self) -> &str {
+        &self.entity_type
+    }
+    async fn direction(&self) -> &str {
+        &self.direction
+    }
+    async fn status(&self) -> &str {
+        &self.status
+    }
+    async fn total_items(&self) -> i32 {
+        self.total_items
+    }
+    async fn processed_items(&self) -> i32 {
+        self.processed_items
+    }
+    async fn successful_items(&self) -> i32 {
+        self.successful_items
+    }
+    async fn failed_items(&self) -> i32 {
+        self.failed_items
+    }
+    async fn skipped_items(&self) -> i32 {
+        self.skipped_items
+    }
+    async fn progress_percentage(&self) -> &str {
+        &self.progress_percentage
+    }
+    async fn estimated_time_remaining(&self) -> Option<i32> {
+        self.estimated_time_remaining
+    }
+    async fn triggered_by(&self) -> Option<&str> {
+        self.triggered_by.as_deref()
+    }
+    async fn triggered_by_email(&self) -> Option<&str> {
+        self.triggered_by_email.as_deref()
+    }
+    async fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+    async fn configuration(&self) -> Option<&serde_json::Value> {
+        self.configuration.as_ref()
+    }
+    async fn metadata(&self) -> Option<&serde_json::Value> {
+        self.metadata.as_ref()
+    }
+    async fn started_at(&self) -> Option<DateTime<Utc>> {
+        self.started_at
+    }
+    async fn completed_at(&self) -> Option<DateTime<Utc>> {
+        self.completed_at
+    }
+    async fn duration_ms(&self) -> Option<i32> {
+        self.duration_ms
+    }
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+    async fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 impl From<batch_operations::Model> for BatchOperation {
@@ -180,13 +223,27 @@ pub struct BatchingEfficiencyMetrics {
 
 #[Object]
 impl BatchingEfficiencyMetrics {
-    async fn total_batches(&self) -> i32 { self.total_batches }
-    async fn total_items(&self) -> i32 { self.total_items }
-    async fn total_successful(&self) -> i32 { self.total_successful }
-    async fn total_failed(&self) -> i32 { self.total_failed }
-    async fn avg_batch_size(&self) -> f64 { self.avg_batch_size }
-    async fn api_calls_saved(&self) -> i32 { self.api_calls_saved }
-    async fn api_call_reduction_percentage(&self) -> f64 { self.api_call_reduction_percentage }
+    async fn total_batches(&self) -> i32 {
+        self.total_batches
+    }
+    async fn total_items(&self) -> i32 {
+        self.total_items
+    }
+    async fn total_successful(&self) -> i32 {
+        self.total_successful
+    }
+    async fn total_failed(&self) -> i32 {
+        self.total_failed
+    }
+    async fn avg_batch_size(&self) -> f64 {
+        self.avg_batch_size
+    }
+    async fn api_calls_saved(&self) -> i32 {
+        self.api_calls_saved
+    }
+    async fn api_call_reduction_percentage(&self) -> f64 {
+        self.api_call_reduction_percentage
+    }
 }
 
 impl From<ServiceMetrics> for BatchingEfficiencyMetrics {

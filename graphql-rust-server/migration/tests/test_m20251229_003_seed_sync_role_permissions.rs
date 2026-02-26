@@ -12,15 +12,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251229_003_seed_sync_role_permissions::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251229_003_seed_sync_role_permissions::Migration;
 
     /// Setup a test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -35,7 +38,8 @@ mod tests {
                 FROM hr_public.permissions p
                 WHERE rp.permission_id = p.id
                 AND p.resource IN ('sync', 'integrations')
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
@@ -48,7 +52,8 @@ mod tests {
                 USING hr_public.permissions p
                 WHERE rp.permission_id = p.id
                 AND p.resource IN ('sync', 'integrations')
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
     }
@@ -83,7 +88,8 @@ mod tests {
                 JOIN hr_public.permissions p ON rp.permission_id = p.id
                 WHERE p.resource IN ('sync', 'integrations')
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
@@ -95,7 +101,11 @@ mod tests {
             .expect("Should get count");
 
         // At least some permissions should be created (Admin gets all)
-        assert!(count > 0, "Should have created sync role permissions, got {}", count);
+        assert!(
+            count > 0,
+            "Should have created sync role permissions, got {}",
+            count
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -108,7 +118,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify Admin role got all sync/integration permissions
         let result = db
@@ -124,7 +137,8 @@ mod tests {
                 AND p.resource IN ('sync', 'integrations')
                 AND p.deleted_at IS NULL
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
@@ -136,7 +150,11 @@ mod tests {
             .expect("Should get count");
 
         // Admin should have all sync/integration permissions
-        assert!(count > 0, "Admin should have sync permissions, got {}", count);
+        assert!(
+            count > 0,
+            "Admin should have sync permissions, got {}",
+            count
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -149,7 +167,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify HR Manager role got operational permissions
         let result = db
@@ -165,7 +186,8 @@ mod tests {
                 AND p.resource = 'sync'
                 AND p.deleted_at IS NULL
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
@@ -177,7 +199,11 @@ mod tests {
             .expect("Should get count");
 
         // HR Manager should have operational permissions (around 9)
-        assert!(count >= 1, "HR Manager should have sync permissions, got {}", count);
+        assert!(
+            count >= 1,
+            "HR Manager should have sync permissions, got {}",
+            count
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -190,7 +216,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify Manager role got limited permissions
         let result = db
@@ -206,7 +235,8 @@ mod tests {
                 AND p.resource = 'sync'
                 AND p.deleted_at IS NULL
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
@@ -218,7 +248,11 @@ mod tests {
             .expect("Should get count");
 
         // Manager should have limited permissions (around 3)
-        assert!(count >= 1, "Manager should have sync permissions, got {}", count);
+        assert!(
+            count >= 1,
+            "Manager should have sync permissions, got {}",
+            count
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -231,7 +265,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify Employee role got minimal permissions
         let result = db
@@ -247,7 +284,8 @@ mod tests {
                 AND p.resource = 'sync'
                 AND p.deleted_at IS NULL
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
@@ -259,7 +297,11 @@ mod tests {
             .expect("Should get count");
 
         // Employee should have minimal permissions (around 1)
-        assert!(count >= 1, "Employee should have sync permissions, got {}", count);
+        assert!(
+            count >= 1,
+            "Employee should have sync permissions, got {}",
+            count
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -289,7 +331,8 @@ mod tests {
                 JOIN hr_public.permissions p ON rp.permission_id = p.id
                 WHERE p.resource IN ('sync', 'integrations')
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await
             .expect("Should query count");
@@ -315,7 +358,8 @@ mod tests {
                 JOIN hr_public.permissions p ON rp.permission_id = p.id
                 WHERE p.resource IN ('sync', 'integrations')
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await
             .expect("Should query count");
@@ -343,7 +387,10 @@ mod tests {
         let migration = Migration;
 
         // Run up migration
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Get count before down
         let before_count_result = db
@@ -355,7 +402,8 @@ mod tests {
                 JOIN hr_public.permissions p ON rp.permission_id = p.id
                 WHERE p.resource IN ('sync', 'integrations')
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await
             .expect("Should query count");
@@ -365,10 +413,16 @@ mod tests {
             .try_get("", "count")
             .expect("Should get before count");
 
-        assert!(before_count > 0, "Should have permissions before down migration");
+        assert!(
+            before_count > 0,
+            "Should have permissions before down migration"
+        );
 
         // Run down migration
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         // Verify soft delete (deleted_at is set)
         let after_count_result = db
@@ -380,7 +434,8 @@ mod tests {
                 JOIN hr_public.permissions p ON rp.permission_id = p.id
                 WHERE p.resource IN ('sync', 'integrations')
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await
             .expect("Should query count");
@@ -405,7 +460,8 @@ mod tests {
                 JOIN hr_public.permissions p ON rp.permission_id = p.id
                 WHERE p.resource IN ('sync', 'integrations')
                 AND rp.deleted_at IS NOT NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await
             .expect("Should query soft deleted count");
@@ -433,7 +489,10 @@ mod tests {
         let migration = Migration;
 
         // Run up migration
-        migration.up(&schema_manager).await.expect("First up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("First up should succeed");
 
         // Get count after first up
         let first_up_result = db
@@ -445,7 +504,8 @@ mod tests {
                 JOIN hr_public.permissions p ON rp.permission_id = p.id
                 WHERE p.resource IN ('sync', 'integrations')
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await
             .expect("Should query count");
@@ -458,7 +518,10 @@ mod tests {
         assert!(first_up_count > 0, "Should have permissions after first up");
 
         // Run down migration
-        migration.down(&schema_manager).await.expect("Down should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Down should succeed");
 
         // Verify soft delete worked
         let after_down_result = db
@@ -470,7 +533,8 @@ mod tests {
                 JOIN hr_public.permissions p ON rp.permission_id = p.id
                 WHERE p.resource IN ('sync', 'integrations')
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await
             .expect("Should query count");
@@ -480,7 +544,10 @@ mod tests {
             .try_get("", "count")
             .expect("Should get after down count");
 
-        assert_eq!(after_down_count, 0, "Should have no active permissions after down");
+        assert_eq!(
+            after_down_count, 0,
+            "Should have no active permissions after down"
+        );
 
         // Note: ON CONFLICT DO NOTHING means soft-deleted records won't be re-activated
         // This is expected behavior - the migration seeds initial data, not re-activates
@@ -493,12 +560,16 @@ mod tests {
                 USING hr_public.permissions p
                 WHERE rp.permission_id = p.id
                 AND p.resource IN ('sync', 'integrations')
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
         // Run up migration again after hard delete
-        migration.up(&schema_manager).await.expect("Second up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Second up should succeed");
 
         // Verify permissions exist after full cycle
         let result = db
@@ -510,7 +581,8 @@ mod tests {
                 JOIN hr_public.permissions p ON rp.permission_id = p.id
                 WHERE p.resource IN ('sync', 'integrations')
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
@@ -521,7 +593,10 @@ mod tests {
             .try_get("", "count")
             .expect("Should get count");
 
-        assert!(count > 0, "Should have permissions after full cycle with hard delete");
+        assert!(
+            count > 0,
+            "Should have permissions after full cycle with hard delete"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -534,7 +609,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify HR Manager has resolve_conflicts permission
         let result = db
@@ -551,18 +629,25 @@ mod tests {
                 AND r.deleted_at IS NULL
                 AND p.deleted_at IS NULL
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
-        assert!(result.is_ok(), "HR Manager resolve_conflicts permission should exist");
+        assert!(
+            result.is_ok(),
+            "HR Manager resolve_conflicts permission should exist"
+        );
         let count: i64 = result
             .unwrap()
             .unwrap()
             .try_get("", "count")
             .expect("Should get count");
 
-        assert_eq!(count, 1, "HR Manager should have resolve_conflicts permission");
+        assert_eq!(
+            count, 1,
+            "HR Manager should have resolve_conflicts permission"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -575,7 +660,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify Employee has view_history permission
         let result = db
@@ -592,11 +680,15 @@ mod tests {
                 AND r.deleted_at IS NULL
                 AND p.deleted_at IS NULL
                 AND rp.deleted_at IS NULL
-                "#.to_string(),
+                "#
+                .to_string(),
             ))
             .await;
 
-        assert!(result.is_ok(), "Employee view_history permission should exist");
+        assert!(
+            result.is_ok(),
+            "Employee view_history permission should exist"
+        );
         let count: i64 = result
             .unwrap()
             .unwrap()

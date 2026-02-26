@@ -45,12 +45,8 @@
 	// Track the current event for accessing shift key
 	let currentEvent: MouseEvent | null = null;
 
-	function handleCheckboxClick(event: MouseEvent) {
-		currentEvent = event;
-	}
-
 	// Intersection Observer for infinite scroll
-	let loadMoreTrigger: HTMLElement | undefined;
+	let loadMoreTrigger = $state<HTMLElement | undefined>(undefined);
 
 	$effect(() => {
 		if (!loadMoreTrigger) return;
@@ -113,16 +109,14 @@
 		</div>
 	{:else}
 		{#each logs as log, index (log.id)}
-			<div onclick={handleCheckboxClick}>
-				<ActivityFeedEntry
-					{log}
-					isSelected={selectedIds.has(log.id)}
-					{userRole}
-					onToggleSelect={(id) => handleToggleSelect(id, index, currentEvent?.shiftKey || false)}
-					onRollbackComplete={onRollback ? () => onRollback(log.id) : undefined}
-					{onLogClick}
-				/>
-			</div>
+			<ActivityFeedEntry
+				{log}
+				isSelected={selectedIds.has(log.id)}
+				{userRole}
+				onToggleSelect={(id) => handleToggleSelect(id, index, currentEvent?.shiftKey || false)}
+				onRollbackComplete={onRollback ? () => onRollback(log.id) : undefined}
+				{onLogClick}
+			/>
 		{/each}
 
 		{#if loading}

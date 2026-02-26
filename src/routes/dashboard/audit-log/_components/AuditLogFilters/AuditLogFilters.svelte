@@ -77,12 +77,8 @@
 		<label for="action-filter" class="block text-sm font-medium mb-2">Action Type</label>
 		<Select.Root
 			type="single"
-			selected={{ value: filters.action ?? 'ALL', label: filters.action ?? 'ALL' }}
-			onSelectedChange={(v) => {
-				if (v && v.value) {
-					handleActionChange(v.value);
-				}
-			}}
+			value={filters.action ?? 'ALL'}
+			onValueChange={(value: string) => handleActionChange(value)}
 		>
 			<Select.Trigger id="action-filter" class="w-full">
 				<Select.Value placeholder="ALL" />
@@ -124,7 +120,7 @@
 	</div>
 
 	<div class="filter-group">
-		<label class="block text-sm font-medium mb-2">Date Range</label>
+		<p class="block text-sm font-medium mb-2">Date Range</p>
 		<div class="flex gap-2">
 			<Input
 				type="date"

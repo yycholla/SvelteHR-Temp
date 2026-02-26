@@ -3,7 +3,7 @@
 //! Maps to hr_public.encrypted_file_storage table
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};

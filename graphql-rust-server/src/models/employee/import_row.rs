@@ -3,7 +3,9 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(None)")]
 pub enum ImportRowStatus {
     #[sea_orm(string_value = "PENDING")]

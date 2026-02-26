@@ -1,22 +1,6 @@
-/**
- * JWT Authentication Store (Svelte 5 Runes)
- *
- * Manages JWT-based authentication with automatic token refresh,
- * session restoration, and permission/role helpers.
- *
- * Security:
- * - Access tokens stored in memory only (cleared on refresh)
- * - Refresh tokens stored in HTTP-only cookies (backend-managed)
- * - Automatic token rotation on refresh
- */
-
 import { type Client, type CombinedError } from '@urql/core';
 import { browser } from '$app/environment';
 import { AccessToken } from '$domain/Auth/value-objects/AccessToken';
-
-// ============================================================================
-// Types
-// ============================================================================
 
 export interface AuthUser {
 	id: string;
@@ -26,6 +10,7 @@ export interface AuthUser {
 	permissions: string[];
 	isActive: boolean;
 	forcePasswordChange: boolean;
+	onboardingStatus?: string;
 }
 
 export interface TokenPair {
@@ -33,17 +18,16 @@ export interface TokenPair {
 	refreshToken: string;
 	refreshTokenPlaintext: string;
 	tokenType: string;
-	expiresIn: number; // seconds
+	expiresIn: number;
 }
 
-export interface AuthError {
-	code: string;
-	message: string;
+interface LoginApiResponse {
+	success: boolean;
+	error?: string;
+	user?: AuthUser;
+	accessToken?: string;
+	expiresIn?: number;
 }
-
-// ============================================================================
-// GraphQL Operations
-// ============================================================================
 
 const LOGIN_MUTATION = `
 	mutation Login($email: String!, $password: String!, $deviceInfo: String, $ipAddress: String) {
@@ -112,53 +96,149 @@ const LOGOUT_MUTATION = `
 	}
 `;
 
-// ============================================================================
-// JWT Auth Store Class
-// ============================================================================
+function canUseServerAuthApi(): boolean {
+	return browser && process.env.NODE_ENV !== 'test';
+}
 
 class JwtAuthStore {
-	// Reactive state using Svelte 5 runes
 	accessToken = $state<string | null>(null);
 	user = $state<AuthUser | null>(null);
 	isLoading = $state(false);
 	error = $state<string | null>(null);
 
-	// Derived state
 	isAuthenticated = $derived(!!this.accessToken && !!this.user);
 
-	// Private state for token management
 	private refreshTokenData = $state<{ jwt: string; plaintext: string } | null>(null);
 	private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 	private graphqlClient: Client | null = null;
 	private tokenExpiresAt: Date | null = null;
 
-	/**
-	 * Initialize the auth store with GraphQL client
-	 */
 	initialize(client: Client) {
 		this.graphqlClient = client;
 		if (browser) {
-			this.restoreSession();
+			void this.restoreSession();
 		}
 	}
 
-	/**
-	 * Login with email and password
-	 */
 	async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+		this.isLoading = true;
+		this.error = null;
+
+		try {
+			if (canUseServerAuthApi()) {
+				return await this.loginViaServerApi(email, password);
+			}
+			return await this.loginViaGraphQLClient(email, password);
+		} finally {
+			this.isLoading = false;
+		}
+	}
+
+	async refreshAccessToken(): Promise<boolean> {
+		try {
+			if (canUseServerAuthApi()) {
+				return await this.refreshViaServerApi();
+			}
+			return await this.refreshViaGraphQLClient();
+		} catch {
+			this.clearAuthData();
+			return false;
+		}
+	}
+
+	async logout(): Promise<void> {
+		try {
+			if (canUseServerAuthApi()) {
+				await fetch('/api/auth/logout', {
+					method: 'POST',
+					credentials: 'include'
+				});
+				return;
+			}
+
+			if (this.graphqlClient) {
+				await this.graphqlClient.mutation(LOGOUT_MUTATION, {});
+			}
+		} catch {
+			// Logout should always clear local state even if backend call fails.
+		} finally {
+			this.clearAuthData();
+		}
+	}
+
+	hasPermission(permission: string): boolean {
+		return this.user?.permissions.includes(permission) ?? false;
+	}
+
+	hasRole(role: string): boolean {
+		return this.user?.roles.includes(role) ?? false;
+	}
+
+	hasAnyRole(roles: string[]): boolean {
+		return roles.some((role) => this.hasRole(role));
+	}
+
+	hasAllPermissions(permissions: string[]): boolean {
+		return permissions.every((permission) => this.hasPermission(permission));
+	}
+
+	toDomainAccessToken(): AccessToken | null {
+		if (!this.accessToken || !this.user) return null;
+
+		const result = AccessToken.create({
+			token: this.accessToken,
+			userId: this.user.id,
+			expiresAt: this.tokenExpiresAt ?? new Date(0),
+			permissions: this.user.permissions,
+			roles: this.user.roles
+		});
+
+		return result.isOk ? result.value : null;
+	}
+
+	private async loginViaServerApi(
+		email: string,
+		password: string
+	): Promise<{ success: boolean; error?: string }> {
+		const response = await fetch('/api/auth/login', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ email, password })
+		});
+
+		const payload = (await response.json()) as LoginApiResponse;
+
+		if (
+			!response.ok ||
+			!payload.success ||
+			!payload.user ||
+			!payload.accessToken ||
+			!payload.expiresIn
+		) {
+			const errorMessage = payload.error || 'Login failed';
+			this.error = errorMessage;
+			return { success: false, error: errorMessage };
+		}
+
+		this.setAuthDataFromApi(payload.user, payload.accessToken, payload.expiresIn);
+		return { success: true };
+	}
+
+	private async loginViaGraphQLClient(
+		email: string,
+		password: string
+	): Promise<{ success: boolean; error?: string }> {
 		if (!this.graphqlClient) {
 			return { success: false, error: 'GraphQL client not initialized' };
 		}
-
-		this.isLoading = true;
-		this.error = null;
 
 		try {
 			const result = await this.graphqlClient.mutation(LOGIN_MUTATION, {
 				email,
 				password,
 				deviceInfo: this.getDeviceInfo(),
-				ipAddress: null // Will be extracted by backend
+				ipAddress: null
 			});
 
 			if (result.error) {
@@ -168,7 +248,6 @@ class JwtAuthStore {
 			}
 
 			const loginResult = result.data?.login;
-
 			if (loginResult?.__typename === 'AuthError') {
 				this.error = loginResult.message;
 				return { success: false, error: loginResult.message };
@@ -184,126 +263,61 @@ class JwtAuthStore {
 			const errorMessage = err instanceof Error ? err.message : 'Login failed';
 			this.error = errorMessage;
 			return { success: false, error: errorMessage };
-		} finally {
-			this.isLoading = false;
 		}
 	}
 
-	/**
-	 * Refresh access token using stored refresh token
-	 */
-	async refreshAccessToken(): Promise<boolean> {
+	private async refreshViaServerApi(): Promise<boolean> {
+		const response = await fetch('/api/auth/refresh', {
+			method: 'POST',
+			credentials: 'include'
+		});
+
+		if (!response.ok) {
+			this.clearAuthData();
+			return false;
+		}
+
+		const payload = (await response.json()) as LoginApiResponse;
+		if (!payload.success || !payload.user || !payload.accessToken || !payload.expiresIn) {
+			this.clearAuthData();
+			return false;
+		}
+
+		this.setAuthDataFromApi(payload.user, payload.accessToken, payload.expiresIn);
+		return true;
+	}
+
+	private async refreshViaGraphQLClient(): Promise<boolean> {
 		if (!this.graphqlClient || !this.refreshTokenData) {
 			return false;
 		}
 
-		try {
-			const result = await this.graphqlClient.mutation(REFRESH_TOKEN_MUTATION, {
-				refreshToken: this.refreshTokenData.jwt,
-				refreshTokenPlaintext: this.refreshTokenData.plaintext,
-				deviceInfo: this.getDeviceInfo(),
-				ipAddress: null
-			});
-
-			if (result.error) {
-				console.error('[JWT Auth] Token refresh failed:', result.error);
-				this.clearAuthData();
-				return false;
-			}
-
-			const refreshResult = result.data?.refreshToken;
-
-			if (refreshResult?.__typename === 'AuthError') {
-				console.error('[JWT Auth] Token refresh error:', refreshResult.message);
-				this.clearAuthData();
-				return false;
-			}
-
-			if (refreshResult?.__typename === 'AuthSuccess') {
-				this.setAuthData(refreshResult.user, refreshResult.tokens);
-				return true;
-			}
-
-			return false;
-		} catch (err) {
-			console.error('[JWT Auth] Token refresh exception:', err);
-			this.clearAuthData();
-			return false;
-		}
-	}
-
-	/**
-	 * Logout current session
-	 */
-	async logout(): Promise<void> {
-		if (!this.graphqlClient) {
-			this.clearAuthData();
-			return;
-		}
-
-		try {
-			// Call logout mutation (revokes all tokens on backend)
-			await this.graphqlClient.mutation(LOGOUT_MUTATION, {});
-		} catch (err) {
-			console.error('[JWT Auth] Logout error:', err);
-		} finally {
-			this.clearAuthData();
-		}
-	}
-
-	/**
-	 * Check if user has a specific permission
-	 */
-	hasPermission(permission: string): boolean {
-		return this.user?.permissions.includes(permission) ?? false;
-	}
-
-	/**
-	 * Check if user has a specific role
-	 */
-	hasRole(role: string): boolean {
-		return this.user?.roles.includes(role) ?? false;
-	}
-
-	/**
-	 * Check if user has any of the specified roles
-	 */
-	hasAnyRole(roles: string[]): boolean {
-		return roles.some((role) => this.hasRole(role));
-	}
-
-	/**
-	 * Check if user has all of the specified permissions
-	 */
-	hasAllPermissions(permissions: string[]): boolean {
-		return permissions.every((permission) => this.hasPermission(permission));
-	}
-
-	/**
-	 * Convert current auth state to domain AccessToken entity.
-	 * Returns null if not authenticated or if token data is invalid.
-	 */
-	toDomainAccessToken(): AccessToken | null {
-		if (!this.accessToken || !this.user) return null;
-
-		const result = AccessToken.create({
-			token: this.accessToken,
-			userId: this.user.id,
-			expiresAt: this.tokenExpiresAt ?? new Date(0),
-			permissions: this.user.permissions,
-			roles: this.user.roles
+		const result = await this.graphqlClient.mutation(REFRESH_TOKEN_MUTATION, {
+			refreshToken: this.refreshTokenData.jwt,
+			refreshTokenPlaintext: this.refreshTokenData.plaintext,
+			deviceInfo: this.getDeviceInfo(),
+			ipAddress: null
 		});
 
-		return result.isOk ? result.value : null;
+		if (result.error) {
+			this.clearAuthData();
+			return false;
+		}
+
+		const refreshResult = result.data?.refreshToken;
+		if (refreshResult?.__typename === 'AuthError') {
+			this.clearAuthData();
+			return false;
+		}
+
+		if (refreshResult?.__typename === 'AuthSuccess') {
+			this.setAuthData(refreshResult.user, refreshResult.tokens);
+			return true;
+		}
+
+		return false;
 	}
 
-	// ============================================================================
-	// Private Methods
-	// ============================================================================
-
-	/**
-	 * Set authentication data and schedule token refresh
-	 */
 	private setAuthData(user: AuthUser, tokens: TokenPair) {
 		this.user = user;
 		this.accessToken = tokens.accessToken;
@@ -312,16 +326,16 @@ class JwtAuthStore {
 			jwt: tokens.refreshToken,
 			plaintext: tokens.refreshTokenPlaintext
 		};
-
-		// Schedule token refresh 1 minute before expiry
 		this.scheduleTokenRefresh(tokens.expiresIn);
-
-		console.log('[JWT Auth] Authentication successful');
 	}
 
-	/**
-	 * Clear all authentication data
-	 */
+	private setAuthDataFromApi(user: AuthUser, accessToken: string, expiresInSeconds: number) {
+		this.user = user;
+		this.accessToken = accessToken;
+		this.tokenExpiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+		this.scheduleTokenRefresh(expiresInSeconds);
+	}
+
 	private clearAuthData() {
 		this.user = null;
 		this.accessToken = null;
@@ -333,59 +347,33 @@ class JwtAuthStore {
 			clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
 		}
-
-		console.log('[JWT Auth] Authentication cleared');
 	}
 
-	/**
-	 * Schedule automatic token refresh
-	 */
 	private scheduleTokenRefresh(expiresInSeconds: number) {
-		// Clear existing timer
 		if (this.refreshTimer) {
 			clearTimeout(this.refreshTimer);
 		}
 
-		// Schedule refresh 1 minute (60 seconds) before expiry
-		const refreshInMs = (expiresInSeconds - 60) * 1000;
+		const refreshInMs = Math.max((expiresInSeconds - 60) * 1000, 0);
+		if (refreshInMs <= 0) return;
 
-		if (refreshInMs > 0) {
-			this.refreshTimer = setTimeout(async () => {
-				console.log('[JWT Auth] Auto-refreshing access token');
-				const success = await this.refreshAccessToken();
-				if (!success) {
-					console.warn('[JWT Auth] Auto-refresh failed, user will need to re-login');
-				}
-			}, refreshInMs);
-
-			console.log(`[JWT Auth] Token refresh scheduled in ${refreshInMs / 1000}s`);
-		}
+		this.refreshTimer = setTimeout(async () => {
+			const success = await this.refreshAccessToken();
+			if (!success) {
+				this.clearAuthData();
+			}
+		}, refreshInMs);
 	}
 
-	/**
-	 * Attempt to restore session on page load
-	 */
 	private async restoreSession() {
-		console.log('[JWT Auth] Attempting session restoration');
-		const success = await this.refreshAccessToken();
-		if (success) {
-			console.log('[JWT Auth] Session restored successfully');
-		} else {
-			console.log('[JWT Auth] No active session to restore');
-		}
+		await this.refreshAccessToken();
 	}
 
-	/**
-	 * Get device information for audit trail
-	 */
 	private getDeviceInfo(): string {
 		if (!browser) return 'SSR';
 		return navigator.userAgent;
 	}
 
-	/**
-	 * Format GraphQL error for display
-	 */
 	private formatGraphQLError(error: CombinedError): string {
 		if (error.networkError) {
 			return 'Network error. Please check your connection.';
@@ -396,9 +384,5 @@ class JwtAuthStore {
 		return 'An unexpected error occurred';
 	}
 }
-
-// ============================================================================
-// Export singleton instance
-// ============================================================================
 
 export const jwtAuth = new JwtAuthStore();

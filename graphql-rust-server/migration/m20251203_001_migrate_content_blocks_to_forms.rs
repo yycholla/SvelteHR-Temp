@@ -90,8 +90,8 @@
 //! - **Suitable For**: Up to ~1000 modules with ~100 blocks each (typical HR deployment)
 //! - **Not Optimized For**: Millions of records (would need bulk operations)
 
-use sea_orm_migration::prelude::*;
 use sea_orm::Statement;
+use sea_orm_migration::prelude::*;
 use uuid::Uuid as UuidType;
 
 #[derive(DeriveMigrationName)]
@@ -362,7 +362,7 @@ impl MigrationTrait for Migration {
 
                             // Only update if current block is more complete
                             let should_update = match (existing_status.as_str(), status.as_str()) {
-                                (_, "COMPLETED") => true, // Always update to COMPLETED
+                                (_, "COMPLETED") => true,               // Always update to COMPLETED
                                 ("NOT_STARTED", "IN_PROGRESS") => true, // Update NOT_STARTED to IN_PROGRESS
                                 _ => false,
                             };

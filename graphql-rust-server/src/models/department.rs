@@ -2,7 +2,7 @@
 //!
 //! Represents organizational departments with hierarchical relationships.
 
-use async_graphql::{Context, Enum, InputObject, Object, SimpleObject, Result as GqlResult};
+use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult, SimpleObject};
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::prelude::Expr;
@@ -86,9 +86,6 @@ impl DepartmentsOrderBy {
     }
 }
 
-
-
-
 /// Department entity - maps to hr_public.departments table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "departments", schema_name = "hr_public")]
@@ -127,8 +124,6 @@ pub enum Relation {
     #[sea_orm(has_many = "super::user::Entity")]
     Users,
 }
-
-
 
 impl ActiveModelBehavior for ActiveModel {}
 
@@ -242,12 +237,10 @@ impl Model {
 
         // Use GIN index containment operator
         let count = Entity::find()
-            .filter(
-                Expr::cust_with_values(
-                    "ancestor_ids @> ARRAY[$1]::uuid[]",
-                    vec![self.id]
-                )
-            )
+            .filter(Expr::cust_with_values(
+                "ancestor_ids @> ARRAY[$1]::uuid[]",
+                vec![self.id],
+            ))
             .filter(Column::DeletedAt.is_null())
             .count(&db)
             .await?;
@@ -283,16 +276,14 @@ impl Model {
         // Sort ancestors from root to immediate parent
         // ancestor_ids is stored as [parent, grandparent, ..., root]
         // so we need to reverse to get [root, ..., grandparent, parent]
-        let mut sorted_ancestors: Vec<Department> = ancestors
-            .into_iter()
-            .map(Department::from)
-            .collect();
+        let mut sorted_ancestors: Vec<Department> =
+            ancestors.into_iter().map(Department::from).collect();
 
         // Sort by finding position in ancestor_ids (reverse order)
         sorted_ancestors.sort_by_key(|dept| {
             self.ancestor_ids
                 .iter()
-                .rev()  // Reverse to get root-first order
+                .rev() // Reverse to get root-first order
                 .position(|id| *id == dept.id)
                 .unwrap_or(usize::MAX)
         });
@@ -334,8 +325,8 @@ pub struct BulkUpdateDepartmentInput {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::Model as Department;
+    use super::*;
 
     #[test]
     fn test_department_model_compiles() {
@@ -362,7 +353,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]  // Requires database connection (TestContext migration pending)
+    #[ignore] // Requires database connection (TestContext migration pending)
     async fn test_child_count_resolver() {
         // Test that child_count returns the correct number of direct children
         //
@@ -378,7 +369,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]  // Requires database connection (TestContext migration pending)
+    #[ignore] // Requires database connection (TestContext migration pending)
     async fn test_descendant_count_resolver() {
         // Test that descendant_count returns all nested descendants
         //
@@ -395,7 +386,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]  // Requires database connection (TestContext migration pending)
+    #[ignore] // Requires database connection (TestContext migration pending)
     async fn test_is_leaf_resolver() {
         // Test that is_leaf correctly identifies leaf nodes
         //
@@ -409,7 +400,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]  // Requires database connection (TestContext migration pending)
+    #[ignore] // Requires database connection (TestContext migration pending)
     async fn test_path_resolver() {
         // Test that path returns full hierarchy from root to self
         //
@@ -426,7 +417,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]  // Requires database connection (TestContext migration pending)
+    #[ignore] // Requires database connection (TestContext migration pending)
     async fn test_path_excludes_soft_deleted_ancestors() {
         // Test that path excludes soft-deleted ancestors
         //

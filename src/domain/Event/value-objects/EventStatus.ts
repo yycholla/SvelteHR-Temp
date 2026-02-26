@@ -19,11 +19,11 @@ const TERMINAL_STATUSES: ReadonlySet<EventStatusValue> = new Set(['completed', '
  * Value: set of allowed next statuses
  */
 const VALID_TRANSITIONS: ReadonlyMap<EventStatusValue, ReadonlySet<EventStatusValue>> = new Map([
-	['scheduled', new Set(['scheduled', 'ongoing', 'cancelled', 'postponed'])],
-	['ongoing', new Set(['ongoing', 'completed', 'cancelled'])],
-	['completed', new Set(['completed'])], // Terminal state
-	['cancelled', new Set(['cancelled'])], // Terminal state
-	['postponed', new Set(['postponed', 'scheduled', 'cancelled'])]
+	['scheduled', new Set<EventStatusValue>(['scheduled', 'ongoing', 'cancelled', 'postponed'])],
+	['ongoing', new Set<EventStatusValue>(['ongoing', 'completed', 'cancelled'])],
+	['completed', new Set<EventStatusValue>(['completed'])], // Terminal state
+	['cancelled', new Set<EventStatusValue>(['cancelled'])], // Terminal state
+	['postponed', new Set<EventStatusValue>(['postponed', 'scheduled', 'cancelled'])]
 ]);
 
 export class EventStatus {

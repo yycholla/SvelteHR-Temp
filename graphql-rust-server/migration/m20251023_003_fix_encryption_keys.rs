@@ -91,7 +91,7 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(EncryptionKeys::Algorithm)
                             .string()
                             .not_null()
-                            .default("AES-256-GCM")
+                            .default("AES-256-GCM"),
                     )
                     .to_owned(),
             )
@@ -102,11 +102,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table((Schema::HrPublic, EncryptionKeys::Table))
-                    .add_column(
-                        ColumnDef::new(EncryptionKeys::UserId)
-                            .uuid()
-                            .not_null()
-                    )
+                    .add_column(ColumnDef::new(EncryptionKeys::UserId).uuid().not_null())
                     .to_owned(),
             )
             .await?;
@@ -123,7 +119,7 @@ impl MigrationTrait for Migration {
                             .from_col(EncryptionKeys::UserId)
                             .to_tbl((Schema::HrPublic, Users::Table))
                             .to_col(Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -161,7 +157,7 @@ impl MigrationTrait for Migration {
                     RETURN pgp_sym_encrypt_bytea(p_key_data, encryption_password);
                 END;
                 $$ LANGUAGE plpgsql SECURITY DEFINER;
-                "#
+                "#,
             )
             .await?;
 
@@ -184,7 +180,7 @@ impl MigrationTrait for Migration {
                     RETURN pgp_sym_decrypt_bytea(p_encrypted_key_data, encryption_password);
                 END;
                 $$ LANGUAGE plpgsql SECURITY DEFINER;
-                "#
+                "#,
             )
             .await?;
 
@@ -192,14 +188,14 @@ impl MigrationTrait for Migration {
         manager
             .get_connection()
             .execute_unprepared(
-                "GRANT EXECUTE ON FUNCTION hr_public.encrypt_key_data(BYTEA, VARCHAR) TO PUBLIC"
+                "GRANT EXECUTE ON FUNCTION hr_public.encrypt_key_data(BYTEA, VARCHAR) TO PUBLIC",
             )
             .await?;
 
         manager
             .get_connection()
             .execute_unprepared(
-                "GRANT EXECUTE ON FUNCTION hr_public.decrypt_key_data(BYTEA, VARCHAR) TO PUBLIC"
+                "GRANT EXECUTE ON FUNCTION hr_public.decrypt_key_data(BYTEA, VARCHAR) TO PUBLIC",
             )
             .await?;
 
@@ -263,17 +259,19 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(Iden)]
-enum Schema { HrPublic }
+enum Schema {
+    HrPublic,
+}
 
 #[derive(Iden)]
 enum EncryptionKeys {
     Table,
     Algorithm,
-    UserId
+    UserId,
 }
 
 #[derive(Iden)]
 enum Users {
     Table,
-    Id
+    Id,
 }

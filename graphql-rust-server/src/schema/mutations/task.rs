@@ -1,14 +1,14 @@
 use async_graphql::{Context, Result};
 use chrono::Utc;
-use sea_orm::{EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionTrait};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TransactionTrait};
 use uuid::Uuid;
 
 use crate::{
     database::get_db_from_context,
     error::AppError,
     models::{
-        AssignTaskInput, ChangeTaskStatusInput, CreateLinkedResourceInput, CreateTaskDependencyInput,
-        CreateTaskInput, CreateTaskTypeInput, LinkedResource, Task,
+        AssignTaskInput, ChangeTaskStatusInput, CreateLinkedResourceInput,
+        CreateTaskDependencyInput, CreateTaskInput, CreateTaskTypeInput, LinkedResource, Task,
         TaskAssignee, TaskDependency, TaskStatus, TaskType, UpdateLinkedResourceInput,
         UpdateTaskAssigneeInput, UpdateTaskDependencyInput, UpdateTaskInput, UpdateTaskTypeInput,
     },
@@ -27,19 +27,23 @@ impl TaskMutations {
         let creator_id = ctx
             .data_opt::<crate::auth::context::UserContext>()
             .map(|uc| uc.user_id)
-            .ok_or_else(|| AppError::Authentication("Authentication required to create tasks".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Authentication("Authentication required to create tasks".to_string())
+            })?;
 
         // Validate exclusive assignment: either assignee_id OR department_id, but not both
         match (input.assignee_id, input.department_id) {
             (None, None) => {
                 return Err(AppError::Validation(
-                    "Task must be assigned to either a user or a department".to_string()
-                ).into());
+                    "Task must be assigned to either a user or a department".to_string(),
+                )
+                .into());
             }
             (Some(_), Some(_)) => {
                 return Err(AppError::Validation(
-                    "Task cannot be assigned to both a user and a department".to_string()
-                ).into());
+                    "Task cannot be assigned to both a user and a department".to_string(),
+                )
+                .into());
             }
             _ => {} // Valid: exactly one is set
         }
@@ -51,7 +55,11 @@ impl TaskMutations {
             title: Set(input.title.clone()),
             description: Set(input.description.clone()),
             task_type_id: Set(input.task_type_id),
-            status: Set(input.status.unwrap_or(TaskStatus::Todo).as_str().to_string()),
+            status: Set(input
+                .status
+                .unwrap_or(TaskStatus::Todo)
+                .as_str()
+                .to_string()),
             priority: Set(input.priority.as_str().to_string()),
             due_date: Set(input.due_date),
             estimated_hours: Set(input.estimated_hours),
@@ -60,7 +68,9 @@ impl TaskMutations {
             created_by: Set(creator_id),
             assignee_id: Set(input.assignee_id),
             parent_task_id: Set(input.parent_task_id),
-            requires_manual_reassignment: Set(Some(input.requires_manual_reassignment.unwrap_or(false))),
+            requires_manual_reassignment: Set(Some(
+                input.requires_manual_reassignment.unwrap_or(false),
+            )),
             ..Default::default()
         };
 
@@ -95,7 +105,9 @@ impl TaskMutations {
         let user_id = ctx
             .data_opt::<crate::auth::context::UserContext>()
             .map(|uc| uc.user_id)
-            .ok_or_else(|| AppError::Authentication("Authentication required to update tasks".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Authentication("Authentication required to update tasks".to_string())
+            })?;
 
         // Start transaction for atomic operation
         let txn = db.begin().await?;
@@ -115,13 +127,15 @@ impl TaskMutations {
             match (new_assignee, new_department) {
                 (None, None) => {
                     return Err(AppError::Validation(
-                        "Task must be assigned to either a user or a department".to_string()
-                    ).into());
+                        "Task must be assigned to either a user or a department".to_string(),
+                    )
+                    .into());
                 }
                 (Some(_), Some(_)) => {
                     return Err(AppError::Validation(
-                        "Task cannot be assigned to both a user and a department".to_string()
-                    ).into());
+                        "Task cannot be assigned to both a user and a department".to_string(),
+                    )
+                    .into());
                 }
                 _ => {} // Valid: exactly one is set
             }
@@ -262,7 +276,9 @@ impl TaskMutations {
             action: Set("status_changed".to_string()),
             field_name: Set(Some("status".to_string())),
             old_value: Set(Some(serde_json::Value::String(old_status))),
-            new_value: Set(Some(serde_json::Value::String(input.status.as_str().to_string()))),
+            new_value: Set(Some(serde_json::Value::String(
+                input.status.as_str().to_string(),
+            ))),
             comment: Set(input.comment),
             ..Default::default()
         };
@@ -278,7 +294,9 @@ impl TaskMutations {
     async fn delete_task(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let user_id = ctx.data_opt::<crate::auth::context::UserContext>().map(|uc| uc.user_id);
+        let user_id = ctx
+            .data_opt::<crate::auth::context::UserContext>()
+            .map(|uc| uc.user_id);
 
         // Start transaction for atomic operation
         let txn = db.begin().await?;
@@ -393,7 +411,9 @@ impl TaskMutations {
     ) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let unassigner_id = ctx.data_opt::<crate::auth::context::UserContext>().map(|uc| uc.user_id);
+        let unassigner_id = ctx
+            .data_opt::<crate::auth::context::UserContext>()
+            .map(|uc| uc.user_id);
 
         // Find the task assignee first to ensure it exists
         let assignee = crate::models::task_assignee::Entity::find()
@@ -471,7 +491,8 @@ impl TaskMutations {
             .ok_or_else(|| AppError::NotFound("Task dependency not found".to_string()))?;
 
         // Build active model with updates
-        let mut dependency: crate::models::task_dependency::ActiveModel = existing_dependency.into();
+        let mut dependency: crate::models::task_dependency::ActiveModel =
+            existing_dependency.into();
 
         if let Some(dependency_type) = input.dependency_type {
             dependency.dependency_type = Set(dependency_type.as_str().to_string());
@@ -504,7 +525,8 @@ impl TaskMutations {
         }
 
         // Soft delete by setting deleted_at
-        let mut dependency: crate::models::task_dependency::ActiveModel = dependency.unwrap().into();
+        let mut dependency: crate::models::task_dependency::ActiveModel =
+            dependency.unwrap().into();
         dependency.deleted_at = Set(Some(Utc::now()));
 
         dependency.update(&db).await?;
@@ -605,7 +627,11 @@ impl TaskMutations {
     }
 
     /// Create a new task type
-    async fn create_task_type(&self, ctx: &Context<'_>, input: CreateTaskTypeInput) -> Result<TaskType> {
+    async fn create_task_type(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateTaskTypeInput,
+    ) -> Result<TaskType> {
         let db = get_db_from_context(ctx)?;
 
         let task_type = crate::models::tasks::task_type::ActiveModel {

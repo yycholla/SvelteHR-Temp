@@ -2,7 +2,7 @@
  * Init command - Initialize schema validator configuration
  */
 import chalk from 'chalk';
-import { writeFile, mkdir } from 'fs/promises';
+import { mkdir, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { saveConfig } from '../utils/config-loader.js';
 /**

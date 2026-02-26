@@ -10,9 +10,7 @@ use uuid::Uuid;
 use crate::{
     database::get_db_from_context,
     error::AppError,
-    models::{
-        AttendanceRecord, CreateAttendanceRecordInput, UpdateAttendanceRecordInput,
-    },
+    models::{AttendanceRecord, CreateAttendanceRecordInput, UpdateAttendanceRecordInput},
 };
 
 /// Time and attendance management operations
@@ -33,7 +31,9 @@ impl TimeMutations {
             date: Set(input.date),
             clock_in: Set(input.clock_in),
             clock_out: Set(input.clock_out),
-            hours_worked: Set(input.hours_worked.and_then(rust_decimal::Decimal::from_f64_retain)),
+            hours_worked: Set(input
+                .hours_worked
+                .and_then(rust_decimal::Decimal::from_f64_retain)),
             status: Set(input.status.as_str().to_string()),
             notes: Set(input.notes.clone()),
             ..Default::default()
@@ -59,7 +59,8 @@ impl TimeMutations {
             .ok_or_else(|| AppError::NotFound("Attendance record not found".to_string()))?;
 
         // Build active model with updates
-        let mut record: crate::models::time::attendance_record::ActiveModel = existing_record.into();
+        let mut record: crate::models::time::attendance_record::ActiveModel =
+            existing_record.into();
 
         if let Some(clock_in) = input.clock_in {
             record.clock_in = Set(Some(clock_in));

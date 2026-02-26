@@ -5,11 +5,11 @@
 
 use axum::{
     extract::Request,
-    http::{StatusCode, header::AUTHORIZATION},
+    http::{header::AUTHORIZATION, StatusCode},
     middleware::Next,
-    response::{Response, IntoResponse},
+    response::{IntoResponse, Response},
 };
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -61,9 +61,7 @@ pub async fn jwt_auth_middleware(
         .and_then(|h| h.to_str().ok());
 
     let token = match auth_header {
-        Some(header) if header.starts_with("Bearer ") => {
-            header.trim_start_matches("Bearer ")
-        }
+        Some(header) if header.starts_with("Bearer ") => header.trim_start_matches("Bearer "),
         _ => {
             return Err((
                 StatusCode::UNAUTHORIZED,
@@ -73,8 +71,7 @@ pub async fn jwt_auth_middleware(
     };
 
     // Get JWT secret from environment
-    let secret = std::env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "test-secret-key".to_string());
+    let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "test-secret-key".to_string());
 
     // Decode and validate token
     let token_data = decode::<Claims>(
@@ -89,16 +86,18 @@ pub async fn jwt_auth_middleware(
 
     // Parse user_id as UUID
     let user_id = Uuid::parse_str(&token_data.claims.user_id)
-        .map_err(|_| {
-            (StatusCode::UNAUTHORIZED, "Invalid user_id format in token")
-        })?;
+        .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid user_id format in token"))?;
 
     // Parse optional department_id and organization_id as UUIDs
-    let department_id = token_data.claims.department_id
+    let department_id = token_data
+        .claims
+        .department_id
         .as_ref()
         .and_then(|id| Uuid::parse_str(id).ok());
 
-    let organization_id = token_data.claims.organization_id
+    let organization_id = token_data
+        .claims
+        .organization_id
         .as_ref()
         .and_then(|id| Uuid::parse_str(id).ok());
 
@@ -123,14 +122,14 @@ mod tests {
     use super::*;
     use axum::{
         body::Body,
-        http::{Request, StatusCode, header::AUTHORIZATION},
+        http::{header::AUTHORIZATION, Request, StatusCode},
         middleware::from_fn,
         routing::get,
         Router,
     };
+    use chrono::{Duration, Utc};
+    use jsonwebtoken::{encode, EncodingKey, Header};
     use tower::ServiceExt;
-    use jsonwebtoken::{encode, Header, EncodingKey};
-    use chrono::{Utc, Duration};
 
     async fn test_handler(req: Request<Body>) -> &'static str {
         // Verify UserContext is in extensions
@@ -188,10 +187,7 @@ mod tests {
             .route("/", get(test_handler))
             .layer(from_fn(jwt_auth_middleware));
 
-        let request = Request::builder()
-            .uri("/")
-            .body(Body::empty())
-            .unwrap();
+        let request = Request::builder().uri("/").body(Body::empty()).unwrap();
 
         let response = app.oneshot(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);

@@ -134,8 +134,8 @@ export class GraphQLGoalAdapter implements GoalRepository {
 				description: data.description ?? '',
 				targetDate: data.targetDate,
 				progress: data.progress ?? 0,
-				status: data.status ?? GoalStatus.NOT_STARTED,
-				priority: data.priority ?? GoalPriority.MEDIUM,
+				status: data.status ?? 'not_started',
+				priority: data.priority ?? 'medium',
 				quarter: data.quarter,
 				year: data.year
 			};

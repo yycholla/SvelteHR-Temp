@@ -2,13 +2,8 @@ use serde::{Deserialize, Serialize};
 
 // Re-export types from quickbooks_types crate
 pub use quickbooks_types::{
+    common::{Email, MetaData, NtRef, PhoneNumber},
     Employee,
-    common::{
-        Email,
-        PhoneNumber,
-        NtRef,
-        MetaData,
-    },
 };
 
 // Type aliases for compatibility with existing code
@@ -304,10 +299,7 @@ pub fn create_minimal_department(name: String) -> Department {
 // Helper functions for creating employees
 
 /// Create a minimal employee for QuickBooks (only required fields)
-pub fn create_minimal_employee(
-    given_name: String,
-    family_name: String,
-) -> Employee {
+pub fn create_minimal_employee(given_name: String, family_name: String) -> Employee {
     Employee {
         given_name: Some(given_name),
         family_name: Some(family_name),

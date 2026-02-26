@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { logger } from '$lib/utils/logger.js';
+import { getGraphQLEndpoint } from '$lib/server/api-url';
 
 interface ServiceStatus {
 	database: boolean;
@@ -29,9 +30,7 @@ async function checkDatabase(): Promise<boolean> {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-		// Use PUBLIC_API_URL from environment, fallback to Docker network hostname
-		const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://hr-graphql-rust:4000';
-		const response = await fetch(`${apiUrl}/graphql`, {
+		const response = await fetch(getGraphQLEndpoint(), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -55,9 +54,7 @@ async function checkGraphQL(): Promise<boolean> {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-		// Use PUBLIC_API_URL from environment, fallback to Docker network hostname
-		const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://hr-graphql-rust:4000';
-		const response = await fetch(`${apiUrl}/graphql`, {
+		const response = await fetch(getGraphQLEndpoint(), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({

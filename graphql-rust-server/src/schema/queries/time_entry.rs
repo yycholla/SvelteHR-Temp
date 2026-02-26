@@ -15,7 +15,7 @@ use uuid::Uuid;
 use crate::{
     auth::UserContext,
     database::get_db_from_context,
-    models::time::{time_entry, project, TimeEntryStatus, TimeEntrySyncState},
+    models::time::{project, time_entry, TimeEntryStatus, TimeEntrySyncState},
     services::time_tracking_sync::TimeTrackingSync,
 };
 
@@ -67,8 +67,7 @@ impl TimeEntryQueries {
         // Check permissions
         let can_view_all = user_ctx.has_permission("time_entries:view_all");
 
-        let mut query = time_entry::Entity::find()
-            .filter(time_entry::Column::DeletedAt.is_null());
+        let mut query = time_entry::Entity::find().filter(time_entry::Column::DeletedAt.is_null());
 
         // If user can't view all, only show their own entries
         if !can_view_all {
@@ -112,11 +111,7 @@ impl TimeEntryQueries {
     }
 
     /// Get a single time entry by ID
-    async fn time_entry(
-        &self,
-        ctx: &Context<'_>,
-        id: Uuid,
-    ) -> Result<Option<time_entry::Model>> {
+    async fn time_entry(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<time_entry::Model>> {
         let db = get_db_from_context(ctx)?;
         let user_ctx = ctx.data::<UserContext>()?;
 
@@ -157,8 +152,7 @@ impl TimeEntryQueries {
             return Err("Permission denied: You need projects:view permission".into());
         }
 
-        let mut query = project::Entity::find()
-            .filter(project::Column::DeletedAt.is_null());
+        let mut query = project::Entity::find().filter(project::Column::DeletedAt.is_null());
 
         if let Some(active) = is_active {
             query = query.filter(project::Column::IsActive.eq(active));
@@ -179,11 +173,7 @@ impl TimeEntryQueries {
     }
 
     /// Get a single project by ID
-    async fn project(
-        &self,
-        ctx: &Context<'_>,
-        id: Uuid,
-    ) -> Result<Option<project::Model>> {
+    async fn project(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<project::Model>> {
         let db = get_db_from_context(ctx)?;
         let user_ctx = ctx.data::<UserContext>()?;
 
@@ -201,10 +191,7 @@ impl TimeEntryQueries {
     }
 
     /// Get time tracking sync statistics
-    async fn time_tracking_stats(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<TimeTrackingStats> {
+    async fn time_tracking_stats(&self, ctx: &Context<'_>) -> Result<TimeTrackingStats> {
         let db = ctx.data::<sea_orm::DatabaseConnection>()?;
         let user_ctx = ctx.data::<UserContext>()?;
 

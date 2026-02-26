@@ -75,11 +75,7 @@ async fn test_up_creates_all_tables() -> Result<(), DbErr> {
         ))
         .await?;
 
-    assert_eq!(
-        tables.len(),
-        7,
-        "Should have 7 onboarding tables"
-    );
+    assert_eq!(tables.len(), 7, "Should have 7 onboarding tables");
 
     // Verify table names
     let table_names: Vec<String> = tables
@@ -119,11 +115,7 @@ async fn test_onboarding_modules_table() -> Result<(), DbErr> {
         ))
         .await?;
 
-    assert_eq!(
-        columns.len(),
-        9,
-        "onboarding_modules should have 9 columns"
-    );
+    assert_eq!(columns.len(), 9, "onboarding_modules should have 9 columns");
 
     // Verify tags column is array type
     let tags_type = db

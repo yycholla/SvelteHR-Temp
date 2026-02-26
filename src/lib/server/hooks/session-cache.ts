@@ -5,6 +5,7 @@ export interface CachedSession {
 	user: User;
 	roles: string[];
 	permissions: string[];
+	accessToken?: string;
 	expiresAt: number;
 }
 

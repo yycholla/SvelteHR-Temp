@@ -50,9 +50,11 @@ export const load: PageServerLoad = async (event) => {
 				query: `
 					query GetDepartments {
 						departments(limit: 100) {
-							id
-							name
-							description
+							items {
+								id
+								name
+								description
+							}
 						}
 					}
 				`
@@ -76,7 +78,7 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		return {
-			departments: departmentsData.data?.departments || [],
+			departments: departmentsData.data?.departments?.items || [],
 			user: {
 				id: locals.user.id,
 				email: locals.user.email || '',

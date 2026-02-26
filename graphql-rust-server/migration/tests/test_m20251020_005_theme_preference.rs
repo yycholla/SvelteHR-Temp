@@ -10,16 +10,19 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251020_005_add_user_theme_preference::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251020_005_add_user_theme_preference::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test column after test runs
@@ -64,22 +67,41 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'theme_preference'".to_string(),
+                 AND column_name = 'theme_preference'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(column_result.is_ok(), "Should be able to query column information");
+        assert!(
+            column_result.is_ok(),
+            "Should be able to query column information"
+        );
         let column_info = column_result.unwrap();
-        assert!(column_info.is_some(), "theme_preference column should exist");
+        assert!(
+            column_info.is_some(),
+            "theme_preference column should exist"
+        );
 
         let column = column_info.unwrap();
-        let column_name: String = column.try_get("", "column_name").expect("Should get column_name");
-        let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
-        let is_nullable: String = column.try_get("", "is_nullable").expect("Should get is_nullable");
+        let column_name: String = column
+            .try_get("", "column_name")
+            .expect("Should get column_name");
+        let data_type: String = column
+            .try_get("", "data_type")
+            .expect("Should get data_type");
+        let is_nullable: String = column
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
         let column_default: Option<String> = column.try_get("", "column_default").ok();
 
-        assert_eq!(column_name, "theme_preference", "Column name should be theme_preference");
-        assert_eq!(data_type, "character varying", "Data type should be character varying");
+        assert_eq!(
+            column_name, "theme_preference",
+            "Column name should be theme_preference"
+        );
+        assert_eq!(
+            data_type, "character varying",
+            "Data type should be character varying"
+        );
         assert_eq!(is_nullable, "NO", "Column should be NOT NULL");
         assert!(
             column_default.is_some() && column_default.unwrap().contains("system"),
@@ -117,18 +139,24 @@ mod tests {
                  LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = a.attnum
                  WHERE n.nspname = 'hr_public'
                  AND c.relname = 'users'
-                 AND a.attname = 'theme_preference'".to_string(),
+                 AND a.attname = 'theme_preference'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(comment_result.is_ok(), "Should be able to query column comment");
+        assert!(
+            comment_result.is_ok(),
+            "Should be able to query column comment"
+        );
         let comment_info = comment_result.unwrap();
         assert!(comment_info.is_some(), "Should have comment information");
 
-        let description: String = comment_info.unwrap().try_get("", "description").expect("Should get description");
+        let description: String = comment_info
+            .unwrap()
+            .try_get("", "description")
+            .expect("Should get description");
         assert_eq!(
-            description,
-            "User theme preference: light, dark, or system",
+            description, "User theme preference: light, dark, or system",
             "Column comment should match expected text"
         );
 
@@ -159,7 +187,8 @@ mod tests {
                 "SELECT COUNT(*) as count FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'theme_preference'".to_string(),
+                 AND column_name = 'theme_preference'"
+                    .to_string(),
             ))
             .await
             .unwrap()
@@ -182,7 +211,8 @@ mod tests {
                 "SELECT COUNT(*) as count FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'theme_preference'".to_string(),
+                 AND column_name = 'theme_preference'"
+                    .to_string(),
             ))
             .await
             .unwrap()
@@ -190,7 +220,10 @@ mod tests {
             .try_get::<i64>("", "count")
             .unwrap();
 
-        assert_eq!(column_after, 0, "Column should be dropped after down migration");
+        assert_eq!(
+            column_after, 0,
+            "Column should be dropped after down migration"
+        );
 
         // Clean up after test
         cleanup_test_column(&db).await;

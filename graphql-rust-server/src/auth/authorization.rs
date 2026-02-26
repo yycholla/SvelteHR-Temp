@@ -8,7 +8,7 @@ use sea_orm::{DatabaseConnection, EntityTrait};
 use uuid::Uuid;
 
 use crate::auth::UserContext;
-use crate::models::{user, department, task, leave_request, performance_review};
+use crate::models::{department, leave_request, performance_review, task, user};
 
 /// Authorization error with custom error code
 pub fn authorization_error(message: impl Into<String>) -> Error {
@@ -16,12 +16,15 @@ pub fn authorization_error(message: impl Into<String>) -> Error {
 }
 
 /// Check if user can access resource (admin or resource owner)
-pub fn require_owner_or_admin(user_context: &UserContext, resource_owner_id: Uuid) -> Result<(), Error> {
+pub fn require_owner_or_admin(
+    user_context: &UserContext,
+    resource_owner_id: Uuid,
+) -> Result<(), Error> {
     if user_context.is_admin() || user_context.user_id == resource_owner_id {
         Ok(())
     } else {
         Err(authorization_error(
-            "You do not have permission to access this resource"
+            "You do not have permission to access this resource",
         ))
     }
 }
@@ -230,42 +233,22 @@ mod tests {
 
     #[test]
     fn test_require_admin() {
-        let admin_ctx = UserContext::new(
-            Uuid::new_v4(),
-            vec!["Admin".to_string()],
-            vec![],
-        );
+        let admin_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
         assert!(require_admin(&admin_ctx).is_ok());
 
-        let user_ctx = UserContext::new(
-            Uuid::new_v4(),
-            vec!["Employee".to_string()],
-            vec![],
-        );
+        let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Employee".to_string()], vec![]);
         assert!(require_admin(&user_ctx).is_err());
     }
 
     #[test]
     fn test_require_hr_manager() {
-        let hr_ctx = UserContext::new(
-            Uuid::new_v4(),
-            vec!["HR Manager".to_string()],
-            vec![],
-        );
+        let hr_ctx = UserContext::new(Uuid::new_v4(), vec!["HR Manager".to_string()], vec![]);
         assert!(require_hr_manager(&hr_ctx).is_ok());
 
-        let admin_ctx = UserContext::new(
-            Uuid::new_v4(),
-            vec!["Admin".to_string()],
-            vec![],
-        );
+        let admin_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
         assert!(require_hr_manager(&admin_ctx).is_ok());
 
-        let user_ctx = UserContext::new(
-            Uuid::new_v4(),
-            vec!["Employee".to_string()],
-            vec![],
-        );
+        let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Employee".to_string()], vec![]);
         assert!(require_hr_manager(&user_ctx).is_err());
     }
 
@@ -274,18 +257,10 @@ mod tests {
         let user_id = Uuid::new_v4();
         let other_id = Uuid::new_v4();
 
-        let admin_ctx = UserContext::new(
-            user_id,
-            vec!["Admin".to_string()],
-            vec![],
-        );
+        let admin_ctx = UserContext::new(user_id, vec!["Admin".to_string()], vec![]);
         assert!(require_owner_or_admin(&admin_ctx, other_id).is_ok());
 
-        let owner_ctx = UserContext::new(
-            user_id,
-            vec!["Employee".to_string()],
-            vec![],
-        );
+        let owner_ctx = UserContext::new(user_id, vec!["Employee".to_string()], vec![]);
         assert!(require_owner_or_admin(&owner_ctx, user_id).is_ok());
         assert!(require_owner_or_admin(&owner_ctx, other_id).is_err());
     }
@@ -300,11 +275,7 @@ mod tests {
         assert!(require_permission(&ctx_with_perm, "users:read").is_ok());
         assert!(require_permission(&ctx_with_perm, "users:write").is_err());
 
-        let admin_ctx = UserContext::new(
-            Uuid::new_v4(),
-            vec!["Admin".to_string()],
-            vec![],
-        );
+        let admin_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
         assert!(require_permission(&admin_ctx, "any:permission").is_ok());
     }
 }

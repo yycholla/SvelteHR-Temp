@@ -93,16 +93,14 @@ impl MigrationTrait for Migration {
                     OR (u.role = 'hr_manager' AND r.name = 'HR Manager')
                     OR (u.role = 'manager' AND r.name = 'Manager')
                     OR (u.role IN ('hr_employee', 'employee') AND r.name = 'Employee')
-                ON CONFLICT (user_id, role_id) DO NOTHING"
+                ON CONFLICT (user_id, role_id) DO NOTHING",
             )
             .await?;
 
         // Step 2: Remove the users.role column
         manager
             .get_connection()
-            .execute_unprepared(
-                "ALTER TABLE hr_public.users DROP COLUMN IF EXISTS role"
-            )
+            .execute_unprepared("ALTER TABLE hr_public.users DROP COLUMN IF EXISTS role")
             .await?;
 
         Ok(())
@@ -116,7 +114,7 @@ impl MigrationTrait for Migration {
             .get_connection()
             .execute_unprepared(
                 "ALTER TABLE hr_public.users
-                ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'employee' NOT NULL"
+                ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'employee' NOT NULL",
             )
             .await?;
 
@@ -143,7 +141,7 @@ impl MigrationTrait for Migration {
                         WHERE ura.user_id = u.id AND r.name = 'Manager'
                     ) THEN 'manager'
                     ELSE 'hr_employee'
-                END"
+                END",
             )
             .await?;
 

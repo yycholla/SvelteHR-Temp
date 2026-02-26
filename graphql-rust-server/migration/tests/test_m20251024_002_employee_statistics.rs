@@ -13,16 +13,19 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251024_002_add_employee_statistics::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251024_002_add_employee_statistics::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test table after test runs
@@ -66,12 +69,19 @@ mod tests {
                 "SELECT table_name
                  FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'employee_statistics'".to_string(),
+                 AND table_name = 'employee_statistics'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(table_result.is_ok(), "Should be able to query table information");
-        assert!(table_result.unwrap().is_some(), "employee_statistics table should exist");
+        assert!(
+            table_result.is_ok(),
+            "Should be able to query table information"
+        );
+        assert!(
+            table_result.unwrap().is_some(),
+            "employee_statistics table should exist"
+        );
 
         // Verify all 8 columns exist with correct types
         let columns_result = db
@@ -81,7 +91,8 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'employee_statistics'
-                 ORDER BY ordinal_position".to_string(),
+                 ORDER BY ordinal_position"
+                    .to_string(),
             ))
             .await
             .expect("Should query columns");
@@ -89,25 +100,31 @@ mod tests {
         assert_eq!(columns_result.len(), 8, "Should have 8 columns");
 
         // Verify key columns
-        let id_col = columns_result.iter().find(|c| {
-            c.try_get::<String>("", "column_name").unwrap() == "id"
-        }).expect("id column should exist");
+        let id_col = columns_result
+            .iter()
+            .find(|c| c.try_get::<String>("", "column_name").unwrap() == "id")
+            .expect("id column should exist");
         assert_eq!(
             id_col.try_get::<String>("", "data_type").unwrap(),
             "uuid",
             "id should be UUID"
         );
 
-        let snapshot_date_col = columns_result.iter().find(|c| {
-            c.try_get::<String>("", "column_name").unwrap() == "snapshot_date"
-        }).expect("snapshot_date column should exist");
+        let snapshot_date_col = columns_result
+            .iter()
+            .find(|c| c.try_get::<String>("", "column_name").unwrap() == "snapshot_date")
+            .expect("snapshot_date column should exist");
         assert_eq!(
-            snapshot_date_col.try_get::<String>("", "data_type").unwrap(),
+            snapshot_date_col
+                .try_get::<String>("", "data_type")
+                .unwrap(),
             "date",
             "snapshot_date should be date"
         );
         assert_eq!(
-            snapshot_date_col.try_get::<String>("", "is_nullable").unwrap(),
+            snapshot_date_col
+                .try_get::<String>("", "is_nullable")
+                .unwrap(),
             "NO",
             "snapshot_date should be NOT NULL"
         );
@@ -139,7 +156,8 @@ mod tests {
                  FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'employee_statistics'
-                 ORDER BY indexname".to_string(),
+                 ORDER BY indexname"
+                    .to_string(),
             ))
             .await
             .expect("Should query indexes");
@@ -148,29 +166,50 @@ mod tests {
         assert!(indexes_result.len() >= 3, "Should have at least 3 indexes");
 
         // Check for unique index on snapshot_date
-        let unique_index = indexes_result.iter().find(|idx| {
-            idx.try_get::<String>("", "indexname").unwrap() == "idx_employee_statistics_snapshot_date_unique"
-        }).expect("Unique index on snapshot_date should exist");
+        let unique_index = indexes_result
+            .iter()
+            .find(|idx| {
+                idx.try_get::<String>("", "indexname").unwrap()
+                    == "idx_employee_statistics_snapshot_date_unique"
+            })
+            .expect("Unique index on snapshot_date should exist");
 
         let unique_indexdef = unique_index.try_get::<String>("", "indexdef").unwrap();
         assert!(unique_indexdef.contains("UNIQUE"), "Index should be UNIQUE");
-        assert!(unique_indexdef.contains("snapshot_date"), "Index should be on snapshot_date");
+        assert!(
+            unique_indexdef.contains("snapshot_date"),
+            "Index should be on snapshot_date"
+        );
 
         // Check for regular index on snapshot_date
-        let snapshot_index = indexes_result.iter().find(|idx| {
-            idx.try_get::<String>("", "indexname").unwrap() == "idx_employee_statistics_snapshot_date"
-        }).expect("Regular index on snapshot_date should exist");
+        let snapshot_index = indexes_result
+            .iter()
+            .find(|idx| {
+                idx.try_get::<String>("", "indexname").unwrap()
+                    == "idx_employee_statistics_snapshot_date"
+            })
+            .expect("Regular index on snapshot_date should exist");
 
         let snapshot_indexdef = snapshot_index.try_get::<String>("", "indexdef").unwrap();
-        assert!(snapshot_indexdef.contains("snapshot_date"), "Index should be on snapshot_date");
+        assert!(
+            snapshot_indexdef.contains("snapshot_date"),
+            "Index should be on snapshot_date"
+        );
 
         // Check for index on created_at
-        let created_at_index = indexes_result.iter().find(|idx| {
-            idx.try_get::<String>("", "indexname").unwrap() == "idx_employee_statistics_created_at"
-        }).expect("Index on created_at should exist");
+        let created_at_index = indexes_result
+            .iter()
+            .find(|idx| {
+                idx.try_get::<String>("", "indexname").unwrap()
+                    == "idx_employee_statistics_created_at"
+            })
+            .expect("Index on created_at should exist");
 
         let created_at_indexdef = created_at_index.try_get::<String>("", "indexdef").unwrap();
-        assert!(created_at_indexdef.contains("created_at"), "Index should be on created_at");
+        assert!(
+            created_at_indexdef.contains("created_at"),
+            "Index should be on created_at"
+        );
 
         // Clean up after test
         cleanup_test_table(&db).await;
@@ -211,7 +250,10 @@ mod tests {
             ))
             .await;
 
-        assert!(duplicate_result.is_err(), "Duplicate snapshot_date should fail");
+        assert!(
+            duplicate_result.is_err(),
+            "Duplicate snapshot_date should fail"
+        );
 
         // Clean up after test
         cleanup_test_table(&db).await;
@@ -242,15 +284,22 @@ mod tests {
                  JOIN pg_namespace n ON n.oid = c.relnamespace
                  LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = 0
                  WHERE n.nspname = 'hr_public'
-                 AND c.relname = 'employee_statistics'".to_string(),
+                 AND c.relname = 'employee_statistics'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(comment_result.is_ok(), "Should be able to query table comment");
+        assert!(
+            comment_result.is_ok(),
+            "Should be able to query table comment"
+        );
         let comment_info = comment_result.unwrap();
         assert!(comment_info.is_some(), "Should have comment information");
 
-        let description: String = comment_info.unwrap().try_get("", "description").expect("Should get description");
+        let description: String = comment_info
+            .unwrap()
+            .try_get("", "description")
+            .expect("Should get description");
         assert_eq!(
             description,
             "Daily snapshots of employee statistics for historical tracking and trend analysis",
@@ -288,18 +337,24 @@ mod tests {
                  LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = a.attnum
                  WHERE n.nspname = 'hr_public'
                  AND c.relname = 'employee_statistics'
-                 AND a.attname = 'snapshot_date'".to_string(),
+                 AND a.attname = 'snapshot_date'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(comment_result.is_ok(), "Should be able to query column comment");
+        assert!(
+            comment_result.is_ok(),
+            "Should be able to query column comment"
+        );
         let comment_info = comment_result.unwrap();
         assert!(comment_info.is_some(), "Should have comment information");
 
-        let description: String = comment_info.unwrap().try_get("", "description").expect("Should get description");
+        let description: String = comment_info
+            .unwrap()
+            .try_get("", "description")
+            .expect("Should get description");
         assert_eq!(
-            description,
-            "Date of the snapshot (midnight UTC), unique per day",
+            description, "Date of the snapshot (midnight UTC), unique per day",
             "Column comment should match expected text"
         );
 
@@ -329,7 +384,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'employee_statistics'".to_string(),
+                 AND table_name = 'employee_statistics'"
+                    .to_string(),
             ))
             .await
             .unwrap()
@@ -351,7 +407,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'employee_statistics'".to_string(),
+                 AND table_name = 'employee_statistics'"
+                    .to_string(),
             ))
             .await
             .unwrap()
@@ -359,7 +416,10 @@ mod tests {
             .try_get::<i64>("", "count")
             .unwrap();
 
-        assert_eq!(table_after, 0, "Table should be dropped after down migration");
+        assert_eq!(
+            table_after, 0,
+            "Table should be dropped after down migration"
+        );
 
         // Verify indexes were also dropped (should be 0)
         let indexes_after = db
@@ -367,7 +427,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM pg_indexes
                  WHERE schemaname = 'hr_public'
-                 AND tablename = 'employee_statistics'".to_string(),
+                 AND tablename = 'employee_statistics'"
+                    .to_string(),
             ))
             .await
             .unwrap()
@@ -375,7 +436,10 @@ mod tests {
             .try_get::<i64>("", "count")
             .unwrap();
 
-        assert_eq!(indexes_after, 0, "All indexes should be dropped after down migration");
+        assert_eq!(
+            indexes_after, 0,
+            "All indexes should be dropped after down migration"
+        );
 
         // Clean up after test
         cleanup_test_table(&db).await;
@@ -443,7 +507,9 @@ mod tests {
         if second_down.is_ok() {
             println!("Second migration down succeeded (fully idempotent)");
         } else {
-            println!("Second migration down failed (DROP operations not idempotent without IF EXISTS)");
+            println!(
+                "Second migration down failed (DROP operations not idempotent without IF EXISTS)"
+            );
         }
 
         // Clean up after test

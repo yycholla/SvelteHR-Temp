@@ -13,7 +13,9 @@ impl MigrationTrait for Migration {
         // User/Employee status enum
         manager
             .get_connection()
-            .execute_unprepared("CREATE TYPE hr_public.user_status AS ENUM ('active', 'inactive', 'terminated')")
+            .execute_unprepared(
+                "CREATE TYPE hr_public.user_status AS ENUM ('active', 'inactive', 'terminated')",
+            )
             .await?;
 
         // Task status enum
@@ -25,7 +27,9 @@ impl MigrationTrait for Migration {
         // Task priority enum
         manager
             .get_connection()
-            .execute_unprepared("CREATE TYPE hr_public.task_priority AS ENUM ('low', 'medium', 'high', 'urgent')")
+            .execute_unprepared(
+                "CREATE TYPE hr_public.task_priority AS ENUM ('low', 'medium', 'high', 'urgent')",
+            )
             .await?;
 
         // Event type enum
@@ -81,27 +85,60 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Drop all enum types
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.recurrence_frequency CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.recurrence_frequency CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.notification_type CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.notification_type CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.document_access_level CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.document_access_level CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.review_status CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.review_status CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.leave_request_status CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.leave_request_status CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.rsvp_status CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.rsvp_status CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.event_status CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.event_status CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.event_type CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.event_type CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.task_priority CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.task_priority CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.task_status CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.task_status CASCADE")
+            .await?;
 
-        manager.get_connection().execute_unprepared("DROP TYPE IF EXISTS hr_public.user_status CASCADE").await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS hr_public.user_status CASCADE")
+            .await?;
 
         Ok(())
     }

@@ -71,49 +71,61 @@ impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Data seeding operation - Using raw SQL (INSERT data operation)
         // 1. Insert 3 training permissions with ON CONFLICT DO NOTHING for idempotency
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.permissions (resource, action, description) VALUES
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.permissions (resource, action, description) VALUES
             ('training', 'read', 'View training modules and content'),
             ('training', 'write', 'Create and manage training modules'),
             ('training', 'assign', 'Assign training to employees')
-            ON CONFLICT (resource, action) DO NOTHING"
-        ).await?;
+            ON CONFLICT (resource, action) DO NOTHING",
+            )
+            .await?;
 
         // Data seeding operation - Using raw SQL (INSERT SELECT with CROSS JOIN)
         // 2. Assign training:read permission to Employee role
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
             WHERE r.name = 'Employee'
             AND p.resource = 'training' AND p.action = 'read'
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         // Data seeding operation - Using raw SQL (INSERT SELECT with CROSS JOIN)
         // 3. Assign training:read and training:assign permissions to Manager role
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
             WHERE r.name = 'Manager'
             AND p.resource = 'training' AND p.action IN ('read', 'assign')
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         // Data seeding operation - Using raw SQL (INSERT SELECT with CROSS JOIN)
         // 4. Assign all 3 training permissions to HR Manager role (read, write, assign)
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
             WHERE r.name = 'HR Manager'
             AND p.resource = 'training' AND p.action IN ('read', 'write', 'assign')
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         // Admin already has wildcard '*'
 
@@ -121,9 +133,10 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.get_connection().execute_unprepared(
-            "DELETE FROM hr_public.permissions WHERE resource = 'training'"
-        ).await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DELETE FROM hr_public.permissions WHERE resource = 'training'")
+            .await?;
 
         Ok(())
     }

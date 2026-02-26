@@ -20,9 +20,8 @@ mod tests {
 
     /// Set up test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/hr_test".to_string()
-        });
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
         Database::connect(&db_url)
             .await
             .expect("Failed to connect to test database")
@@ -34,7 +33,8 @@ mod tests {
         let _ = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
-                "ALTER TABLE hr_public.users DROP COLUMN IF EXISTS mobile_number CASCADE".to_string(),
+                "ALTER TABLE hr_public.users DROP COLUMN IF EXISTS mobile_number CASCADE"
+                    .to_string(),
             ))
             .await;
     }

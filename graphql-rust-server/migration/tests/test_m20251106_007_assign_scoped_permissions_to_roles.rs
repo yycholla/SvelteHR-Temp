@@ -22,9 +22,8 @@ mod tests {
 
     /// Set up test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/hr_test".to_string()
-        });
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
         Database::connect(&db_url)
             .await
             .expect("Failed to connect to test database")
@@ -101,10 +100,7 @@ mod tests {
         assert!(result.is_some(), "Query should return result");
         let row = result.unwrap();
         let count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(
-            count, 19,
-            "Employee role should have 19 scoped permissions"
-        );
+        assert_eq!(count, 19, "Employee role should have 19 scoped permissions");
 
         // Verify Employee has read:self permissions (mostly self-access)
         let self_result = db
@@ -185,10 +181,7 @@ mod tests {
         assert!(result.is_some(), "Query should return result");
         let row = result.unwrap();
         let count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(
-            count, 30,
-            "Manager role should have 30 scoped permissions"
-        );
+        assert_eq!(count, 30, "Manager role should have 30 scoped permissions");
 
         // Verify Manager has read:team permissions (team-level access)
         let team_result = db
@@ -419,15 +412,9 @@ mod tests {
         let hr_all: i64 = hr_all_count.try_get("", "count").unwrap();
 
         // Verify hierarchy: self < team < all
-        assert!(
-            emp_self > 0,
-            "Employee should have read:self permissions"
-        );
+        assert!(emp_self > 0, "Employee should have read:self permissions");
         assert!(mgr_team > 0, "Manager should have read:team permissions");
-        assert!(
-            hr_all > 0,
-            "HR Manager should have read:all permissions"
-        );
+        assert!(hr_all > 0, "HR Manager should have read:all permissions");
 
         // HR should have more read:all than Manager has read:team
         assert!(

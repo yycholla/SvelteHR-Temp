@@ -120,7 +120,10 @@ impl SyncHealthMutations {
             id: Set(Uuid::new_v4()),
             alert_type: Set("slow_sync".to_string()),
             severity: Set("warning".to_string()),
-            message: Set("TEST ALERT: This is a demonstration alert for testing the dismiss functionality".to_string()),
+            message: Set(
+                "TEST ALERT: This is a demonstration alert for testing the dismiss functionality"
+                    .to_string(),
+            ),
             triggered_at: Set(Utc::now().into()),
             resolved_at: Set(None),
             entity_type: Set(Some("test".to_string())),

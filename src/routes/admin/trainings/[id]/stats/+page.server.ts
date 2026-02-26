@@ -1,8 +1,25 @@
 import type { PageServerLoad } from './$types';
-import { error, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
+
+interface TrainingAssignmentRecord {
+	id: string;
+	userId: string;
+	assignedAt: string;
+	dueDate?: string | null;
+	user: {
+		id: string;
+		email: string;
+		displayName: string;
+		departmentId?: string | null;
+	};
+}
+
+interface TrainingProgressRecord {
+	status: string;
+}
 
 export const load: PageServerLoad = async (event) => {
 	requireAuth(event, { requiredRoles: ['Admin', 'HR Manager'] });
@@ -56,7 +73,8 @@ export const load: PageServerLoad = async (event) => {
 		logger.error('Assignments query error:', undefined, { errors: assignmentsResponse.errors });
 	}
 
-	const assignments = assignmentsResponse.data?.trainingAssignments || [];
+	const assignments: TrainingAssignmentRecord[] =
+		assignmentsResponse.data?.trainingAssignments || [];
 
 	// Fetch content count
 	const contentsQuery = `
@@ -72,7 +90,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Fetch progress for each assigned user
 	const assignmentsWithProgress = await Promise.all(
-		assignments.map(async (assignment: any) => {
+		assignments.map(async (assignment) => {
 			// Calculate days until due date
 			const daysSinceAssigned = assignment.assignedAt
 				? Math.floor(
@@ -109,8 +127,8 @@ export const load: PageServerLoad = async (event) => {
 				});
 
 				if (!progressResponse.errors && progressResponse.data?.trainingProgress) {
-					const progress = progressResponse.data.trainingProgress;
-					completedCount = progress.filter((p: any) => p.status === 'COMPLETED').length;
+					const progress: TrainingProgressRecord[] = progressResponse.data.trainingProgress;
+					completedCount = progress.filter((entry) => entry.status === 'COMPLETED').length;
 					completionPercentage =
 						totalContents > 0 ? Math.round((completedCount / totalContents) * 100) : 0;
 				}

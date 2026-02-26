@@ -2,7 +2,7 @@
  * GraphQL Parser - Extracts GraphQL operations from TypeScript files
  * Uses @graphql-tools/graphql-tag-pluck to extract gql template literals
  */
-import type { GraphQLOperation, FieldReference } from '../types/models.js';
+import type { FieldReference, GraphQLOperation } from '../types/models.js';
 /**
  * GraphQL Parser class
  * Extracts GraphQL operations from TypeScript files using template literals

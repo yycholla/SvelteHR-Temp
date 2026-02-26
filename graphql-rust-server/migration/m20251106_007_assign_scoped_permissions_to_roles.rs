@@ -67,8 +67,10 @@ impl MigrationTrait for Migration {
         // Assign scoped permissions to roles based on their access levels
 
         // Employee role: read:self for most resources
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
@@ -96,12 +98,15 @@ impl MigrationTrait for Migration {
                 ('goals', 'write'),  -- Can manage own goals
                 ('tasks', 'write')   -- Can update own tasks
             )
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         // Manager role: read:team + write for managed resources
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
@@ -138,12 +143,15 @@ impl MigrationTrait for Migration {
                 ('tasks', 'reassign'),
                 ('reports', 'execute')
             )
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         // HR Manager role: read:all + write + delete for HR resources
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.role_permissions (role_id, permission_id)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
@@ -210,8 +218,9 @@ impl MigrationTrait for Migration {
                 ('reports', 'analytics'),
                 ('documents', 'audit')
             )
-            ON CONFLICT DO NOTHING"
-        ).await?;
+            ON CONFLICT DO NOTHING",
+            )
+            .await?;
 
         // System Admin: Already has wildcard permission from previous migrations
         // No additional assignments needed as * covers everything
@@ -222,8 +231,10 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Remove scoped permission assignments from roles
         // Data cleanup operation with subqueries - intentionally raw SQL
-        manager.get_connection().execute_unprepared(
-            "DELETE FROM hr_public.role_permissions
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "DELETE FROM hr_public.role_permissions
             WHERE role_id IN (
                 SELECT id FROM hr_public.roles
                 WHERE name IN ('Employee', 'Manager', 'HR Manager')
@@ -275,8 +286,9 @@ impl MigrationTrait for Migration {
                     ('activities', 'write'),
                     ('activities', 'delete')
                 )
-            )"
-        ).await?;
+            )",
+            )
+            .await?;
 
         Ok(())
     }

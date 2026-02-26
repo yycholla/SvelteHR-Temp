@@ -15,10 +15,8 @@ use crate::{
     integrations::intuit::{exchange_code_for_tokens, IntuitClient, IntuitClientManager},
     models::intuit_connection,
     services::{
-        sync_orchestrator::SyncOrchestrator,
-        conflict_resolver::ConflictStrategy,
-        sync_tracker::EntityType,
-        incremental_sync::SyncMode,
+        conflict_resolver::ConflictStrategy, incremental_sync::SyncMode,
+        sync_orchestrator::SyncOrchestrator, sync_tracker::EntityType,
     },
 };
 
@@ -112,6 +110,13 @@ pub async fn intuit_oauth_callback_handler(
             match active_model.update(&state.db).await {
                 Ok(_) => {
                     tracing::info!(realm_id = %realm_id, "Updated existing QuickBooks connection");
+                    if let Err(e) = deactivate_other_connections(&state.db, &realm_id).await {
+                        tracing::warn!(
+                            realm_id = %realm_id,
+                            error = %e,
+                            "Failed to deactivate stale QuickBooks connections"
+                        );
+                    }
 
                     // Spawn background task to sync initial data from QuickBooks
                     let db_clone = state.db.clone();
@@ -154,6 +159,13 @@ pub async fn intuit_oauth_callback_handler(
             match new_connection.insert(&state.db).await {
                 Ok(_) => {
                     tracing::info!(realm_id = %realm_id, "Created new QuickBooks connection");
+                    if let Err(e) = deactivate_other_connections(&state.db, &realm_id).await {
+                        tracing::warn!(
+                            realm_id = %realm_id,
+                            error = %e,
+                            "Failed to deactivate stale QuickBooks connections"
+                        );
+                    }
 
                     // Spawn background task to sync initial data from QuickBooks
                     let db_clone = state.db.clone();
@@ -224,7 +236,7 @@ async fn trigger_initial_sync(db: sea_orm::DatabaseConnection, realm_id: String)
         &client,
         EntityType::Employee,
         ConflictStrategy::RemoteWins, // On initial sync, QuickBooks data wins
-        SyncMode::Full, // Force full sync on first connection
+        SyncMode::Full,               // Force full sync on first connection
     )
     .await;
 
@@ -310,12 +322,11 @@ async fn auto_register_webhook(
     db: &sea_orm::DatabaseConnection,
     realm_id: &str,
 ) -> anyhow::Result<String> {
-    use crate::integrations::intuit::WebhookApiClient;
     use crate::models::{intuit_connection, webhook_subscriptions};
     use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
     // Get fresh connection with valid token
-    let connection = intuit_connection::Entity::find()
+    let _connection = intuit_connection::Entity::find()
         .filter(intuit_connection::Column::RealmId.eq(realm_id))
         .filter(intuit_connection::Column::IsActive.eq(true))
         .filter(intuit_connection::Column::DeletedAt.is_null())
@@ -323,8 +334,20 @@ async fn auto_register_webhook(
         .await?
         .ok_or_else(|| anyhow::anyhow!("No active connection found for realm {}", realm_id))?;
 
-    // Get webhook URL for current environment (auto-detected)
-    let webhook_url = WebhookApiClient::get_webhook_url();
+    // Get webhook URL for current environment.
+    // Webhooks are configured in the Intuit Developer Portal, and this value is persisted
+    // in local metadata for operator visibility.
+    let webhook_url = std::env::var("INTUIT_WEBHOOK_URL").unwrap_or_else(|_| {
+        if std::env::var("ENVIRONMENT")
+            .or_else(|_| std::env::var("NODE_ENV"))
+            .map(|env| matches!(env.to_lowercase().as_str(), "production" | "prod"))
+            .unwrap_or(false)
+        {
+            "https://hr.mtncarerx.com/api/intuit/webhook".to_string()
+        } else {
+            "https://dev.hr.mtncarerx.com/api/intuit/webhook".to_string()
+        }
+    });
 
     // Get verifier token from environment (must match QuickBooks Developer Portal)
     let verifier_token = std::env::var("INTUIT_WEBHOOK_VERIFIER_TOKEN")?;
@@ -339,16 +362,29 @@ async fn auto_register_webhook(
         "Department.Delete".to_string(),
     ];
 
-    // Register with QuickBooks Webhooks API
-    let webhook_client = WebhookApiClient::new(connection.access_token.clone());
-    let registration = webhook_client
-        .register_webhook(webhook_url.clone(), event_types.clone(), verifier_token.clone())
+    // Webhooks are portal-managed for QuickBooks.
+    // Keep a local subscription record only.
+    let existing = webhook_subscriptions::Entity::find()
+        .filter(webhook_subscriptions::Column::RealmId.eq(realm_id))
+        .filter(webhook_subscriptions::Column::IsActive.eq(true))
+        .filter(webhook_subscriptions::Column::DeletedAt.is_null())
+        .one(db)
         .await?;
+    if let Some(existing) = existing {
+        tracing::info!(
+            realm_id = %realm_id,
+            webhook_id = %existing.webhook_id,
+            "Webhook subscription already exists locally; skipping auto-registration"
+        );
+        return Ok(existing.webhook_id);
+    }
+
+    let local_webhook_id = format!("local_webhook_{}", uuid::Uuid::new_v4());
 
     // Store subscription in database
     let subscription = webhook_subscriptions::ActiveModel {
         id: Set(uuid::Uuid::new_v4()),
-        webhook_id: Set(registration.webhook_id.clone()),
+        webhook_id: Set(local_webhook_id.clone()),
         realm_id: Set(realm_id.to_string()),
         event_types: Set(serde_json::json!(event_types)),
         entity_names: Set(serde_json::json!(["Employee", "Department"])),
@@ -359,7 +395,8 @@ async fn auto_register_webhook(
         metadata: Set(Some(serde_json::json!({
             "webhook_url": webhook_url,
             "registered_at": chrono::Utc::now().to_rfc3339(),
-            "status": registration.status,
+            "status": "local_record",
+            "note": "Configure Intuit webhook in Developer Portal",
             "auto_registered": true,
         }))),
         created_at: Set(chrono::Utc::now().into()),
@@ -369,5 +406,29 @@ async fn auto_register_webhook(
 
     subscription.insert(db).await?;
 
-    Ok(registration.webhook_id)
+    Ok(local_webhook_id)
+}
+
+async fn deactivate_other_connections(
+    db: &sea_orm::DatabaseConnection,
+    active_realm_id: &str,
+) -> anyhow::Result<()> {
+    use crate::models::intuit_connection;
+    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+
+    let stale_connections = intuit_connection::Entity::find()
+        .filter(intuit_connection::Column::IsActive.eq(true))
+        .filter(intuit_connection::Column::DeletedAt.is_null())
+        .filter(intuit_connection::Column::RealmId.ne(active_realm_id))
+        .all(db)
+        .await?;
+
+    for conn in stale_connections {
+        let mut active_model: intuit_connection::ActiveModel = conn.into();
+        active_model.is_active = Set(false);
+        active_model.updated_at = Set(chrono::Utc::now().into());
+        active_model.update(db).await?;
+    }
+
+    Ok(())
 }

@@ -113,13 +113,15 @@ export const load: PageServerLoad = async (event) => {
 		const departmentsQuery = `
 			query GetDepartments($limit: Int) {
 				departments(limit: $limit) {
-					id
-					name
-					description
-					parentDepartmentId
-					managerId
-					createdAt
-					updatedAt
+					items {
+						id
+						name
+						description
+						parentDepartmentId
+						managerId
+						createdAt
+						updatedAt
+					}
 				}
 			}
 		`;
@@ -145,13 +147,13 @@ export const load: PageServerLoad = async (event) => {
 		});
 		const departmentsResult = await departmentsResponse.json();
 
-		// Extract data with fallbacks (Rust GraphQL server returns direct arrays, no nodes wrapper)
+		// Extract data with fallbacks
 		const usersData = usersResult.data;
 		const departmentsData = departmentsResult.data;
 
-		// Extract data with fallbacks (Rust GraphQL server returns direct arrays, no nodes wrapper)
+		// departments query returns DepartmentQueryResult with items[]
 		const users = usersData?.users || [];
-		const departments = departmentsData?.departments || [];
+		const departments = departmentsData?.departments?.items || [];
 
 		// Get user permissions using the centralized helper
 		const userPerms = getUserPermissions(locals);
@@ -159,7 +161,7 @@ export const load: PageServerLoad = async (event) => {
 		const isManager = userPerms.isManager;
 
 		// Determine user's managed department
-		let managedDepartmentId: number | null = null;
+		let managedDepartmentId: string | null = null;
 		if (!isAdmin && isManager) {
 			const userDept = departments.find((d: any) => d.managerId === locals.user.id);
 			managedDepartmentId = userDept?.id || null;

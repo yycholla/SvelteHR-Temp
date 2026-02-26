@@ -1,11 +1,8 @@
 /**
  * Centralized Authentication Configuration
  *
- * PRIMARY: Session-based authentication with HTTP-only cookies
+ * Session-based authentication with HTTP-only cookies.
  * The application uses axum-login backend for secure session management.
- *
- * DEPRECATED: JWT token support has been removed. Legacy JWT configuration
- * is kept for backward compatibility only and should not be used.
  */
 
 import { browser } from '$app/environment';
@@ -42,31 +39,6 @@ export interface AuthConfig {
 			enabled: boolean;
 			maxAttempts: number;
 			windowMs: number;
-		};
-	};
-
-	// DEPRECATED: JWT Configuration (kept for backward compatibility only)
-	/** @deprecated Use session-based authentication instead */
-	jwt?: {
-		issuer: string;
-		audience: string;
-		algorithm: string;
-		expirationTime: string;
-		refreshThreshold: number;
-	};
-
-	// DEPRECATED: Token Storage Configuration (kept for backward compatibility only)
-	/** @deprecated Use session cookies instead */
-	tokens?: {
-		accessTokenName: string;
-		refreshTokenName: string;
-		storageType: 'cookie' | 'localStorage' | 'sessionStorage';
-		cookieOptions: {
-			httpOnly: boolean;
-			secure: boolean;
-			sameSite: 'strict' | 'lax' | 'none';
-			path: string;
-			maxAge: number;
 		};
 	};
 }
@@ -219,16 +191,3 @@ export const getSessionCookieOptions = () => authConfig.sessionCookies.cookieOpt
 export const isDevelopment = () => process.env.NODE_ENV === 'development';
 export const isProduction = () => process.env.NODE_ENV === 'production';
 export const isTest = () => process.env.NODE_ENV === 'test';
-
-/**
- * DEPRECATED: JWT-related helpers (kept for backward compatibility)
- */
-
-/** @deprecated Use session-based authentication instead */
-export const getAccessTokenName = () => authConfig.tokens?.accessTokenName || 'hr_token';
-
-/** @deprecated Use session-based authentication instead */
-export const getRefreshTokenName = () => authConfig.tokens?.refreshTokenName || 'hr_refresh_token';
-
-/** @deprecated Use getSessionCookieOptions() instead */
-export const getCookieOptions = () => authConfig.tokens?.cookieOptions || getSessionCookieOptions();

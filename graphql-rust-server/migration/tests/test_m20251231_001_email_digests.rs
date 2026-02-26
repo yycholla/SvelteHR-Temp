@@ -11,16 +11,19 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251231_001_email_digests::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251231_001_email_digests::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -69,12 +72,16 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'email_digests'".to_string(),
+                 AND table_name = 'email_digests'"
+                    .to_string(),
             ))
             .await;
 
         assert!(table_result.is_ok(), "email_digests table should exist");
-        assert!(table_result.unwrap().is_some(), "Should have table information");
+        assert!(
+            table_result.unwrap().is_some(),
+            "Should have table information"
+        );
 
         // Verify email_digest_log table was created
         let table_result = db
@@ -82,12 +89,16 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'email_digest_log'".to_string(),
+                 AND table_name = 'email_digest_log'"
+                    .to_string(),
             ))
             .await;
 
         assert!(table_result.is_ok(), "email_digest_log table should exist");
-        assert!(table_result.unwrap().is_some(), "Should have table information");
+        assert!(
+            table_result.unwrap().is_some(),
+            "Should have table information"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -136,11 +147,7 @@ mod tests {
                 ))
                 .await;
 
-            assert!(
-                column_result.is_ok(),
-                "Column {} should exist",
-                column_name
-            );
+            assert!(column_result.is_ok(), "Column {} should exist", column_name);
             assert!(
                 column_result.unwrap().is_some(),
                 "Should have column information for {}",
@@ -174,13 +181,16 @@ mod tests {
                 "SELECT data_type, udt_name FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'email_digests'
-                 AND column_name = 'recipients'".to_string(),
+                 AND column_name = 'recipients'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok(), "recipients column should exist");
         let column = column_result.unwrap().unwrap();
-        let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
+        let data_type: String = column
+            .try_get("", "data_type")
+            .expect("Should get data_type");
         assert_eq!(data_type, "ARRAY", "recipients should be ARRAY type");
 
         // Also check email_digest_log recipients column
@@ -190,13 +200,16 @@ mod tests {
                 "SELECT data_type FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'email_digest_log'
-                 AND column_name = 'recipients'".to_string(),
+                 AND column_name = 'recipients'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok(), "log recipients column should exist");
         let column = column_result.unwrap().unwrap();
-        let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
+        let data_type: String = column
+            .try_get("", "data_type")
+            .expect("Should get data_type");
         assert_eq!(data_type, "ARRAY", "log recipients should be ARRAY type");
 
         // Clean up after test
@@ -226,12 +239,16 @@ mod tests {
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'email_digest_log'
                  AND constraint_name = 'fk_email_digest_log_digest_id'
-                 AND constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
         assert!(fk_result.is_ok(), "digest_id foreign key should exist");
-        assert!(fk_result.unwrap().is_some(), "Should have foreign key information");
+        assert!(
+            fk_result.unwrap().is_some(),
+            "Should have foreign key information"
+        );
 
         // Verify foreign key from email_digests to users
         let fk_result = db
@@ -241,12 +258,16 @@ mod tests {
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'email_digests'
                  AND constraint_name = 'fk_email_digests_created_by'
-                 AND constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
         assert!(fk_result.is_ok(), "created_by foreign key should exist");
-        assert!(fk_result.unwrap().is_some(), "Should have foreign key information");
+        assert!(
+            fk_result.unwrap().is_some(),
+            "Should have foreign key information"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -400,11 +421,15 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name IN ('email_digests', 'email_digest_log')".to_string(),
+                 AND table_name IN ('email_digests', 'email_digest_log')"
+                    .to_string(),
             ))
             .await;
 
-        assert!(table_result.is_ok(), "Should be able to check if tables exist");
+        assert!(
+            table_result.is_ok(),
+            "Should be able to check if tables exist"
+        );
         let count: i64 = table_result
             .unwrap()
             .unwrap()
@@ -494,7 +519,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name IN ('email_digests', 'email_digest_log')".to_string(),
+                 AND table_name IN ('email_digests', 'email_digest_log')"
+                    .to_string(),
             ))
             .await;
         assert!(table_check.is_ok(), "Should be able to check tables");
@@ -517,7 +543,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name IN ('email_digests', 'email_digest_log')".to_string(),
+                 AND table_name IN ('email_digests', 'email_digest_log')"
+                    .to_string(),
             ))
             .await;
         assert!(table_check.is_ok(), "Should be able to check tables");
@@ -555,13 +582,16 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'email_digest_log'
-                 AND column_name = 'success'".to_string(),
+                 AND column_name = 'success'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok(), "success column should exist");
         let column = column_result.unwrap().unwrap();
-        let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
+        let data_type: String = column
+            .try_get("", "data_type")
+            .expect("Should get data_type");
         let is_nullable: String = column
             .try_get("", "is_nullable")
             .expect("Should get is_nullable");
@@ -600,7 +630,8 @@ mod tests {
                 "SELECT data_type, udt_name FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'email_digest_log'
-                 AND column_name = 'content_summary'".to_string(),
+                 AND column_name = 'content_summary'"
+                    .to_string(),
             ))
             .await;
 

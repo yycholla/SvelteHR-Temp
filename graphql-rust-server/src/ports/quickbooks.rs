@@ -50,13 +50,13 @@ pub struct RemoteDepartment {
 /// Data for creating/updating a time entry in QuickBooks
 #[derive(Debug, Clone)]
 pub struct TimeEntryData {
-    pub employee_qb_id: String,      // QuickBooks employee ID
-    pub customer_qb_id: String,      // Project maps to Customer
+    pub employee_qb_id: String, // QuickBooks employee ID
+    pub customer_qb_id: String, // Project maps to Customer
     pub txn_date: chrono::NaiveDate,
     pub hours: u32,
-    pub minutes: u32,                // QuickBooks uses separate hours/minutes
+    pub minutes: u32, // QuickBooks uses separate hours/minutes
     pub description: Option<String>,
-    pub billable_status: String,     // "Billable" or "NotBillable"
+    pub billable_status: String, // "Billable" or "NotBillable"
     pub sync_token: Option<String>,
 }
 
@@ -234,13 +234,12 @@ pub mod mock {
             data: EmployeeData,
         ) -> Result<RemoteEmployee, SyncError> {
             let mut employees = self.employees.lock().unwrap();
-            let emp = employees
-                .iter_mut()
-                .find(|e| e.id == *id)
-                .ok_or_else(|| SyncError::EntityNotFound {
+            let emp = employees.iter_mut().find(|e| e.id == *id).ok_or_else(|| {
+                SyncError::EntityNotFound {
                     entity_type: EntityType::Employee,
                     id: id.as_str().to_string(),
-                })?;
+                }
+            })?;
 
             emp.given_name = data.given_name;
             emp.family_name = data.family_name;
@@ -320,7 +319,10 @@ pub mod mock {
                 })
         }
 
-        async fn create_time_entry(&self, data: TimeEntryData) -> Result<RemoteTimeEntry, SyncError> {
+        async fn create_time_entry(
+            &self,
+            data: TimeEntryData,
+        ) -> Result<RemoteTimeEntry, SyncError> {
             let entry = RemoteTimeEntry {
                 id: QuickBooksId::new(format!("qb-time-{}", uuid::Uuid::new_v4())),
                 employee_qb_id: data.employee_qb_id,
@@ -343,13 +345,12 @@ pub mod mock {
             data: TimeEntryData,
         ) -> Result<RemoteTimeEntry, SyncError> {
             let mut entries = self.time_entries.lock().unwrap();
-            let entry = entries
-                .iter_mut()
-                .find(|e| e.id == *id)
-                .ok_or_else(|| SyncError::EntityNotFound {
+            let entry = entries.iter_mut().find(|e| e.id == *id).ok_or_else(|| {
+                SyncError::EntityNotFound {
                     entity_type: EntityType::TimeEntry,
                     id: id.as_str().to_string(),
-                })?;
+                }
+            })?;
 
             entry.hours = data.hours;
             entry.minutes = data.minutes;

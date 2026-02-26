@@ -1,41 +1,74 @@
 <script lang="ts">
 	import {
-		AlertCircle,
-		CheckCircle2,
-		Filter,
-		ArrowRight,
-		ArrowLeft,
 		ArrowLeftRight,
-		Users,
 		Building2,
+		CheckCircle2,
+		RefreshCw,
 		Search,
-		Zap,
-		RefreshCw
+		Users,
+		Zap
 	} from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { TRIGGER_SELECTIVE_SYNC } from '$lib/graphql/operations/selective-sync';
 	import { browser } from '$app/environment';
 	import { invalidate } from '$app/navigation';
 
-	let { data } = $props();
+	type SyncDirection = 'Pull' | 'Push' | 'Bidirectional';
+
+	interface SelectiveSyncEmployee {
+		id: string;
+		name: string;
+		quickbooksId: string | null;
+		hasLocalChanges?: boolean;
+		lastSyncedAt: string | null;
+	}
+
+	interface SelectiveSyncDepartment {
+		id: string;
+		name: string;
+		quickbooksId: string | null;
+		hasLocalChanges?: boolean;
+		lastSyncedAt: string | null;
+	}
+
+	interface SelectiveSyncResult {
+		message: string;
+		jobId: string;
+		summary: {
+			totalEmployees: number;
+			totalDepartments: number;
+		};
+	}
+
+	interface SelectiveSyncPageData {
+		employees?: SelectiveSyncEmployee[];
+		departments?: SelectiveSyncDepartment[];
+		error?: string;
+	}
+
+	let { data }: { data: SelectiveSyncPageData } = $props();
 
 	let employees = $derived(data.employees || []);
 	let departments = $derived(data.departments || []);
 
-	let syncDirection = $state('Pull');
+	let syncDirection = $state<SyncDirection>('Pull');
 	let forceFullSync = $state(false);
 	let selectedEmployees = $state<Set<string>>(new Set());
 	let selectedDepartments = $state<Set<string>>(new Set());
 	let searchTerm = $state('');
-	let departmentFilter = $state<string | null>(null);
 	let showSyncedOnly = $state(false);
 	let submitting = $state(false);
-	let syncResult = $state<any>(null);
+	let syncResult = $state<SelectiveSyncResult | null>(null);
 	let error = $state<string | null>(null);
+
+	function getErrorMessage(errorValue: unknown): string {
+		if (errorValue instanceof Error) return errorValue.message;
+		return 'An error occurred while triggering sync';
+	}
 
 	// Filter employees based on search and filters
 	let filteredEmployees = $derived(
-		employees.filter((emp: any) => {
+		employees.filter((emp) => {
 			const matchesSearch =
 				searchTerm === '' || emp.name.toLowerCase().includes(searchTerm.toLowerCase());
 			const matchesSynced = !showSyncedOnly || emp.quickbooksId;
@@ -45,7 +78,7 @@
 
 	// Filter departments based on search
 	let filteredDepartments = $derived(
-		departments.filter((dept: any) => {
+		departments.filter((dept) => {
 			const matchesSearch =
 				searchTerm === '' || dept.name.toLowerCase().includes(searchTerm.toLowerCase());
 			const matchesSynced = !showSyncedOnly || dept.quickbooksId;
@@ -74,7 +107,7 @@
 	}
 
 	function selectAllEmployees() {
-		selectedEmployees = new Set(filteredEmployees.map((e: any) => e.id));
+		selectedEmployees = new Set(filteredEmployees.map((employee) => employee.id));
 	}
 
 	function deselectAllEmployees() {
@@ -82,7 +115,7 @@
 	}
 
 	function selectAllDepartments() {
-		selectedDepartments = new Set(filteredDepartments.map((d: any) => d.id));
+		selectedDepartments = new Set(filteredDepartments.map((department) => department.id));
 	}
 
 	function deselectAllDepartments() {
@@ -127,8 +160,8 @@
 				// Refresh data
 				await invalidate('app:selective-sync');
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while triggering sync';
+		} catch (e: unknown) {
+			error = getErrorMessage(e);
 		} finally {
 			submitting = false;
 		}

@@ -42,12 +42,12 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ComplianceReportType {
-    Sox,           // Sarbanes-Oxley controls
-    Gdpr,          // Data access and modifications
-    Soc2,          // Security and availability controls
-    DataChanges,   // All data modifications
-    UserActivity,  // User actions summary
-    AccessLog,     // Who accessed what, when
+    Sox,          // Sarbanes-Oxley controls
+    Gdpr,         // Data access and modifications
+    Soc2,         // Security and availability controls
+    DataChanges,  // All data modifications
+    UserActivity, // User actions summary
+    AccessLog,    // Who accessed what, when
 }
 
 impl ComplianceReportType {

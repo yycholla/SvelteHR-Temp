@@ -28,7 +28,10 @@ impl SeaOrmSyncRepository {
     /// Map user model to SyncEntity
     fn map_user_to_sync_entity(&self, user: user::Model) -> SyncEntity {
         let local_id = EntityId::new(user.id.to_string());
-        let remote_id = user.intuit_employee_id.as_ref().map(|id| QuickBooksId::new(id.clone()));
+        let remote_id = user
+            .intuit_employee_id
+            .as_ref()
+            .map(|id| QuickBooksId::new(id.clone()));
 
         let entity = if let Some(qb_id) = remote_id {
             SyncEntity::employee(local_id.as_str(), qb_id.as_str())
@@ -47,7 +50,10 @@ impl SeaOrmSyncRepository {
     /// Map department model to SyncEntity
     fn map_department_to_sync_entity(&self, dept: department::Model) -> SyncEntity {
         let local_id = EntityId::new(dept.id.to_string());
-        let remote_id = dept.intuit_department_id.as_ref().map(|id| QuickBooksId::new(id.clone()));
+        let remote_id = dept
+            .intuit_department_id
+            .as_ref()
+            .map(|id| QuickBooksId::new(id.clone()));
 
         if let Some(qb_id) = remote_id {
             SyncEntity::department(local_id.as_str(), qb_id.as_str())
@@ -77,7 +83,9 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
                 let users = query
                     .all(&self.db)
                     .await
-                    .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?;
+                    .map_err(|e| SyncError::RepositoryError {
+                        message: e.to_string(),
+                    })?;
 
                 Ok(users
                     .into_iter()
@@ -85,17 +93,20 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
                     .collect())
             }
             EntityType::Department => {
-                let mut query = department::Entity::find()
-                    .filter(department::Column::DeletedAt.is_null());
+                let mut query =
+                    department::Entity::find().filter(department::Column::DeletedAt.is_null());
 
                 if let Some(since_time) = since {
                     query = query.filter(department::Column::UpdatedAt.gt(since_time));
                 }
 
-                let departments = query
-                    .all(&self.db)
-                    .await
-                    .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?;
+                let departments =
+                    query
+                        .all(&self.db)
+                        .await
+                        .map_err(|e| SyncError::RepositoryError {
+                            message: e.to_string(),
+                        })?;
 
                 Ok(departments
                     .into_iter()
@@ -126,7 +137,9 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
             .order_by_desc(intuit_sync_log::Column::CreatedAt)
             .one(&self.db)
             .await
-            .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?;
+            .map_err(|e| SyncError::RepositoryError {
+                message: e.to_string(),
+            })?;
 
         Ok(log.map(|l| l.created_at.to_utc()))
     }
@@ -134,15 +147,19 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
     async fn mark_synced(&self, entities: &[SyncEntity]) -> Result<(), SyncError> {
         for entity in entities {
             if let Some(local_id) = &entity.local_id {
-                let uuid = uuid::Uuid::parse_str(local_id.as_str())
-                    .map_err(|e| SyncError::Internal { message: format!("Invalid UUID: {}", e) })?;
+                let uuid =
+                    uuid::Uuid::parse_str(local_id.as_str()).map_err(|e| SyncError::Internal {
+                        message: format!("Invalid UUID: {}", e),
+                    })?;
 
                 match entity.entity_type {
                     EntityType::Employee => {
                         if let Some(user_model) = user::Entity::find_by_id(uuid)
                             .one(&self.db)
                             .await
-                            .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?
+                            .map_err(|e| SyncError::RepositoryError {
+                                message: e.to_string(),
+                            })?
                         {
                             let mut active: user::ActiveModel = user_model.into();
                             active.last_synced_at = Set(Some(Utc::now()));
@@ -150,17 +167,20 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
                                 active.intuit_employee_id =
                                     Set(Some(remote_id.as_str().to_string()));
                             }
-                            active
-                                .update(&self.db)
-                                .await
-                                .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?;
+                            active.update(&self.db).await.map_err(|e| {
+                                SyncError::RepositoryError {
+                                    message: e.to_string(),
+                                }
+                            })?;
                         }
                     }
                     EntityType::Department => {
                         if let Some(dept_model) = department::Entity::find_by_id(uuid)
                             .one(&self.db)
                             .await
-                            .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?
+                            .map_err(|e| SyncError::RepositoryError {
+                                message: e.to_string(),
+                            })?
                         {
                             let mut active: department::ActiveModel = dept_model.into();
                             active.last_synced_at = Set(Some(Utc::now()));
@@ -168,10 +188,11 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
                                 active.intuit_department_id =
                                     Set(Some(remote_id.as_str().to_string()));
                             }
-                            active
-                                .update(&self.db)
-                                .await
-                                .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?;
+                            active.update(&self.db).await.map_err(|e| {
+                                SyncError::RepositoryError {
+                                    message: e.to_string(),
+                                }
+                            })?;
                         }
                     }
                     EntityType::TimeEntry => {
@@ -192,27 +213,24 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
                 id: Set(uuid::Uuid::new_v4()),
                 sync_log_id: Set(None),
                 entity_type: Set(conflict.entity.entity_type.to_string()),
-                entity_id: Set(
-                    uuid::Uuid::parse_str(
-                        conflict
-                            .entity
-                            .local_id
-                            .as_ref()
-                            .unwrap()
-                            .as_str(),
-                    )
-                    .map_err(|e| SyncError::Internal { message: e.to_string() })?,
-                ),
+                entity_id: Set(uuid::Uuid::parse_str(
+                    conflict.entity.local_id.as_ref().unwrap().as_str(),
+                )
+                .map_err(|e| SyncError::Internal {
+                    message: e.to_string(),
+                })?),
                 operation_type: Set("conflict".to_string()),
                 snapshot_type: Set("before".to_string()),
-                data_snapshot: Set(
-                    serde_json::to_value(&conflict.local_data)
-                        .map_err(|e| SyncError::Internal { message: e.to_string() })?,
-                ),
-                related_snapshots: Set(Some(
-                    serde_json::to_value(&conflict.remote_data)
-                        .map_err(|e| SyncError::Internal { message: e.to_string() })?,
-                )),
+                data_snapshot: Set(serde_json::to_value(&conflict.local_data).map_err(|e| {
+                    SyncError::Internal {
+                        message: e.to_string(),
+                    }
+                })?),
+                related_snapshots: Set(Some(serde_json::to_value(&conflict.remote_data).map_err(
+                    |e| SyncError::Internal {
+                        message: e.to_string(),
+                    },
+                )?)),
                 quickbooks_id: Set(conflict
                     .entity
                     .remote_id
@@ -228,7 +246,9 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
             snapshot
                 .insert(&self.db)
                 .await
-                .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?;
+                .map_err(|e| SyncError::RepositoryError {
+                    message: e.to_string(),
+                })?;
         }
 
         Ok(())
@@ -293,7 +313,9 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
 
         log.insert(&self.db)
             .await
-            .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?;
+            .map_err(|e| SyncError::RepositoryError {
+                message: e.to_string(),
+            })?;
 
         Ok(())
     }

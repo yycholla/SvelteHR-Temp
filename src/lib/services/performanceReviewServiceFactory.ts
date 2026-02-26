@@ -6,7 +6,7 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 export function createPerformanceReviewService(event: RequestEvent): PerformanceReviewService {
 	const client = createUrqlClient(
 		event.fetch,
-		undefined,
+		event.locals.accessToken,
 		undefined,
 		serializeCookies(event.cookies)
 	);

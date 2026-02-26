@@ -12,14 +12,18 @@ fn get_test_db_url() -> String {
 
 async fn setup() -> Result<DatabaseConnection, DbErr> {
     let db = Database::connect(get_test_db_url()).await?;
-    let _ = db.execute(Statement::from_string(
-        DbBackend::Postgres,
-        "DROP TABLE IF EXISTS hr_public.retry_history CASCADE".to_string(),
-    )).await;
-    let _ = db.execute(Statement::from_string(
-        DbBackend::Postgres,
-        "DROP TABLE IF EXISTS hr_public.failed_operations CASCADE".to_string(),
-    )).await;
+    let _ = db
+        .execute(Statement::from_string(
+            DbBackend::Postgres,
+            "DROP TABLE IF EXISTS hr_public.retry_history CASCADE".to_string(),
+        ))
+        .await;
+    let _ = db
+        .execute(Statement::from_string(
+            DbBackend::Postgres,
+            "DROP TABLE IF EXISTS hr_public.failed_operations CASCADE".to_string(),
+        ))
+        .await;
     Ok(db)
 }
 
@@ -34,12 +38,15 @@ async fn test_up_migration_creates_tables() -> Result<(), DbErr> {
     let manager = SchemaManager::new(&db);
     Migration.up(&manager).await?;
 
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT COUNT(*) as count FROM information_schema.tables
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT COUNT(*) as count FROM information_schema.tables
          WHERE table_schema = 'hr_public'
-         AND table_name IN ('failed_operations', 'retry_history')".to_string(),
-    )).await?;
+         AND table_name IN ('failed_operations', 'retry_history')"
+                .to_string(),
+        ))
+        .await?;
 
     let count: i64 = result.unwrap().try_get("", "count")?;
     assert_eq!(count, 2);
@@ -54,13 +61,17 @@ async fn test_failed_operations_columns() -> Result<(), DbErr> {
     let manager = SchemaManager::new(&db);
     Migration.up(&manager).await?;
 
-    let columns = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT column_name FROM information_schema.columns
-         WHERE table_schema = 'hr_public' AND table_name = 'failed_operations'".to_string(),
-    )).await?;
+    let columns = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT column_name FROM information_schema.columns
+         WHERE table_schema = 'hr_public' AND table_name = 'failed_operations'"
+                .to_string(),
+        ))
+        .await?;
 
-    let column_names: Vec<String> = columns.iter()
+    let column_names: Vec<String> = columns
+        .iter()
         .map(|c| c.try_get("", "column_name").unwrap())
         .collect();
 
@@ -81,15 +92,19 @@ async fn test_indexes_created() -> Result<(), DbErr> {
     let manager = SchemaManager::new(&db);
     Migration.up(&manager).await?;
 
-    let indexes = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT indexname FROM pg_indexes
+    let indexes = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT indexname FROM pg_indexes
          WHERE schemaname = 'hr_public'
          AND tablename IN ('failed_operations', 'retry_history')
-         AND indexname NOT LIKE '%_pkey'".to_string(),
-    )).await?;
+         AND indexname NOT LIKE '%_pkey'"
+                .to_string(),
+        ))
+        .await?;
 
-    let index_names: Vec<String> = indexes.iter()
+    let index_names: Vec<String> = indexes
+        .iter()
         .map(|idx| idx.try_get("", "indexname").unwrap())
         .collect();
 
@@ -122,12 +137,15 @@ async fn test_down_migration_removes_tables() -> Result<(), DbErr> {
     Migration.up(&manager).await?;
     Migration.down(&manager).await?;
 
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT COUNT(*) as count FROM information_schema.tables
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT COUNT(*) as count FROM information_schema.tables
          WHERE table_schema = 'hr_public'
-         AND table_name IN ('failed_operations', 'retry_history')".to_string(),
-    )).await?;
+         AND table_name IN ('failed_operations', 'retry_history')"
+                .to_string(),
+        ))
+        .await?;
 
     let count: i64 = result.unwrap().try_get("", "count")?;
     assert_eq!(count, 0);

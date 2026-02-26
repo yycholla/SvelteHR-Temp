@@ -4,7 +4,10 @@
 //! Runs once per day at midnight UTC
 
 use chrono::{Duration, Utc};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    Set,
+};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
@@ -15,12 +18,17 @@ use crate::models::{
 };
 
 /// Capture a snapshot of current employee statistics
-pub async fn capture_employee_statistics_snapshot(db: &DatabaseConnection) -> Result<(), sea_orm::DbErr> {
+pub async fn capture_employee_statistics_snapshot(
+    db: &DatabaseConnection,
+) -> Result<(), sea_orm::DbErr> {
     let today = Utc::now().date_naive();
 
     // Check if snapshot already exists for today
     if Entity::exists_for_date(db, today).await? {
-        info!("[Employee Statistics Scheduler] Snapshot for {} already exists, skipping", today);
+        info!(
+            "[Employee Statistics Scheduler] Snapshot for {} already exists, skipping",
+            today
+        );
         return Ok(());
     }
 
@@ -92,7 +100,9 @@ fn time_until_midnight_utc() -> std::time::Duration {
     let midnight_tomorrow = tomorrow.and_hms_opt(0, 0, 0).unwrap().and_utc();
     let duration = midnight_tomorrow.signed_duration_since(now);
 
-    duration.to_std().unwrap_or(std::time::Duration::from_secs(60))
+    duration
+        .to_std()
+        .unwrap_or(std::time::Duration::from_secs(60))
 }
 
 /// Start the employee statistics scheduler background task
@@ -118,7 +128,10 @@ pub async fn start_employee_statistics_scheduler(db: DatabaseConnection) {
                     info!("[Employee Statistics Scheduler] Daily snapshot completed successfully");
                 }
                 Err(e) => {
-                    error!("[Employee Statistics Scheduler] Failed to capture snapshot: {:?}", e);
+                    error!(
+                        "[Employee Statistics Scheduler] Failed to capture snapshot: {:?}",
+                        e
+                    );
                 }
             }
 
@@ -126,11 +139,17 @@ pub async fn start_employee_statistics_scheduler(db: DatabaseConnection) {
             match cleanup_old_statistics(&db).await {
                 Ok(count) => {
                     if count > 0 {
-                        info!("[Employee Statistics Scheduler] Cleaned up {} old snapshots", count);
+                        info!(
+                            "[Employee Statistics Scheduler] Cleaned up {} old snapshots",
+                            count
+                        );
                     }
                 }
                 Err(e) => {
-                    warn!("[Employee Statistics Scheduler] Failed to cleanup old statistics: {:?}", e);
+                    warn!(
+                        "[Employee Statistics Scheduler] Failed to cleanup old statistics: {:?}",
+                        e
+                    );
                 }
             }
         }

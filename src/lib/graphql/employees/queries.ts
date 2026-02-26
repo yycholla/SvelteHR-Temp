@@ -4,14 +4,8 @@ import { gql } from '@urql/svelte';
  * Query: Get all users (employees) with pagination
  * Backend: Rust idiomatic - users(limit, offset) returns direct array
  *
- * @deprecated This GraphQL query is deprecated for employee list views.
- * Use EmployeeService.getEmployees() instead for employee CRUD operations.
- * See: docs/architecture/employee-module-migration.md
- * Migration: Task 21 (Week 4) - Employee list view migrated to domain service
- *
- * This query is still used for:
- * - Document upload employee selection
- * - Other modules that reference employees (not yet migrated)
+ * Used for read-only employee references in dependent modules
+ * (for example document assignment and lookup UIs).
  */
 export const GET_EMPLOYEES_QUERY = gql`
 	query GetEmployees($limit: Int = 20, $offset: Int = 0) {
@@ -22,13 +16,15 @@ export const GET_EMPLOYEES_QUERY = gql`
 			firstName
 			lastName
 			fullName
-			role
+			roles {
+				id
+				name
+			}
 			phone
 			jobTitle
 			departmentId
 			managerId
 			hireDate
-			terminationDate
 			isActive
 			status
 			createdAt
@@ -52,13 +48,7 @@ export const GET_EMPLOYEES_QUERY = gql`
  * Query: Get single user (employee) by ID
  * Backend: Rust idiomatic - user(id) not userById
  *
- * @deprecated This GraphQL query is deprecated for employee detail views.
- * Use EmployeeService.getEmployeeById() instead for employee CRUD operations.
- * See: docs/architecture/employee-module-migration.md
- * Migration: Task 16 (Week 4) - Employee detail view migrated to domain service
- *
- * This query may still be used in other modules (goals, reviews, etc.) for
- * employee reference lookups. Those will migrate when their modules adopt domain services.
+ * Used for read-only employee lookups needed by auth and related modules.
  */
 export const GET_EMPLOYEE_BY_ID_QUERY = gql`
 	query GetEmployeeById($id: UUID!) {
@@ -69,13 +59,15 @@ export const GET_EMPLOYEE_BY_ID_QUERY = gql`
 			firstName
 			lastName
 			fullName
-			role
+			roles {
+				id
+				name
+			}
 			phone
 			jobTitle
 			departmentId
 			managerId
 			hireDate
-			terminationDate
 			isActive
 			status
 			createdAt
@@ -109,7 +101,10 @@ export const GET_CURRENT_USER_QUERY = gql`
 			firstName
 			lastName
 			fullName
-			role
+			roles {
+				id
+				name
+			}
 			phone
 			jobTitle
 			departmentId
@@ -130,20 +125,22 @@ export const GET_CURRENT_USER_QUERY = gql`
 
 /**
  * Query: Get all departments
- * Backend: Rust idiomatic - departments(limit, offset) returns direct array
+ * Backend: Rust GraphQL - departments(limit, offset) returns DepartmentQueryResult
  */
 export const GET_DEPARTMENTS_QUERY = gql`
 	query GetEmployeeDepartments($limit: Int = 100, $offset: Int = 0) {
 		departments(limit: $limit, offset: $offset) {
-			id
-			name
-			description
-			managerId
-			createdAt
-			updatedAt
-			manager {
+			items {
 				id
-				fullName
+				name
+				description
+				managerId
+				createdAt
+				updatedAt
+				manager {
+					id
+					fullName
+				}
 			}
 		}
 	}

@@ -27,7 +27,8 @@ const SYNC_V2_MUTATION = `
 				durationMs
 				pushedCount
 				pulledCount
-				conflictsCount
+				conflictsDetected
+				conflictsResolved
 				errors
 				isSuccess
 				hasErrors
@@ -39,7 +40,10 @@ const SYNC_V2_MUTATION = `
 export const POST: RequestHandler = async ({ request, fetch, cookies }) => {
 	try {
 		const body = await request.json();
-		const { entity_type, direction, mode, conflict_strategy } = body;
+		const entity_type = body.entity_type ?? body.entityType;
+		const direction = body.direction;
+		const mode = body.mode;
+		const conflict_strategy = body.conflict_strategy ?? body.conflictStrategy;
 
 		// Validate required fields
 		if (!entity_type) {
@@ -92,10 +96,10 @@ export const POST: RequestHandler = async ({ request, fetch, cookies }) => {
 
 		// Build sync input
 		const input = {
-			entity_type,
+			entityType: entity_type,
 			direction,
 			mode: mode || 'INCREMENTAL',
-			conflict_strategy: conflict_strategy || null
+			conflictStrategy: conflict_strategy || null
 		};
 
 		// Execute sync mutation
@@ -135,7 +139,7 @@ export const POST: RequestHandler = async ({ request, fetch, cookies }) => {
 			duration_ms: syncReport.durationMs,
 			pushed_count: syncReport.pushedCount,
 			pulled_count: syncReport.pulledCount,
-			conflicts_count: syncReport.conflictsCount,
+			conflicts_count: syncReport.conflictsResolved ?? syncReport.conflictsDetected ?? 0,
 			errors: syncReport.errors || [],
 			message
 		});
@@ -162,14 +166,16 @@ function buildSyncMessage(
 	report: {
 		pushedCount: number;
 		pulledCount: number;
-		conflictsCount: number;
+		conflictsDetected?: number;
+		conflictsResolved?: number;
 		errors: string[];
 		status: string;
 	},
 	entityName: string,
 	directionName: string
 ): string {
-	const { pushedCount, pulledCount, conflictsCount, errors, status } = report;
+	const { pushedCount, pulledCount, errors, status } = report;
+	const conflictsCount = report.conflictsResolved ?? report.conflictsDetected ?? 0;
 
 	// Handle failure
 	if (status === 'FAILED') {

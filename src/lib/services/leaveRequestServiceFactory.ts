@@ -2,6 +2,7 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { LeaveRequestService } from '$services/LeaveRequestService';
 import { GraphQLLeaveRequestAdapter } from '$adapters/GraphQLLeaveRequestAdapter';
+import { GraphQLAdapter } from '$adapters/graphql/GraphQLAdapter';
 import { createUrqlClient } from '$lib/graphql/client';
 import type { Client } from '@urql/core';
 
@@ -35,10 +36,10 @@ export function createLeaveRequestService(event: RequestEvent): LeaveRequestServ
 	const cookieHeader = event.request.headers.get('cookie') || '';
 
 	// Create urql client with session cookies for authentication
-	const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
+	const client = createUrqlClient(event.fetch, event.locals.accessToken, undefined, cookieHeader);
 
-	// Create GraphQL repository adapter
-	const repository = new GraphQLLeaveRequestAdapter(client);
+	// Wrap urql client to match GraphQLPort contract expected by repository adapters
+	const repository = new GraphQLLeaveRequestAdapter(new GraphQLAdapter(client));
 
 	// Return configured service
 	return new LeaveRequestService(repository);
@@ -60,6 +61,6 @@ export function createLeaveRequestService(event: RequestEvent): LeaveRequestServ
  * ```
  */
 export function createLeaveRequestServiceWithClient(client: Client): LeaveRequestService {
-	const repository = new GraphQLLeaveRequestAdapter(client);
+	const repository = new GraphQLLeaveRequestAdapter(new GraphQLAdapter(client));
 	return new LeaveRequestService(repository);
 }

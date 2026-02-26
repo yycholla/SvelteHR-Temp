@@ -6,7 +6,9 @@ use uuid::Uuid;
 
 use crate::database::get_db_from_context;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum,
+)]
 #[sea_orm(rs_type = "String", db_type = "String(None)")]
 pub enum ImportJobStatus {
     #[sea_orm(string_value = "PENDING")]
@@ -100,7 +102,10 @@ impl Model {
 
     async fn import_rows(&self, ctx: &Context<'_>) -> Result<Vec<super::import_row::Model>> {
         let db = get_db_from_context(ctx)?;
-        let rows = self.find_related(super::import_row::Entity).all(&db).await?;
+        let rows = self
+            .find_related(super::import_row::Entity)
+            .all(&db)
+            .await?;
         Ok(rows)
     }
 }

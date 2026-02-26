@@ -20,7 +20,7 @@ import {
 	REMOVE_ROLE_FROM_USER,
 	UPDATE_ROLE
 } from '$lib/graphql/permissions-operations';
-import { error, fail } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async (event) => {
 	const loader = new RBACDataLoader(event, [
@@ -51,7 +51,9 @@ export const load: PageServerLoad = async (event) => {
 /**
  * Helper: Create GraphQL client for actions with admin auth check
  */
-function createAdminClient(event: any) {
+type PermissionActionEvent = Parameters<Actions['createRole']>[0];
+
+function createAdminClient(event: PermissionActionEvent) {
 	requireAuth(event, {
 		requiredPermissions: ['admin:write', 'admin:*', '*', '*:*', 'roles:write', 'permissions:write']
 	});
@@ -74,8 +76,9 @@ export const actions: Actions = {
 		}
 
 		try {
+			const level = Number(formData.get('level') || 25);
 			await executeMutation(client, CREATE_ROLE, {
-				input: { name, description: description || null }
+				input: { name, description: description || null, level }
 			});
 			return { success: true, message: 'Role created successfully' };
 		} catch (err) {
@@ -100,7 +103,8 @@ export const actions: Actions = {
 
 		try {
 			await executeMutation(client, UPDATE_ROLE, {
-				input: { id, name, description: description || null }
+				id,
+				input: { name, description: description || null }
 			});
 			return { success: true, message: 'Role updated successfully' };
 		} catch (err) {
@@ -122,7 +126,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			await executeMutation(client, DELETE_ROLE, { input: { id } });
+			await executeMutation(client, DELETE_ROLE, { id });
 			return { success: true, message: 'Role deleted successfully' };
 		} catch (err) {
 			logger.error('[DELETE ROLE] Error:', err as Error);
@@ -145,7 +149,8 @@ export const actions: Actions = {
 
 		try {
 			await executeMutation(client, ASSIGN_PERMISSION_TO_ROLE, {
-				input: { roleId, permissionId }
+				roleId,
+				permissionId
 			});
 			return { success: true, message: 'Permission assigned successfully' };
 		} catch (err) {
@@ -169,7 +174,8 @@ export const actions: Actions = {
 
 		try {
 			await executeMutation(client, REMOVE_PERMISSION_FROM_ROLE, {
-				input: { roleId, permissionId }
+				roleId,
+				permissionId
 			});
 			return { success: true, message: 'Permission removed successfully' };
 		} catch (err) {
@@ -318,7 +324,8 @@ export const actions: Actions = {
 
 		try {
 			await executeMutation(client, REMOVE_ROLE_FROM_USER, {
-				input: { userId, roleId }
+				userId,
+				roleId
 			});
 			return { success: true, message: 'Role removed from user successfully' };
 		} catch (err) {

@@ -15,15 +15,15 @@ export interface InvalidationStrategy {
 	delay?: number; // Optional delay before invalidation (ms)
 }
 
-export interface CacheEntry {
+export interface CacheEntry<TData = unknown, TVariables = Record<string, unknown>> {
 	key: string;
-	data: any;
+	data: TData;
 	timestamp: Date;
 	ttl: number; // TTL in minutes
 	accessCount: number;
 	lastAccessed: Date;
 	operationName: string;
-	variables: any;
+	variables: TVariables;
 	tags: string[];
 }
 

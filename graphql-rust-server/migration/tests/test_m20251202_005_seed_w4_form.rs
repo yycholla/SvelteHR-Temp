@@ -82,7 +82,10 @@ mod tests {
 
         // Ensure template is seeded
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify template metadata
         let result = db
@@ -120,7 +123,10 @@ mod tests {
 
         // Ensure template is seeded
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify template has fields JSON
         let result = db
@@ -160,7 +166,10 @@ mod tests {
 
         // Ensure template is seeded
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Get fields JSON
         let result = db
@@ -212,7 +221,10 @@ mod tests {
 
         // Ensure template is seeded
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Get fields JSON
         let result = db
@@ -265,7 +277,10 @@ mod tests {
 
         // Ensure template is seeded
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Get fields JSON
         let result = db
@@ -416,20 +431,14 @@ mod tests {
         let _ = Migration.down(&manager).await;
 
         // UP migration
-        Migration
-            .up(&manager)
-            .await
-            .expect("UP should succeed");
+        Migration.up(&manager).await.expect("UP should succeed");
         assert!(
             w4_template_exists(&db).await,
             "Template should exist after UP"
         );
 
         // DOWN migration
-        Migration
-            .down(&manager)
-            .await
-            .expect("DOWN should succeed");
+        Migration.down(&manager).await.expect("DOWN should succeed");
         assert!(
             !w4_template_exists(&db).await,
             "Template should be removed after DOWN"
@@ -454,7 +463,10 @@ mod tests {
 
         // Ensure template is seeded
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Get fields JSON
         let result = db
@@ -503,7 +515,10 @@ mod tests {
 
         // Ensure template is seeded
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Get fields JSON
         let result = db

@@ -89,8 +89,14 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table((Schema::HrPublic, Trainings::Table))
                     .add_column_if_not_exists(ColumnDef::new(Trainings::MetaTitle).string().null())
-                    .add_column_if_not_exists(ColumnDef::new(Trainings::MetaDescription).string().null())
-                    .add_column_if_not_exists(ColumnDef::new(Trainings::Tags).array(ColumnType::Text).null())
+                    .add_column_if_not_exists(
+                        ColumnDef::new(Trainings::MetaDescription).string().null(),
+                    )
+                    .add_column_if_not_exists(
+                        ColumnDef::new(Trainings::Tags)
+                            .array(ColumnType::Text)
+                            .null(),
+                    )
                     .add_column_if_not_exists(ColumnDef::new(Trainings::AuthorId).uuid().null())
                     .to_owned(),
             )
@@ -102,33 +108,16 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Schema modification operations - Drop 4 metadata columns with IF EXISTS for idempotency
         // Using helper for IF EXISTS support (not available in SeaORM's drop_column)
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.trainings",
-            "author_id",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.trainings", "author_id")
+            .await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.trainings",
-            "tags",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.trainings", "tags").await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.trainings",
-            "meta_description",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.trainings", "meta_description")
+            .await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.trainings",
-            "meta_title",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.trainings", "meta_title")
+            .await?;
 
         Ok(())
     }

@@ -27,8 +27,7 @@ export const load: PageServerLoad = async (event) => {
 				throw error(500, 'Failed to load departments');
 			}
 
-			// Convert domain entities to DTOs for serialization
-			const departments = departmentsResult.value.items.map((dept) => dept.toDTO());
+			const departments = departmentsResult.value.departments;
 
 			// Get active users for manager dropdown
 			// TODO: Replace with UserService when available
@@ -111,6 +110,7 @@ export const actions: Actions = {
 			// Use DepartmentService to create department
 			const service = createDepartmentService(event);
 			const result = await service.createDepartment({
+				id: crypto.randomUUID(),
 				name,
 				description: description || undefined,
 				managerId: managerId || undefined,

@@ -85,10 +85,12 @@ export const GET_ALL_USERS_QUERY = `
 
 export const GET_ALL_DEPARTMENTS_QUERY = `
     query GetAllDepartments {
-        departments {
-            id
-            name
-            employeeCount
+        departments(limit: 200, offset: 0) {
+            items {
+                id
+                name
+                employeeCount
+            }
         }
     }
 `;
@@ -111,7 +113,7 @@ export const GET_TRAINING_ASSIGNMENTS_QUERY = `
 `;
 
 export const CREATE_ASSIGNMENT_MUTATION = `
-    mutation CreateAssignment($input: CreateAssignmentInput!) {
+    mutation CreateAssignment($input: CreateTrainingAssignmentInput!) {
         training {
             assignTraining(input: $input) {
                 id
@@ -212,7 +214,7 @@ export const GET_TRAINING_PROGRESS_QUERY = `
 `;
 
 export const UPDATE_PROGRESS_MUTATION = `
-    mutation UpdateProgress($contentId: UUID!, $input: UpdateProgressInput!) {
+    mutation UpdateProgress($contentId: UUID!, $input: UpdateTrainingProgressInput!) {
         training {
             updateProgress(contentId: $contentId, input: $input) {
                 id

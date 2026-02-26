@@ -16,7 +16,11 @@ pub struct Violation {
 }
 
 impl Violation {
-    pub fn new(field: impl Into<String>, message: impl Into<String>, code: impl Into<String>) -> Self {
+    pub fn new(
+        field: impl Into<String>,
+        message: impl Into<String>,
+        code: impl Into<String>,
+    ) -> Self {
         Self {
             field: field.into(),
             message: message.into(),
@@ -37,7 +41,11 @@ impl Violation {
         let field_name = field.into();
         Self::new(
             field_name.clone(),
-            format!("{} has invalid format, expected: {}", field_name, expected.into()),
+            format!(
+                "{} has invalid format, expected: {}",
+                field_name,
+                expected.into()
+            ),
             "INVALID_FORMAT",
         )
     }
@@ -124,7 +132,8 @@ impl SyncError {
 
     /// Create a validation error with violations
     pub fn validation(entity_id: impl Into<String>, violations: Vec<Violation>) -> Self {
-        let violations_summary: Vec<String> = violations.iter().map(|v| v.message.clone()).collect();
+        let violations_summary: Vec<String> =
+            violations.iter().map(|v| v.message.clone()).collect();
         SyncError::ValidationFailed {
             entity_id: entity_id.into(),
             message: violations_summary.join("; "),
@@ -133,7 +142,11 @@ impl SyncError {
     }
 
     /// Create a QuickBooks API error
-    pub fn quickbooks_api(code: impl Into<String>, message: impl Into<String>, retryable: bool) -> Self {
+    pub fn quickbooks_api(
+        code: impl Into<String>,
+        message: impl Into<String>,
+        retryable: bool,
+    ) -> Self {
         SyncError::QuickBooksApiError {
             code: code.into(),
             message: message.into(),

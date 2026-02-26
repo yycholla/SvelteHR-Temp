@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Calendar, Download, FileText, Filter, Search } from '@lucide/svelte';
+	import { Calendar, Download, Search } from '@lucide/svelte';
 
 	const { data } = $props();
 
@@ -85,16 +85,20 @@
 		window.URL.revokeObjectURL(url);
 	}
 
-	function formatChanges(changes: any): string {
+	function formatChanges(changes: Record<string, unknown> | string | null): string {
 		if (!changes) return '—';
-		if (typeof changes === 'string') {
+		let parsed: unknown = changes;
+		if (typeof parsed === 'string') {
 			try {
-				changes = JSON.parse(changes);
+				parsed = JSON.parse(parsed);
 			} catch {
-				return changes;
+				return String(parsed);
 			}
 		}
-		return Object.entries(changes)
+		if (typeof parsed !== 'object' || parsed === null) {
+			return String(parsed);
+		}
+		return Object.entries(parsed as Record<string, unknown>)
 			.map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
 			.join(', ');
 	}

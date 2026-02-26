@@ -4,9 +4,7 @@
 
 use crate::auth::UserContext;
 use crate::database::get_db_from_context;
-use crate::services::{
-    ExecuteRollbackInput, PermissionChecker, RollbackService, SyncPermission,
-};
+use crate::services::{ExecuteRollbackInput, PermissionChecker, RollbackService, SyncPermission};
 use async_graphql::{Context, Object, Result};
 use uuid::Uuid;
 
@@ -33,8 +31,8 @@ impl SyncRollbackMutations {
             .await?;
 
         // Parse snapshot ID
-        let snapshot_id = Uuid::parse_str(&snapshot_id)
-            .map_err(|_| "Invalid snapshot ID format")?;
+        let snapshot_id =
+            Uuid::parse_str(&snapshot_id).map_err(|_| "Invalid snapshot ID format")?;
 
         // Execute rollback
         let service = RollbackService::new(std::sync::Arc::new(db.clone()));
@@ -49,7 +47,9 @@ impl SyncRollbackMutations {
                 .unwrap_or_else(|| "unknown".to_string()),
         };
 
-        let result = service.execute_rollback(input).await
+        let result = service
+            .execute_rollback(input)
+            .await
             .map_err(|e| async_graphql::Error::new(format!("Rollback execution failed: {}", e)))?;
 
         Ok(RollbackOperationResult {

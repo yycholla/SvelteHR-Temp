@@ -12,10 +12,12 @@ fn get_test_db_url() -> String {
 
 async fn setup() -> Result<DatabaseConnection, DbErr> {
     let db = Database::connect(get_test_db_url()).await?;
-    let _ = db.execute(Statement::from_string(
-        DbBackend::Postgres,
-        "DROP TABLE IF EXISTS hr_public.sync_sessions CASCADE".to_string(),
-    )).await;
+    let _ = db
+        .execute(Statement::from_string(
+            DbBackend::Postgres,
+            "DROP TABLE IF EXISTS hr_public.sync_sessions CASCADE".to_string(),
+        ))
+        .await;
     Ok(db)
 }
 
@@ -30,11 +32,14 @@ async fn test_up_migration_creates_table() -> Result<(), DbErr> {
     let manager = SchemaManager::new(&db);
     Migration.up(&manager).await?;
 
-    let result = db.query_one(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT EXISTS (SELECT FROM information_schema.tables
-         WHERE table_schema = 'hr_public' AND table_name = 'sync_sessions')".to_string(),
-    )).await?;
+    let result = db
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT EXISTS (SELECT FROM information_schema.tables
+         WHERE table_schema = 'hr_public' AND table_name = 'sync_sessions')"
+                .to_string(),
+        ))
+        .await?;
 
     let exists: bool = result.unwrap().try_get("", "exists")?;
     assert!(exists);
@@ -49,12 +54,15 @@ async fn test_audit_logs_columns_added() -> Result<(), DbErr> {
     let manager = SchemaManager::new(&db);
     Migration.up(&manager).await?;
 
-    let columns = db.query_all(Statement::from_string(
-        DbBackend::Postgres,
-        "SELECT column_name FROM information_schema.columns
+    let columns = db
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT column_name FROM information_schema.columns
          WHERE table_schema = 'hr_public' AND table_name = 'audit_logs'
-         AND column_name IN ('audit_id', 'previous_audit_id', 'audit_hash', 'entity_name')".to_string(),
-    )).await?;
+         AND column_name IN ('audit_id', 'previous_audit_id', 'audit_hash', 'entity_name')"
+                .to_string(),
+        ))
+        .await?;
 
     assert_eq!(columns.len(), 4);
 

@@ -91,7 +91,8 @@ impl Model {
     #[graphql(name = "oldValues")]
     async fn old_values(&self) -> Option<String> {
         // For backward compatibility, try to extract oldValues from changes JSON
-        self.changes.as_ref()
+        self.changes
+            .as_ref()
             .and_then(|v| v.get("oldValues"))
             .map(|v| v.to_string())
     }
@@ -99,7 +100,8 @@ impl Model {
     #[graphql(name = "newValues")]
     async fn new_values(&self) -> Option<String> {
         // For backward compatibility, try to extract newValues from changes JSON
-        self.changes.as_ref()
+        self.changes
+            .as_ref()
             .and_then(|v| v.get("newValues"))
             .map(|v| v.to_string())
     }
@@ -110,7 +112,10 @@ impl Model {
     }
 
     /// Event relationship (lazy-loaded)
-    async fn event(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::event::Model> {
+    async fn event(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::event::Model> {
         let db = get_db_from_context(ctx)?;
         let event = crate::models::event::Entity::find_by_id(self.event_id)
             .filter(crate::models::event::Column::DeletedAt.is_null())
@@ -123,7 +128,10 @@ impl Model {
 
     /// Changed by user relationship (lazy-loaded)
     #[graphql(name = "changedBy")]
-    async fn changed_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+    async fn changed_by(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::user::Model> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.user_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())

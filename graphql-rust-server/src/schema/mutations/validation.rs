@@ -1,13 +1,13 @@
 //! GraphQL mutations for validation system
 
-use async_graphql::{Context, Object, Result as GqlResult, InputObject};
+use async_graphql::{Context, InputObject, Object, Result as GqlResult};
 use chrono::Utc;
-use sea_orm::{EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 use crate::database::get_db_from_context;
-use crate::models::{validation_rule, validation_failure};
-use crate::schema::queries::validation::{ValidationRuleGraphQL, ValidationFailureGraphQL};
+use crate::models::{validation_failure, validation_rule};
+use crate::schema::queries::validation::{ValidationFailureGraphQL, ValidationRuleGraphQL};
 
 /// Input for creating a validation rule
 #[derive(Debug, Clone, InputObject)]
@@ -82,8 +82,7 @@ impl ValidationMutation {
     ) -> GqlResult<ValidationRuleGraphQL> {
         let db = get_db_from_context(ctx)?;
 
-        let rule_id = Uuid::parse_str(&input.id)
-            .map_err(|_| "Invalid rule ID")?;
+        let rule_id = Uuid::parse_str(&input.id).map_err(|_| "Invalid rule ID")?;
 
         let rule = validation_rule::Entity::find_by_id(rule_id)
             .one(&db)
@@ -115,15 +114,10 @@ impl ValidationMutation {
     }
 
     /// Delete a validation rule
-    async fn delete_validation_rule(
-        &self,
-        ctx: &Context<'_>,
-        id: String,
-    ) -> GqlResult<bool> {
+    async fn delete_validation_rule(&self, ctx: &Context<'_>, id: String) -> GqlResult<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let rule_id = Uuid::parse_str(&id)
-            .map_err(|_| "Invalid rule ID")?;
+        let rule_id = Uuid::parse_str(&id).map_err(|_| "Invalid rule ID")?;
 
         let result = validation_rule::Entity::delete_by_id(rule_id)
             .exec(&db)
@@ -140,8 +134,7 @@ impl ValidationMutation {
     ) -> GqlResult<ValidationFailureGraphQL> {
         let db = get_db_from_context(ctx)?;
 
-        let failure_id = Uuid::parse_str(&input.id)
-            .map_err(|_| "Invalid failure ID")?;
+        let failure_id = Uuid::parse_str(&input.id).map_err(|_| "Invalid failure ID")?;
 
         let failure = validation_failure::Entity::find_by_id(failure_id)
             .one(&db)

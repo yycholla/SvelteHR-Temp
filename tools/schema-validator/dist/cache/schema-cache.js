@@ -2,7 +2,7 @@
  * Schema Cache - Multi-level caching for database, API, and operations
  * Improves validation performance by caching introspection results
  */
-import { readFile, writeFile, unlink, mkdir } from 'fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';

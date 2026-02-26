@@ -1,9 +1,28 @@
 <script lang="ts">
+	interface UserFormState {
+		email: string;
+		displayName: string;
+		password: string;
+		roleId: string;
+		departmentId: string;
+		isActive: boolean;
+	}
+
+	interface RoleOption {
+		id: string;
+		name: string;
+	}
+
+	interface DepartmentOption {
+		id: string;
+		name: string;
+	}
+
 	interface Props {
 		open: boolean;
-		formData: any;
-		roles: any[];
-		departments: any[];
+		formData: UserFormState;
+		roles: RoleOption[];
+		departments: DepartmentOption[];
 		loading: boolean;
 		onClose: () => void;
 		onSubmit: () => void;

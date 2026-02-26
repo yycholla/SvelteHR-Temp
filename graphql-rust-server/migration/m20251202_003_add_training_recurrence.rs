@@ -121,7 +121,9 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table((Schema::HrPublic, Trainings::Table))
-                    .add_column_if_not_exists(ColumnDef::new(Trainings::RecurrenceEndDate).timestamp_with_time_zone())
+                    .add_column_if_not_exists(
+                        ColumnDef::new(Trainings::RecurrenceEndDate).timestamp_with_time_zone(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -224,19 +226,10 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.trainings",
-            "recurrence_id",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.trainings", "recurrence_id")
+            .await?;
 
-        MigrationHelpers::drop_column_if_exists(
-            manager,
-            "hr_public.trainings",
-            "rrule",
-        )
-        .await?;
+        MigrationHelpers::drop_column_if_exists(manager, "hr_public.trainings", "rrule").await?;
 
         Ok(())
     }

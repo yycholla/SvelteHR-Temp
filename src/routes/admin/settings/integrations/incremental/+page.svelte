@@ -39,6 +39,8 @@
 	import { browser } from '$app/environment';
 	import { invalidate } from '$app/navigation';
 
+	type IncrementalEntityType = 'All' | 'Employee' | 'Department';
+
 	let { data } = $props();
 
 	let settings = $derived(data.settings);
@@ -48,8 +50,8 @@
 	let forceFullSyncDialogOpen = $state(false);
 
 	// Form states
-	let selectedEntityType = $state<string>('All');
-	let selectedForceEntityType = $state<string>('All');
+	let selectedEntityType = $state<IncrementalEntityType>('All');
+	let selectedForceEntityType = $state<IncrementalEntityType>('All');
 
 	// UI states
 	let toggling = $state(false);
@@ -63,6 +65,11 @@
 		{ value: 'Employee', label: 'Employees Only' },
 		{ value: 'Department', label: 'Departments Only' }
 	];
+
+	function parseEntityType(value: string): IncrementalEntityType {
+		if (value === 'Employee' || value === 'Department') return value;
+		return 'All';
+	}
 
 	async function toggleIncrementalSync(enable: boolean) {
 		if (!browser) return;
@@ -434,9 +441,9 @@
 				<Label for="clear-entity-type">Entity Type</Label>
 				<Select
 					type="single"
-					value={selectedEntityType as any}
-					onValueChange={(value: any) => {
-						selectedEntityType = value;
+					value={selectedEntityType}
+					onValueChange={(value: string) => {
+						selectedEntityType = parseEntityType(value);
 					}}
 				>
 					<SelectTrigger id="clear-entity-type">
@@ -490,9 +497,9 @@
 				<Label for="force-entity-type">Entity Type</Label>
 				<Select
 					type="single"
-					value={selectedForceEntityType as any}
-					onValueChange={(value: any) => {
-						selectedForceEntityType = value;
+					value={selectedForceEntityType}
+					onValueChange={(value: string) => {
+						selectedForceEntityType = parseEntityType(value);
 					}}
 				>
 					<SelectTrigger id="force-entity-type">

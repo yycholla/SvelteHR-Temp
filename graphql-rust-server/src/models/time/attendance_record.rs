@@ -4,8 +4,8 @@
 
 use async_graphql::{Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, NaiveDate, Utc};
-use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

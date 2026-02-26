@@ -37,8 +37,16 @@ impl MigrationTrait for Migration {
                             .default("other"),
                     )
                     .col(ColumnDef::new(Events::Location).string())
-                    .col(ColumnDef::new(Events::StartTime).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Events::EndTime).timestamp_with_time_zone().not_null())
+                    .col(
+                        ColumnDef::new(Events::StartTime)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Events::EndTime)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(Events::AllDay)
                             .boolean()
@@ -174,14 +182,20 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_event_attendees_event_id")
-                            .from((Schema::HrPublic, EventAttendees::Table), EventAttendees::EventId)
+                            .from(
+                                (Schema::HrPublic, EventAttendees::Table),
+                                EventAttendees::EventId,
+                            )
                             .to((Schema::HrPublic, Events::Table), Events::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_event_attendees_employee_id")
-                            .from((Schema::HrPublic, EventAttendees::Table), EventAttendees::EmployeeId)
+                            .from(
+                                (Schema::HrPublic, EventAttendees::Table),
+                                EventAttendees::EmployeeId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -218,11 +232,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(EventWaitlist::EventId).uuid().not_null())
                     .col(ColumnDef::new(EventWaitlist::UserId).uuid().not_null())
-                    .col(
-                        ColumnDef::new(EventWaitlist::Position)
-                            .integer()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(EventWaitlist::Position).integer().not_null())
                     .col(
                         ColumnDef::new(EventWaitlist::Promoted)
                             .boolean()
@@ -239,14 +249,20 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_event_waitlist_event_id")
-                            .from((Schema::HrPublic, EventWaitlist::Table), EventWaitlist::EventId)
+                            .from(
+                                (Schema::HrPublic, EventWaitlist::Table),
+                                EventWaitlist::EventId,
+                            )
                             .to((Schema::HrPublic, Events::Table), Events::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_event_waitlist_user_id")
-                            .from((Schema::HrPublic, EventWaitlist::Table), EventWaitlist::UserId)
+                            .from(
+                                (Schema::HrPublic, EventWaitlist::Table),
+                                EventWaitlist::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -300,14 +316,20 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_event_comments_event_id")
-                            .from((Schema::HrPublic, EventComments::Table), EventComments::EventId)
+                            .from(
+                                (Schema::HrPublic, EventComments::Table),
+                                EventComments::EventId,
+                            )
                             .to((Schema::HrPublic, Events::Table), Events::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_event_comments_user_id")
-                            .from((Schema::HrPublic, EventComments::Table), EventComments::UserId)
+                            .from(
+                                (Schema::HrPublic, EventComments::Table),
+                                EventComments::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -341,14 +363,20 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_event_history_event_id")
-                            .from((Schema::HrPublic, EventHistory::Table), EventHistory::EventId)
+                            .from(
+                                (Schema::HrPublic, EventHistory::Table),
+                                EventHistory::EventId,
+                            )
                             .to((Schema::HrPublic, Events::Table), Events::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_event_history_user_id")
-                            .from((Schema::HrPublic, EventHistory::Table), EventHistory::UserId)
+                            .from(
+                                (Schema::HrPublic, EventHistory::Table),
+                                EventHistory::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -361,23 +389,43 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, EventHistory::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, EventHistory::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, EventComments::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, EventComments::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, EventWaitlist::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, EventWaitlist::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, EventAttendees::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, EventAttendees::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Events::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Events::Table))
+                    .to_owned(),
+            )
             .await?;
 
         Ok(())

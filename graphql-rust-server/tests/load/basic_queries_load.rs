@@ -8,7 +8,7 @@
 //! ```
 
 use hr_graphql_server::testing::load_testing::{
-    LoadTestConfig, LoadTestOperation, RoleDistribution, run_load_test,
+    run_load_test, LoadTestConfig, LoadTestOperation, RoleDistribution,
 };
 use std::time::Duration;
 
@@ -74,9 +74,7 @@ async fn test_basic_query_load() {
         );
 
     // Run load test
-    let metrics = run_load_test(config)
-        .await
-        .expect("Load test failed");
+    let metrics = run_load_test(config).await.expect("Load test failed");
 
     // Print detailed summary
     metrics.print_summary();
@@ -110,11 +108,8 @@ async fn test_high_concurrency_query_load() {
         .with_duration(Duration::from_secs(30))
         .with_ramp_up(Duration::from_secs(15)) // Gradual ramp-up
         .add_operation(
-            LoadTestOperation::new(
-                "simple_query",
-                "query { users(limit: 10) { id } }",
-            )
-            .with_weight(1.0),
+            LoadTestOperation::new("simple_query", "query { users(limit: 10) { id } }")
+                .with_weight(1.0),
         );
 
     let metrics = run_load_test(config)

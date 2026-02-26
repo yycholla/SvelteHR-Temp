@@ -3,10 +3,11 @@
 //! Provides cursor-based and offset-based pagination with consistent
 //! GraphQL relay-style connection patterns.
 
-use async_graphql::{Error, connection::{Connection, Edge, EmptyFields}, OutputType, SimpleObject};
-use sea_orm::{
-    DatabaseConnection, EntityTrait, QuerySelect, Select,
+use async_graphql::{
+    connection::{Connection, Edge, EmptyFields},
+    Error, OutputType, SimpleObject,
 };
+use sea_orm::{DatabaseConnection, EntityTrait, QuerySelect, Select};
 use serde::{Deserialize, Serialize};
 
 /// Pagination parameters for offset-based pagination
@@ -169,7 +170,9 @@ impl<'a, E: EntityTrait> Paginator<'a, E> {
         // For now, skip counting and set to 0 - this can be optimized later
         let total_count = 0;
 
-        let items = self.select.clone()
+        let items = self
+            .select
+            .clone()
             .limit(Some(pagination.page_size))
             .offset(Some(((pagination.page - 1) * pagination.page_size) as u64))
             .all(self.db)
@@ -194,7 +197,7 @@ impl<'a, E: EntityTrait> Paginator<'a, E> {
         E::Model: OutputType,
     {
         let limit = pagination.limit();
-        
+
         let mut query = self.select.clone().limit(limit + 1);
 
         if let Some(after) = &pagination.after {
@@ -211,7 +214,7 @@ impl<'a, E: EntityTrait> Paginator<'a, E> {
         let items: Vec<E::Model> = items.into_iter().take(limit as usize).collect();
 
         let mut connection = Connection::new(false, has_next_page);
-        
+
         for item in items {
             let cursor = cursor_fn(&item);
             connection.edges.push(Edge::new(cursor, item));
@@ -223,20 +226,22 @@ impl<'a, E: EntityTrait> Paginator<'a, E> {
 
 /// Encode a cursor for pagination
 pub fn encode_cursor(value: impl ToString) -> String {
-    use base64::{Engine as _, engine::general_purpose};
+    use base64::{engine::general_purpose, Engine as _};
     general_purpose::STANDARD.encode(value.to_string())
 }
 
 /// Decode a cursor for pagination
 pub fn decode_cursor(cursor: &str) -> Result<u64, Error> {
-    use base64::{Engine as _, engine::general_purpose};
-    let decoded = general_purpose::STANDARD.decode(cursor)
+    use base64::{engine::general_purpose, Engine as _};
+    let decoded = general_purpose::STANDARD
+        .decode(cursor)
         .map_err(|e| Error::new(format!("Invalid cursor format: {}", e)))?;
 
     let string = String::from_utf8(decoded)
         .map_err(|e| Error::new(format!("Invalid cursor encoding: {}", e)))?;
 
-    string.parse::<u64>()
+    string
+        .parse::<u64>()
         .map_err(|e| Error::new(format!("Invalid cursor value: {}", e)))
 }
 

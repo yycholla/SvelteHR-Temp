@@ -167,21 +167,13 @@ impl MigrationTrait for Migration {
                             .integer()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(BatchOperations::TriggeredBy)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(BatchOperations::TriggeredBy).uuid().null())
                     .col(
                         ColumnDef::new(BatchOperations::TriggeredByEmail)
                             .string_len(255)
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(BatchOperations::ErrorMessage)
-                            .text()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(BatchOperations::ErrorMessage).text().null())
                     .col(
                         ColumnDef::new(BatchOperations::ErrorSummary)
                             .json_binary()
@@ -207,11 +199,7 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(BatchOperations::DurationMs)
-                            .integer()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(BatchOperations::DurationMs).integer().null())
                     .col(
                         ColumnDef::new(BatchOperations::CreatedAt)
                             .timestamp_with_time_zone()
@@ -313,8 +301,14 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_batch_operation_items_batch_operation")
-                    .from((Schema::HrPublic, BatchOperationItems::Table), BatchOperationItems::BatchOperationId)
-                    .to((Schema::HrPublic, BatchOperations::Table), BatchOperations::Id)
+                    .from(
+                        (Schema::HrPublic, BatchOperationItems::Table),
+                        BatchOperationItems::BatchOperationId,
+                    )
+                    .to(
+                        (Schema::HrPublic, BatchOperations::Table),
+                        BatchOperations::Id,
+                    )
                     .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),
             )

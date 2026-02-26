@@ -1,19 +1,15 @@
 <script lang="ts">
-	import { invalidate, goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import {
-		FileText,
-		Download,
-		Calendar,
-		Clock,
-		User,
 		AlertCircle,
+		Calendar,
 		CheckCircle,
-		Shield,
 		FileSpreadsheet,
+		FileText,
+		Plus,
 		RefreshCw,
-		Search,
-		Plus
+		Search
 	} from '@lucide/svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { createUrqlClient } from '$lib/graphql/client';
@@ -203,7 +199,6 @@
 				invalidate('app:compliance');
 			}, 1500);
 		} catch (error) {
-			console.error('Error generating report:', error);
 			generateError = error instanceof Error ? error.message : 'Failed to generate report';
 		} finally {
 			generating = false;
@@ -234,8 +229,7 @@
 
 		try {
 			// In a real implementation, you would fetch the file from the server
-			// For now, we'll just log the action
-			console.log('Downloading file:', filePath);
+			// For now, we surface file metadata while download API is not implemented.
 
 			// TODO: Implement actual file download
 			// const response = await fetch(`/api/files/download?path=${encodeURIComponent(filePath)}`);
@@ -250,9 +244,8 @@
 			// window.URL.revokeObjectURL(url);
 			// document.body.removeChild(a);
 
-			alert(`Download functionality not yet implemented.\nFile path: ${filePath}`);
-		} catch (error) {
-			console.error('Error downloading file:', error);
+			alert(`Download functionality not yet implemented.\nFile: ${fileName}\nPath: ${filePath}`);
+		} catch {
 			alert('Failed to download file');
 		}
 	}

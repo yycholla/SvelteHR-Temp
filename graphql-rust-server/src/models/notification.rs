@@ -8,7 +8,6 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-
 /// Notification type enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NotificationType {
@@ -277,16 +276,18 @@ impl Model {
 
     /// Related resource type (if applicable)
     async fn related_resource_type(&self) -> Option<NotificationResourceType> {
-        self.related_resource_type.as_ref().map(|rt| match rt.as_str() {
-            "task" => NotificationResourceType::Task,
-            "leave_request" => NotificationResourceType::LeaveRequest,
-            "performance_review" => NotificationResourceType::PerformanceReview,
-            "event" => NotificationResourceType::Event,
-            "user" => NotificationResourceType::User,
-            "department" => NotificationResourceType::Department,
-            "document" => NotificationResourceType::Document,
-            _ => NotificationResourceType::Task, // Default fallback
-        })
+        self.related_resource_type
+            .as_ref()
+            .map(|rt| match rt.as_str() {
+                "task" => NotificationResourceType::Task,
+                "leave_request" => NotificationResourceType::LeaveRequest,
+                "performance_review" => NotificationResourceType::PerformanceReview,
+                "event" => NotificationResourceType::Event,
+                "user" => NotificationResourceType::User,
+                "department" => NotificationResourceType::Department,
+                "document" => NotificationResourceType::Document,
+                _ => NotificationResourceType::Task, // Default fallback
+            })
     }
 
     /// Related resource ID (if applicable)
@@ -343,7 +344,10 @@ mod tests {
     #[test]
     fn test_notification_resource_type_serialization() {
         assert_eq!(NotificationResourceType::Task.as_str(), "task");
-        assert_eq!(NotificationResourceType::LeaveRequest.as_str(), "leave_request");
+        assert_eq!(
+            NotificationResourceType::LeaveRequest.as_str(),
+            "leave_request"
+        );
         assert_eq!(NotificationResourceType::Event.as_str(), "event");
     }
 }

@@ -1,11 +1,21 @@
 <script lang="ts">
 	import { Search } from '@lucide/svelte';
 
+	interface RoleOption {
+		id: string;
+		name: string;
+	}
+
+	interface DepartmentOption {
+		id: string;
+		name: string;
+	}
+
 	interface Props {
 		searchQuery: string;
 		filters: { role: string; department: string; status: string };
-		roles: any[];
-		departments: any[];
+		roles: RoleOption[];
+		departments: DepartmentOption[];
 		onApplyFilters: () => void;
 		onClearFilters: () => void;
 	}

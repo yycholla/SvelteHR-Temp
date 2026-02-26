@@ -11,15 +11,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251226_001_add_sync_tracking::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251226_001_add_sync_tracking::Migration;
 
     /// Setup a test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -51,7 +54,8 @@ mod tests {
                  DROP COLUMN IF EXISTS last_synced_at,
                  DROP COLUMN IF EXISTS last_modified_at,
                  DROP COLUMN IF EXISTS quickbooks_sync_token,
-                 DROP COLUMN IF EXISTS sync_status".to_string(),
+                 DROP COLUMN IF EXISTS sync_status"
+                    .to_string(),
             ))
             .await;
 
@@ -63,7 +67,8 @@ mod tests {
                  DROP COLUMN IF EXISTS last_synced_at,
                  DROP COLUMN IF EXISTS last_modified_at,
                  DROP COLUMN IF EXISTS quickbooks_sync_token,
-                 DROP COLUMN IF EXISTS sync_status".to_string(),
+                 DROP COLUMN IF EXISTS sync_status"
+                    .to_string(),
             ))
             .await;
     }
@@ -101,7 +106,11 @@ mod tests {
             .await;
 
         assert!(users_columns_result.is_ok(), "Users columns should exist");
-        assert_eq!(users_columns_result.unwrap().len(), 4, "Should have 4 sync tracking columns in users");
+        assert_eq!(
+            users_columns_result.unwrap().len(),
+            4,
+            "Should have 4 sync tracking columns in users"
+        );
 
         // Verify departments columns were added
         let dept_columns_result = db
@@ -115,8 +124,15 @@ mod tests {
             ))
             .await;
 
-        assert!(dept_columns_result.is_ok(), "Departments columns should exist");
-        assert_eq!(dept_columns_result.unwrap().len(), 4, "Should have 4 sync tracking columns in departments");
+        assert!(
+            dept_columns_result.is_ok(),
+            "Departments columns should exist"
+        );
+        assert_eq!(
+            dept_columns_result.unwrap().len(),
+            4,
+            "Should have 4 sync tracking columns in departments"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -129,7 +145,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify last_synced_at is nullable in users
         let column_result = db
@@ -138,7 +157,8 @@ mod tests {
                 "SELECT is_nullable FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'last_synced_at'".to_string(),
+                 AND column_name = 'last_synced_at'"
+                    .to_string(),
             ))
             .await;
 
@@ -149,7 +169,10 @@ mod tests {
             .try_get("", "is_nullable")
             .expect("Should get is_nullable");
 
-        assert_eq!(is_nullable, "YES", "last_synced_at should be nullable (NULL means never synced)");
+        assert_eq!(
+            is_nullable, "YES",
+            "last_synced_at should be nullable (NULL means never synced)"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -162,7 +185,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify last_modified_at is NOT NULL with DEFAULT in users
         let column_result = db
@@ -171,13 +197,16 @@ mod tests {
                 "SELECT is_nullable, column_default FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'last_modified_at'".to_string(),
+                 AND column_name = 'last_modified_at'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok(), "last_modified_at should exist");
         let column = column_result.unwrap().unwrap();
-        let is_nullable: String = column.try_get("", "is_nullable").expect("Should get is_nullable");
+        let is_nullable: String = column
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
         let default_val: Option<String> = column.try_get("", "column_default").ok();
 
         assert_eq!(is_nullable, "NO", "last_modified_at should be NOT NULL");
@@ -197,7 +226,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify sync_status has default 'synced' in users
         let column_result = db
@@ -206,7 +238,8 @@ mod tests {
                 "SELECT column_default FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'sync_status'".to_string(),
+                 AND column_name = 'sync_status'"
+                    .to_string(),
             ))
             .await;
 
@@ -233,7 +266,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify quickbooks_sync_token is nullable (only set after first sync)
         let column_result = db
@@ -242,17 +278,28 @@ mod tests {
                 "SELECT is_nullable, data_type FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'quickbooks_sync_token'".to_string(),
+                 AND column_name = 'quickbooks_sync_token'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok(), "quickbooks_sync_token should exist");
         let column = column_result.unwrap().unwrap();
-        let is_nullable: String = column.try_get("", "is_nullable").expect("Should get is_nullable");
-        let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
+        let is_nullable: String = column
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
+        let data_type: String = column
+            .try_get("", "data_type")
+            .expect("Should get data_type");
 
-        assert_eq!(is_nullable, "YES", "quickbooks_sync_token should be nullable");
-        assert_eq!(data_type, "text", "quickbooks_sync_token should be TEXT type");
+        assert_eq!(
+            is_nullable, "YES",
+            "quickbooks_sync_token should be nullable"
+        );
+        assert_eq!(
+            data_type, "text",
+            "quickbooks_sync_token should be TEXT type"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -265,7 +312,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify all 3 user indexes exist
         let indexes_result = db
@@ -280,7 +330,11 @@ mod tests {
             .await;
 
         assert!(indexes_result.is_ok(), "User indexes should exist");
-        assert_eq!(indexes_result.unwrap().len(), 3, "Should have 3 sync tracking indexes on users");
+        assert_eq!(
+            indexes_result.unwrap().len(),
+            3,
+            "Should have 3 sync tracking indexes on users"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -293,7 +347,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify all 3 department indexes exist
         let indexes_result = db
@@ -308,7 +365,11 @@ mod tests {
             .await;
 
         assert!(indexes_result.is_ok(), "Department indexes should exist");
-        assert_eq!(indexes_result.unwrap().len(), 3, "Should have 3 sync tracking indexes on departments");
+        assert_eq!(
+            indexes_result.unwrap().len(),
+            3,
+            "Should have 3 sync tracking indexes on departments"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -321,7 +382,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify composite index includes both columns
         let index_result = db
@@ -330,7 +394,8 @@ mod tests {
                 "SELECT indexdef FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'users'
-                 AND indexname = 'idx_users_intuit_id_sync_status'".to_string(),
+                 AND indexname = 'idx_users_intuit_id_sync_status'"
+                    .to_string(),
             ))
             .await;
 
@@ -399,8 +464,14 @@ mod tests {
         let migration = Migration;
 
         // Run up then down
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         // Verify columns were dropped from users
         let users_columns_result = db
@@ -425,7 +496,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT indexname FROM pg_indexes
                  WHERE schemaname = 'hr_public'
-                 AND indexname LIKE 'idx_users_%_sync%'".to_string(),
+                 AND indexname LIKE 'idx_users_%_sync%'"
+                    .to_string(),
             ))
             .await;
 
@@ -448,8 +520,14 @@ mod tests {
         let migration = Migration;
 
         // Run up, then down twice
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("First migration down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("First migration down should succeed");
         migration
             .down(&schema_manager)
             .await
@@ -468,9 +546,18 @@ mod tests {
         let migration = Migration;
 
         // Run complete up/down/up cycle
-        migration.up(&schema_manager).await.expect("First up should succeed");
-        migration.down(&schema_manager).await.expect("Down should succeed");
-        migration.up(&schema_manager).await.expect("Second up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("First up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Second up should succeed");
 
         // Verify columns exist after full cycle
         let users_columns_result = db
@@ -479,7 +566,8 @@ mod tests {
                 "SELECT column_name FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name IN ('last_synced_at', 'sync_status')".to_string(),
+                 AND column_name IN ('last_synced_at', 'sync_status')"
+                    .to_string(),
             ))
             .await;
 
@@ -500,7 +588,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify departments has same columns as users
         let dept_columns_result = db
@@ -515,7 +606,10 @@ mod tests {
             ))
             .await;
 
-        assert!(dept_columns_result.is_ok(), "Department columns should exist");
+        assert!(
+            dept_columns_result.is_ok(),
+            "Department columns should exist"
+        );
         assert_eq!(
             dept_columns_result.unwrap().len(),
             4,

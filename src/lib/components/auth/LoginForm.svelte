@@ -15,7 +15,7 @@
 	 */
 
 	const dispatch = createEventDispatcher<{
-		success: { user: any };
+		success: { user: { email: string } };
 		error: { message: string };
 	}>();
 
@@ -27,9 +27,54 @@
 	let isSubmitting = $state(false);
 	let hasSucceeded = $state(false); // Flag to prevent multiple submissions after success
 	let mounted = $state(false); // Fix hydration mismatch
+	let backendAvailable = $state(false);
+	let backendChecking = $state(true);
+	let backendStatusMessage = $state('Checking backend availability...');
+
+	const checkBackendAvailability = async (): Promise<void> => {
+		try {
+			const response = await fetch('/api/graphql', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					query: 'query BackendAvailability { __typename }'
+				})
+			});
+
+			if (!response.ok) {
+				backendAvailable = false;
+				backendStatusMessage =
+					'Backend is not available. Sign in will be enabled once it is running.';
+				return;
+			}
+
+			const payload = (await response.json()) as { data?: unknown; errors?: unknown };
+			backendAvailable = Boolean(payload?.data || payload?.errors);
+			backendStatusMessage = backendAvailable
+				? ''
+				: 'Backend is not available. Sign in will be enabled once it is running.';
+		} catch {
+			backendAvailable = false;
+			backendStatusMessage =
+				'Backend is not available. Sign in will be enabled once it is running.';
+		} finally {
+			backendChecking = false;
+		}
+	};
 
 	onMount(() => {
 		mounted = true;
+		void checkBackendAvailability();
+
+		const interval = setInterval(() => {
+			void checkBackendAvailability();
+		}, 5000);
+
+		return () => {
+			clearInterval(interval);
+		};
 	});
 
 	// Validation rules
@@ -85,6 +130,12 @@
 		// SECURITY: Ensure no credentials in URL
 		if (!ensureNoCredentialsInURL()) {
 			jwtAuth.error = 'Security check failed. Please try again.';
+			return;
+		}
+
+		// Prevent login while backend is unavailable
+		if (!backendAvailable) {
+			jwtAuth.error = 'Backend is unavailable. Please wait for backend startup and try again.';
 			return;
 		}
 
@@ -158,6 +209,16 @@
 				<AlertCircle class="h-4 w-4" />
 				<AlertTitle>Authentication Error</AlertTitle>
 				<AlertDescription>{jwtAuth.error}</AlertDescription>
+			</Alert>
+		{/if}
+
+		{#if mounted && (!backendAvailable || backendChecking)}
+			<Alert variant="destructive" data-testid="backend-unavailable-message">
+				<AlertCircle class="h-4 w-4" />
+				<AlertTitle>Backend Unavailable</AlertTitle>
+				<AlertDescription>
+					{backendChecking ? 'Checking backend availability...' : backendStatusMessage}
+				</AlertDescription>
 			</Alert>
 		{/if}
 
@@ -254,11 +315,18 @@
 				disabled={isSubmitting ||
 					(mounted && jwtAuth.isLoading) ||
 					hasSucceeded ||
+					!backendAvailable ||
+					backendChecking ||
 					Object.keys(formErrors).length > 0}
 				class="w-full"
 				data-testid="login-submit-button"
 			>
-				{#if isSubmitting || (mounted && jwtAuth.isLoading)}
+				{#if backendChecking}
+					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					Checking backend...
+				{:else if !backendAvailable}
+					Backend unavailable
+				{:else if isSubmitting || (mounted && jwtAuth.isLoading)}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 					Signing in...
 				{:else}

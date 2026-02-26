@@ -22,9 +22,8 @@ mod tests {
 
     /// Set up test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/hr_test".to_string()
-        });
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
         Database::connect(&db_url)
             .await
             .expect("Failed to connect to test database")
@@ -180,10 +179,7 @@ mod tests {
         assert!(result.is_some(), "Query should return result");
         let row = result.unwrap();
         let count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(
-            count, 1,
-            "Default row (id=1) should exist after migration"
-        );
+        assert_eq!(count, 1, "Default row (id=1) should exist after migration");
     }
 
     #[tokio::test]
@@ -229,19 +225,34 @@ mod tests {
         let row = result.unwrap();
 
         let system_name: String = row.try_get("", "system_name").unwrap();
-        assert_eq!(system_name, "MoncuraHR", "Default system_name should be 'MoncuraHR'");
+        assert_eq!(
+            system_name, "MoncuraHR",
+            "Default system_name should be 'MoncuraHR'"
+        );
 
         let system_timezone: String = row.try_get("", "system_timezone").unwrap();
-        assert_eq!(system_timezone, "UTC", "Default system_timezone should be 'UTC'");
+        assert_eq!(
+            system_timezone, "UTC",
+            "Default system_timezone should be 'UTC'"
+        );
 
         let session_timeout: i32 = row.try_get("", "session_timeout_minutes").unwrap();
-        assert_eq!(session_timeout, 60, "Default session_timeout_minutes should be 60");
+        assert_eq!(
+            session_timeout, 60,
+            "Default session_timeout_minutes should be 60"
+        );
 
         let min_password_length: i32 = row.try_get("", "min_password_length").unwrap();
-        assert_eq!(min_password_length, 12, "Default min_password_length should be 12");
+        assert_eq!(
+            min_password_length, 12,
+            "Default min_password_length should be 12"
+        );
 
         let max_login_attempts: i32 = row.try_get("", "max_login_attempts").unwrap();
-        assert_eq!(max_login_attempts, 5, "Default max_login_attempts should be 5");
+        assert_eq!(
+            max_login_attempts, 5,
+            "Default max_login_attempts should be 5"
+        );
 
         let require_mfa: bool = row.try_get("", "require_mfa").unwrap();
         assert_eq!(require_mfa, false, "Default require_mfa should be false");
@@ -262,19 +273,31 @@ mod tests {
         );
 
         let https_enforced: bool = row.try_get("", "https_enforced").unwrap();
-        assert_eq!(https_enforced, false, "Default https_enforced should be false");
+        assert_eq!(
+            https_enforced, false,
+            "Default https_enforced should be false"
+        );
 
         let x_frame_options: bool = row.try_get("", "x_frame_options").unwrap();
-        assert_eq!(x_frame_options, true, "Default x_frame_options should be true");
+        assert_eq!(
+            x_frame_options, true,
+            "Default x_frame_options should be true"
+        );
 
         let hsts_enabled: bool = row.try_get("", "hsts_enabled").unwrap();
         assert_eq!(hsts_enabled, false, "Default hsts_enabled should be false");
 
         let log_level_frontend: String = row.try_get("", "log_level_frontend").unwrap();
-        assert_eq!(log_level_frontend, "INFO", "Default log_level_frontend should be 'INFO'");
+        assert_eq!(
+            log_level_frontend, "INFO",
+            "Default log_level_frontend should be 'INFO'"
+        );
 
         let log_level_backend: String = row.try_get("", "log_level_backend").unwrap();
-        assert_eq!(log_level_backend, "INFO", "Default log_level_backend should be 'INFO'");
+        assert_eq!(
+            log_level_backend, "INFO",
+            "Default log_level_backend should be 'INFO'"
+        );
     }
 
     #[tokio::test]
@@ -308,10 +331,7 @@ mod tests {
         assert!(result.is_some(), "Query should return result");
         let row = result.unwrap();
         let data_type: String = row.try_get("", "data_type").unwrap();
-        assert_eq!(
-            data_type, "ARRAY",
-            "cors_origins should be an ARRAY type"
-        );
+        assert_eq!(data_type, "ARRAY", "cors_origins should be an ARRAY type");
     }
 
     #[tokio::test]

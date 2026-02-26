@@ -19,10 +19,10 @@ use serde_json::{json, Value as JsonValue};
 use uuid::Uuid;
 
 // Import test infrastructure
+use hr_graphql_server::models::{leave_balance, leave_request, leave_type};
 use hr_graphql_server::testing::{TestContext, TestUserRole};
-use hr_graphql_server::models::{leave_type, leave_balance, leave_request};
-use sea_orm::{ActiveModelTrait, EntityTrait, Set, ColumnTrait, QueryFilter};
 use rust_decimal::Decimal;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 // ==================================================================================
 // TEST HELPERS
@@ -56,7 +56,10 @@ async fn create_test_leave_type(
         deleted_at: Set(None),
     };
 
-    leave_type.insert(ctx.connection()).await.expect("Failed to create leave type");
+    leave_type
+        .insert(ctx.connection())
+        .await
+        .expect("Failed to create leave type");
     id
 }
 
@@ -87,7 +90,10 @@ async fn create_test_leave_balance(
         deleted_at: Set(None),
     };
 
-    balance.insert(ctx.connection()).await.expect("Failed to create leave balance");
+    balance
+        .insert(ctx.connection())
+        .await
+        .expect("Failed to create leave balance");
     id
 }
 
@@ -121,7 +127,10 @@ async fn create_existing_leave_request(
         deleted_at: Set(None),
     };
 
-    request.insert(ctx.connection()).await.expect("Failed to create leave request");
+    request
+        .insert(ctx.connection())
+        .await
+        .expect("Failed to create leave request");
     id
 }
 
@@ -131,7 +140,9 @@ async fn create_existing_leave_request(
 
 #[tokio::test]
 async fn test_create_leave_request_success() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     // Create leave type
@@ -141,8 +152,12 @@ async fn test_create_leave_request_success() {
     create_test_leave_balance(&ctx, employee.id, leave_type_id, 15, 0).await;
 
     // Calculate future dates
-    let start_date = (Utc::now() + Duration::days(7)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let end_date = (Utc::now() + Duration::days(11)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let start_date = (Utc::now() + Duration::days(7))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
+    let end_date = (Utc::now() + Duration::days(11))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
 
     let query = format!(
         r#"mutation {{
@@ -167,11 +182,7 @@ async fn test_create_leave_request_success() {
     let response = ctx.execute_query_as(&query, employee).await;
     let errors = ctx.extract_errors(&response);
 
-    assert!(
-        errors.is_empty(),
-        "Expected no errors, got: {:?}",
-        errors
-    );
+    assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
 
     let data = to_json(&response.data);
     assert_eq!(
@@ -188,15 +199,21 @@ async fn test_create_leave_request_success() {
 
 #[tokio::test]
 async fn test_create_leave_request_past_start_date_rejected() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 15, true).await;
     create_test_leave_balance(&ctx, employee.id, leave_type_id, 15, 0).await;
 
     // Use past dates
-    let start_date = (Utc::now() - Duration::days(5)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let end_date = (Utc::now() - Duration::days(1)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let start_date = (Utc::now() - Duration::days(5))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
+    let end_date = (Utc::now() - Duration::days(1))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
 
     let query = format!(
         r#"mutation {{
@@ -227,7 +244,9 @@ async fn test_create_leave_request_past_start_date_rejected() {
     } else {
         // If it fails, ensure it's for the right reason
         assert!(
-            errors.iter().any(|e| e.contains("date") || e.contains("past")),
+            errors
+                .iter()
+                .any(|e| e.contains("date") || e.contains("past")),
             "Expected date-related error, got: {:?}",
             errors
         );
@@ -236,15 +255,21 @@ async fn test_create_leave_request_past_start_date_rejected() {
 
 #[tokio::test]
 async fn test_create_leave_request_end_before_start_rejected() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 15, true).await;
     create_test_leave_balance(&ctx, employee.id, leave_type_id, 15, 0).await;
 
     // End date before start date
-    let start_date = (Utc::now() + Duration::days(10)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let end_date = (Utc::now() + Duration::days(5)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let start_date = (Utc::now() + Duration::days(10))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
+    let end_date = (Utc::now() + Duration::days(5))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
 
     let query = format!(
         r#"mutation {{
@@ -274,7 +299,9 @@ async fn test_create_leave_request_end_before_start_rejected() {
 
 #[tokio::test]
 async fn test_create_leave_request_overlapping_dates_rejected() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 15, true).await;
@@ -291,11 +318,16 @@ async fn test_create_leave_request_overlapping_dates_rejected() {
         existing_end,
         5,
         "approved",
-    ).await;
+    )
+    .await;
 
     // Try to create overlapping request
-    let overlap_start = (Utc::now() + Duration::days(12)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let overlap_end = (Utc::now() + Duration::days(16)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let overlap_start = (Utc::now() + Duration::days(12))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
+    let overlap_end = (Utc::now() + Duration::days(16))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
 
     let query = format!(
         r#"mutation {{
@@ -325,7 +357,9 @@ async fn test_create_leave_request_overlapping_dates_rejected() {
 
 #[tokio::test]
 async fn test_create_leave_request_exceeds_balance_rejected() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 15, true).await;
@@ -333,8 +367,12 @@ async fn test_create_leave_request_exceeds_balance_rejected() {
     create_test_leave_balance(&ctx, employee.id, leave_type_id, 15, 12).await;
 
     // Try to request 5 days (more than remaining 3)
-    let start_date = (Utc::now() + Duration::days(7)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let end_date = (Utc::now() + Duration::days(11)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let start_date = (Utc::now() + Duration::days(7))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
+    let end_date = (Utc::now() + Duration::days(11))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
 
     let query = format!(
         r#"mutation {{
@@ -359,7 +397,8 @@ async fn test_create_leave_request_exceeds_balance_rejected() {
         println!("WARNING: Balance validation not implemented");
     } else {
         assert!(
-            errors.iter().any(|e| e.to_lowercase().contains("balance") || e.to_lowercase().contains("insufficient")),
+            errors.iter().any(|e| e.to_lowercase().contains("balance")
+                || e.to_lowercase().contains("insufficient")),
             "Expected balance-related error, got: {:?}",
             errors
         );
@@ -368,7 +407,9 @@ async fn test_create_leave_request_exceeds_balance_rejected() {
 
 #[tokio::test]
 async fn test_create_leave_request_missing_required_fields() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     // Missing daysRequested field
@@ -393,12 +434,18 @@ async fn test_create_leave_request_missing_required_fields() {
 
 #[tokio::test]
 async fn test_create_leave_request_requires_authentication() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 15, true).await;
 
-    let start_date = (Utc::now() + Duration::days(7)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let end_date = (Utc::now() + Duration::days(11)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let start_date = (Utc::now() + Duration::days(7))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
+    let end_date = (Utc::now() + Duration::days(11))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
 
     let query = format!(
         r#"mutation {{
@@ -423,7 +470,10 @@ async fn test_create_leave_request_requires_authentication() {
         "Expected authentication error when creating leave request without user context"
     );
     assert!(
-        errors.iter().any(|e| e.to_lowercase().contains("authentication") || e.to_lowercase().contains("user context")),
+        errors
+            .iter()
+            .any(|e| e.to_lowercase().contains("authentication")
+                || e.to_lowercase().contains("user context")),
         "Expected authentication-related error, got: {:?}",
         errors
     );
@@ -435,7 +485,9 @@ async fn test_create_leave_request_requires_authentication() {
 
 #[tokio::test]
 async fn test_manager_can_approve_team_member_leave() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let manager = ctx.user(TestUserRole::HrManager);
 
@@ -451,7 +503,8 @@ async fn test_manager_can_approve_team_member_leave() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     // Manager approves it
     let query = format!(
@@ -486,7 +539,9 @@ async fn test_manager_can_approve_team_member_leave() {
 
 #[tokio::test]
 async fn test_manager_cannot_approve_other_team_leave() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let manager = ctx.user(TestUserRole::HrManager);
 
@@ -502,7 +557,8 @@ async fn test_manager_cannot_approve_other_team_leave() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     // Manager tries to approve (should succeed if no department filtering)
     let query = format!(
@@ -530,7 +586,9 @@ async fn test_manager_cannot_approve_other_team_leave() {
 
 #[tokio::test]
 async fn test_hr_admin_can_approve_any_leave() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let admin = ctx.user(TestUserRole::Admin);
 
@@ -546,7 +604,8 @@ async fn test_hr_admin_can_approve_any_leave() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     // Admin approves
     let query = format!(
@@ -581,7 +640,9 @@ async fn test_hr_admin_can_approve_any_leave() {
 
 #[tokio::test]
 async fn test_employee_cannot_approve_own_leave() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 15, true).await;
@@ -596,7 +657,8 @@ async fn test_employee_cannot_approve_own_leave() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     // Employee tries to approve their own request
     let query = format!(
@@ -624,7 +686,9 @@ async fn test_employee_cannot_approve_own_leave() {
 
 #[tokio::test]
 async fn test_leave_status_progression_pending_to_approved() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let manager = ctx.user(TestUserRole::HrManager);
 
@@ -640,7 +704,8 @@ async fn test_leave_status_progression_pending_to_approved() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     // Check initial status
     let query = format!(
@@ -655,10 +720,7 @@ async fn test_leave_status_progression_pending_to_approved() {
 
     let response = ctx.execute_query_as(&query, employee).await;
     let data = to_json(&response.data);
-    assert_eq!(
-        data["leaveRequest"]["status"].as_str(),
-        Some("PENDING")
-    );
+    assert_eq!(data["leaveRequest"]["status"].as_str(), Some("PENDING"));
 
     // Approve it
     let approve_query = format!(
@@ -683,7 +745,9 @@ async fn test_leave_status_progression_pending_to_approved() {
 
 #[tokio::test]
 async fn test_approved_leave_deducts_from_balance() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let manager = ctx.user(TestUserRole::HrManager);
 
@@ -699,7 +763,8 @@ async fn test_approved_leave_deducts_from_balance() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     let approve_query = format!(
         r#"mutation {{
@@ -724,7 +789,11 @@ async fn test_approved_leave_deducts_from_balance() {
 
     // Document whether automatic deduction happens
     if balance.used_days == Decimal::from(5) {
-        assert_eq!(balance.remaining_days, Decimal::from(10), "Remaining should be 10");
+        assert_eq!(
+            balance.remaining_days,
+            Decimal::from(10),
+            "Remaining should be 10"
+        );
         println!("✓ Automatic balance deduction works");
     } else {
         println!("WARNING: Balance not automatically updated after approval");
@@ -733,7 +802,9 @@ async fn test_approved_leave_deducts_from_balance() {
 
 #[tokio::test]
 async fn test_rejected_leave_does_not_affect_balance() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let manager = ctx.user(TestUserRole::HrManager);
 
@@ -749,7 +820,8 @@ async fn test_rejected_leave_does_not_affect_balance() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     // Reject it
     let reject_query = format!(
@@ -769,7 +841,11 @@ async fn test_rejected_leave_does_not_affect_balance() {
     let response = ctx.execute_query_as(&reject_query, manager).await;
     let errors = ctx.extract_errors(&response);
 
-    assert!(errors.is_empty(), "Rejection should succeed, got: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "Rejection should succeed, got: {:?}",
+        errors
+    );
     let data = to_json(&response.data);
     assert_eq!(
         data["rejectLeaveRequest"]["status"].as_str(),
@@ -783,13 +859,23 @@ async fn test_rejected_leave_does_not_affect_balance() {
         .expect("Query failed")
         .expect("Balance not found");
 
-    assert_eq!(balance.used_days, Decimal::from(0), "Used days should remain 0");
-    assert_eq!(balance.remaining_days, Decimal::from(15), "Remaining should still be 15");
+    assert_eq!(
+        balance.used_days,
+        Decimal::from(0),
+        "Used days should remain 0"
+    );
+    assert_eq!(
+        balance.remaining_days,
+        Decimal::from(15),
+        "Remaining should still be 15"
+    );
 }
 
 #[tokio::test]
 async fn test_cannot_approve_already_approved_request() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let manager = ctx.user(TestUserRole::HrManager);
 
@@ -805,7 +891,8 @@ async fn test_cannot_approve_already_approved_request() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "approved",
-    ).await;
+    )
+    .await;
 
     // Try to approve again
     let query = format!(
@@ -828,7 +915,9 @@ async fn test_cannot_approve_already_approved_request() {
         "Should not be able to approve already-approved request"
     );
     assert!(
-        errors.iter().any(|e| e.contains("not pending") || e.contains("not found")),
+        errors
+            .iter()
+            .any(|e| e.contains("not pending") || e.contains("not found")),
         "Expected 'not pending' error, got: {:?}",
         errors
     );
@@ -840,7 +929,9 @@ async fn test_cannot_approve_already_approved_request() {
 
 #[tokio::test]
 async fn test_leave_balance_calculation_with_accrued_days() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 15, true).await;
@@ -870,7 +961,10 @@ async fn test_leave_balance_calculation_with_accrued_days() {
     // Find the balance matching our leave_type_id
     if let Some(balances_array) = balances.as_array() {
         let matching_balance = balances_array.iter().find(|b| {
-            b["leaveTypeId"].as_str().map(|id| id == leave_type_id.to_string()).unwrap_or(false)
+            b["leaveTypeId"]
+                .as_str()
+                .map(|id| id == leave_type_id.to_string())
+                .unwrap_or(false)
         });
 
         if let Some(balance) = matching_balance {
@@ -883,7 +977,9 @@ async fn test_leave_balance_calculation_with_accrued_days() {
 
 #[tokio::test]
 async fn test_leave_balance_excludes_used_days() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Sick Leave", 10, true).await;
@@ -912,7 +1008,9 @@ async fn test_leave_balance_excludes_used_days() {
 
 #[tokio::test]
 async fn test_leave_balance_by_type() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     // Create multiple leave types
@@ -942,7 +1040,10 @@ async fn test_leave_balance_by_type() {
 
     // Find the sick leave balance
     let sick_balance = balances_array.iter().find(|b| {
-        b["leaveTypeId"].as_str().map(|id| id == sick_id.to_string()).unwrap_or(false)
+        b["leaveTypeId"]
+            .as_str()
+            .map(|id| id == sick_id.to_string())
+            .unwrap_or(false)
     });
 
     if let Some(balance) = sick_balance {
@@ -955,7 +1056,9 @@ async fn test_leave_balance_by_type() {
 
 #[tokio::test]
 async fn test_negative_balance_prevention() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 5, true).await;
@@ -982,8 +1085,10 @@ async fn test_negative_balance_prevention() {
                 .expect("Query failed");
 
             if let Some(balance) = balances.first() {
-                println!("Balance created: total={}, used={}, remaining={}",
-                    balance.total_days, balance.used_days, balance.remaining_days);
+                println!(
+                    "Balance created: total={}, used={}, remaining={}",
+                    balance.total_days, balance.used_days, balance.remaining_days
+                );
             }
         }
         Err(_) => {
@@ -994,7 +1099,9 @@ async fn test_negative_balance_prevention() {
 
 #[tokio::test]
 async fn test_leave_balance_current_year_only() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 15, true).await;
@@ -1038,7 +1145,9 @@ async fn test_leave_balance_current_year_only() {
 
 #[tokio::test]
 async fn test_employee_sees_own_leave_requests() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
 
     let leave_type_id = create_test_leave_type(&ctx, "Vacation", 15, true).await;
@@ -1052,7 +1161,8 @@ async fn test_employee_sees_own_leave_requests() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     let query = r#"{
         leaveRequests {
@@ -1065,14 +1175,21 @@ async fn test_employee_sees_own_leave_requests() {
     let response = ctx.execute_query_as(query, employee).await;
     let errors = ctx.extract_errors(&response);
 
-    assert!(errors.is_empty(), "Employee should see their own requests, got: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "Employee should see their own requests, got: {:?}",
+        errors
+    );
 
     let data = to_json(&response.data);
     let requests = &data["leaveRequests"];
     if let Some(requests) = requests.as_array() {
         assert!(
             requests.iter().any(|r| {
-                r["id"].as_str().map(|id| id == request_id.to_string()).unwrap_or(false)
+                r["id"]
+                    .as_str()
+                    .map(|id| id == request_id.to_string())
+                    .unwrap_or(false)
             }),
             "Employee should see their own request"
         );
@@ -1081,7 +1198,9 @@ async fn test_employee_sees_own_leave_requests() {
 
 #[tokio::test]
 async fn test_manager_sees_team_member_requests() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let manager = ctx.user(TestUserRole::HrManager);
 
@@ -1096,7 +1215,8 @@ async fn test_manager_sees_team_member_requests() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     let query = r#"{
         leaveRequests {
@@ -1109,7 +1229,11 @@ async fn test_manager_sees_team_member_requests() {
     let response = ctx.execute_query_as(query, manager).await;
     let errors = ctx.extract_errors(&response);
 
-    assert!(errors.is_empty(), "Manager query should succeed, got: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "Manager query should succeed, got: {:?}",
+        errors
+    );
 
     // Document whether RLS filters by department
     let data = to_json(&response.data);
@@ -1124,7 +1248,9 @@ async fn test_manager_sees_team_member_requests() {
 
 #[tokio::test]
 async fn test_hr_admin_sees_all_requests() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let admin = ctx.user(TestUserRole::Admin);
 
@@ -1139,7 +1265,8 @@ async fn test_hr_admin_sees_all_requests() {
         (Utc::now() + Duration::days(11)).date_naive(),
         5,
         "pending",
-    ).await;
+    )
+    .await;
 
     let query = r#"{
         leaveRequests {
@@ -1152,7 +1279,11 @@ async fn test_hr_admin_sees_all_requests() {
     let response = ctx.execute_query_as(query, admin).await;
     let errors = ctx.extract_errors(&response);
 
-    assert!(errors.is_empty(), "Admin should see all requests, got: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "Admin should see all requests, got: {:?}",
+        errors
+    );
 
     let data = to_json(&response.data);
     let requests = &data["leaveRequests"];
@@ -1163,7 +1294,9 @@ async fn test_hr_admin_sees_all_requests() {
 
 #[tokio::test]
 async fn test_leave_request_filtering_by_status() {
-    let ctx = TestContext::new().await.expect("Failed to create test context");
+    let ctx = TestContext::new()
+        .await
+        .expect("Failed to create test context");
     let employee = ctx.user(TestUserRole::Employee);
     let manager = ctx.user(TestUserRole::HrManager);
 
@@ -1178,7 +1311,8 @@ async fn test_leave_request_filtering_by_status() {
         (Utc::now() + Duration::days(9)).date_naive(),
         3,
         "pending",
-    ).await;
+    )
+    .await;
 
     create_existing_leave_request(
         &ctx,
@@ -1188,7 +1322,8 @@ async fn test_leave_request_filtering_by_status() {
         (Utc::now() + Duration::days(18)).date_naive(),
         5,
         "approved",
-    ).await;
+    )
+    .await;
 
     // Query for pending only
     let query = r#"{

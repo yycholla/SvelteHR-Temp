@@ -14,6 +14,10 @@ import {
 import { authenticateUser } from '$lib/server/hooks/authentication.js';
 import { detectSuspiciousParams, applySecurityHeaders } from '$lib/server/hooks/security.js';
 import {
+	runWithRequestContext,
+	setRequestContextAccessToken
+} from '$lib/server/request-context.js';
+import {
 	MAX_LOGIN_ATTEMPTS,
 	RATE_LIMIT_WINDOW,
 	BLOCK_DURATION
@@ -71,46 +75,46 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 
 		// Try to authenticate user if not a public route
 		if (!isPublicRoute) {
-			// JWT Authentication Check: Look for refresh_token cookie
-			// If present, user has JWT auth; backend will validate the token
-			const cookieHeader = event.request.headers.get('cookie') || '';
-			const hasRefreshToken = cookieHeader.includes('refresh_token=');
+			authResult = await authenticateUser(event, pathname);
 
-			// For JWT users, skip session validation - backend handles JWT validation
-			// For session users, use existing session validation
-			if (hasRefreshToken) {
-				// JWT user - backend will validate token, just check cookie exists
-				// Backend JWT middleware will handle full validation and authorization
-				logger.debug(`JWT auth detected for ${pathname}`, { requestId });
-			} else {
-				// Session-based auth - use existing validation logic
-				authResult = await authenticateUser(event, pathname);
-
-				if (!authResult) {
-					// Special handling for SSE endpoints - return 401 instead of redirecting
-					// EventSource connections can't handle redirects properly
-					if (
-						pathname.includes('/stream') ||
-						event.request.headers.get('accept') === 'text/event-stream'
-					) {
-						logger.warn(`SSE authentication failed for ${pathname}`, {
-							userAgent: event.request.headers.get('user-agent')
-						});
-						return new Response(
-							JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
-							{
-								status: 401,
-								headers: { 'Content-Type': 'application/json' }
-							}
-						);
-					}
-
-					logger.warn(`Unauthorized access to ${pathname}, redirecting to login`, {
+			if (!authResult) {
+				// API endpoints should return HTTP errors, never browser redirects.
+				if (pathname.startsWith('/api/')) {
+					logger.warn(`Unauthorized API access to ${pathname}`, {
 						userAgent: event.request.headers.get('user-agent')
 					});
-					const redirectTo = encodeURIComponent(pathname + event.url.search);
-					redirect(303, `/login?redirectTo=${redirectTo}`);
+					return new Response(
+						JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
+						{
+							status: 401,
+							headers: { 'Content-Type': 'application/json' }
+						}
+					);
 				}
+
+				// Special handling for SSE endpoints - return 401 instead of redirecting
+				// EventSource connections can't handle redirects properly
+				if (
+					pathname.includes('/stream') ||
+					event.request.headers.get('accept') === 'text/event-stream'
+				) {
+					logger.warn(`SSE authentication failed for ${pathname}`, {
+						userAgent: event.request.headers.get('user-agent')
+					});
+					return new Response(
+						JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
+						{
+							status: 401,
+							headers: { 'Content-Type': 'application/json' }
+						}
+					);
+				}
+
+				logger.warn(`Unauthorized access to ${pathname}, redirecting to login`, {
+					userAgent: event.request.headers.get('user-agent')
+				});
+				const redirectTo = encodeURIComponent(pathname + event.url.search);
+				redirect(303, `/login?redirectTo=${redirectTo}`);
 			}
 		}
 
@@ -119,6 +123,7 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 			event.locals.user = authResult.user;
 			event.locals.roles = authResult.roles;
 			event.locals.permissions = authResult.permissions;
+			event.locals.accessToken = authResult.accessToken;
 
 			// Add Sentry user context for better error debugging
 			Sentry.setUser({
@@ -133,14 +138,20 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 				Sentry.setTag('department_id', authResult.user.department_id);
 			}
 		} else {
-			// For JWT users, user context will be populated by backend on each request
-			// No need to populate locals here - GraphQL requests will be authenticated by backend
 			// Clear Sentry user context if no session auth
 			Sentry.setUser(null);
 		}
 
-		// Resolve the request
-		const response = await resolve(event);
+		// Resolve the request with per-request context for server-side GraphQL calls.
+		const response = await runWithRequestContext(
+			{
+				accessToken: authResult?.accessToken
+			},
+			async () => {
+				setRequestContextAccessToken(authResult?.accessToken);
+				return await resolve(event);
+			}
+		);
 
 		// Record performance metrics
 		const duration = Date.now() - startTime;

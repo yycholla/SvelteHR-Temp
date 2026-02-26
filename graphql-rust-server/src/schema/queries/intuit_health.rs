@@ -4,9 +4,9 @@ use async_graphql::{Context, Object, Result};
 use chrono::{DateTime, Utc};
 
 use crate::auth::UserContext;
+use crate::models::{sync_health_alerts, sync_health_metrics};
 use crate::services::health_monitor::{HealthMonitor, SyncHealthSnapshot};
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::models::{sync_health_alerts, sync_health_metrics};
 
 use std::sync::Arc;
 
@@ -68,7 +68,9 @@ impl IntuitHealthQueries {
             .await?;
 
         let monitor = HealthMonitor::new(Arc::new(db.clone()));
-        let metrics = monitor.get_metrics_time_series(hours.unwrap_or(24) as i64).await?;
+        let metrics = monitor
+            .get_metrics_time_series(hours.unwrap_or(24) as i64)
+            .await?;
 
         Ok(metrics.into_iter().map(SyncMetric::from).collect())
     }

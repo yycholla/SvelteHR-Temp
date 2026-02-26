@@ -94,9 +94,11 @@ export const load: PageServerLoad = async (event) => {
 			const GET_DEPARTMENTS = gql`
 				query GetDepartments($limit: Int) {
 					departments(limit: $limit) {
-						id
-						name
-						description
+						items {
+							id
+							name
+							description
+						}
 					}
 				}
 			`;
@@ -158,7 +160,7 @@ export const load: PageServerLoad = async (event) => {
 				userSession: userSession.toJSON(),
 				task: flattenedTask,
 				assignees: assigneesResult?.users || [],
-				departments: departmentsResult?.departments || [],
+				departments: departmentsResult?.departments?.items || [],
 				taskTypes: taskTypesResult?.taskTypes || [],
 				parentTasks: potentialParents,
 				// Spread permissions from loader

@@ -14,6 +14,18 @@
 	import type { ActionData, PageData } from './$types';
 	import type { DocumentMetadata, UploadResult } from '$lib/types/document';
 
+	interface ActionResultPayload {
+		success?: boolean;
+		result?: UploadResult;
+		error?: string;
+	}
+
+	interface UploadActionResultLike {
+		type?: string;
+		error?: string | { message?: string };
+		data?: ActionResultPayload;
+	}
+
 	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Component references and reactive state
@@ -32,7 +44,6 @@
 
 	let uploadComplete = $state(false);
 	let uploadError = $state<string | null>(null);
-	let uploadedDocumentId = $state<string | null>(null);
 	let isUploading = $state(false);
 
 	// Reactive state bound from child components
@@ -71,19 +82,11 @@
 	function handleUploadSuccess(result: UploadResult) {
 		logger.info('Upload successful', { result });
 		uploadComplete = true;
-		uploadedDocumentId = result.documentId;
 
 		// Show success message and redirect after 2 seconds
 		setTimeout(() => {
 			goto('/admin/documents');
 		}, 2000);
-	}
-
-	// Handle upload error
-	function handleUploadError(error: Error) {
-		logger.error('Upload failed:', error as Error);
-		uploadError = error.message;
-		isUploading = false;
 	}
 
 	// Handle cancel
@@ -114,11 +117,14 @@
 	}
 
 	// Handle form action response
-	function handleActionResult(result: any) {
+	function handleActionResult(result: UploadActionResultLike) {
 		if (result.type === 'error') {
-			uploadError = result.error.message || 'Upload failed';
+			uploadError =
+				typeof result.error === 'string'
+					? result.error
+					: (result.error?.message ?? 'Upload failed');
 			isUploading = false;
-		} else if (result.data?.success) {
+		} else if (result.data?.success && result.data.result) {
 			handleUploadSuccess(result.data.result);
 		} else if (result.data?.error) {
 			uploadError = result.data.error;
@@ -210,7 +216,7 @@
 				// Set uploading state
 				isUploading = true;
 
-				return async ({ result, update }) => {
+				return async ({ result }) => {
 					logger.info('[Upload] Form submission result', { resultType: result.type });
 
 					if (result.type === 'success' && result.data?.success) {

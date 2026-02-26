@@ -9,16 +9,19 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20260205_001_add_department_ancestor_ids::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20260205_001_add_department_ancestor_ids::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -71,7 +74,8 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'ancestor_ids'".to_string(),
+                 AND column_name = 'ancestor_ids'"
+                    .to_string(),
             ))
             .await;
 
@@ -80,8 +84,12 @@ mod tests {
         assert!(column_info.is_some(), "Should have column information");
 
         let column = column_info.unwrap();
-        let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
-        let is_nullable: String = column.try_get("", "is_nullable").expect("Should get is_nullable");
+        let data_type: String = column
+            .try_get("", "data_type")
+            .expect("Should get data_type");
+        let is_nullable: String = column
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
 
         assert_eq!(data_type, "ARRAY", "Column should be ARRAY type");
         assert_eq!(is_nullable, "NO", "Column should be NOT NULL");
@@ -94,7 +102,8 @@ mod tests {
                  FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'departments'
-                 AND indexname = 'idx_departments_ancestor_ids'".to_string(),
+                 AND indexname = 'idx_departments_ancestor_ids'"
+                    .to_string(),
             ))
             .await;
 
@@ -133,15 +142,25 @@ mod tests {
                  JOIN pg_am am ON c.relam = am.oid
                  WHERE n.nspname = 'hr_public'
                  AND t.relname = 'departments'
-                 AND c.relname = 'idx_departments_ancestor_ids'".to_string(),
+                 AND c.relname = 'idx_departments_ancestor_ids'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(index_type_result.is_ok(), "Should be able to query index type");
+        assert!(
+            index_type_result.is_ok(),
+            "Should be able to query index type"
+        );
         let index_type_info = index_type_result.unwrap();
-        assert!(index_type_info.is_some(), "Should have index type information");
+        assert!(
+            index_type_info.is_some(),
+            "Should have index type information"
+        );
 
-        let index_type: String = index_type_info.unwrap().try_get("", "index_type").expect("Should get index_type");
+        let index_type: String = index_type_info
+            .unwrap()
+            .try_get("", "index_type")
+            .expect("Should get index_type");
         assert_eq!(index_type, "gin", "Index should use GIN access method");
 
         // Also verify the indexdef contains USING GIN
@@ -152,7 +171,8 @@ mod tests {
                  FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'departments'
-                 AND indexname = 'idx_departments_ancestor_ids'".to_string(),
+                 AND indexname = 'idx_departments_ancestor_ids'"
+                    .to_string(),
             ))
             .await;
 
@@ -160,9 +180,15 @@ mod tests {
         let indexdef_info = indexdef_result.unwrap();
         assert!(indexdef_info.is_some(), "Should have indexdef information");
 
-        let indexdef: String = indexdef_info.unwrap().try_get("", "indexdef").expect("Should get indexdef");
-        assert!(indexdef.contains("USING gin"),
-            "Index definition should contain USING gin. Got: {}", indexdef);
+        let indexdef: String = indexdef_info
+            .unwrap()
+            .try_get("", "indexdef")
+            .expect("Should get indexdef");
+        assert!(
+            indexdef.contains("USING gin"),
+            "Index definition should contain USING gin. Got: {}",
+            indexdef
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -198,15 +224,22 @@ mod tests {
                  FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'departments'
-                 AND indexname = 'idx_departments_ancestor_ids'".to_string(),
+                 AND indexname = 'idx_departments_ancestor_ids'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(index_result.is_ok(), "Should be able to check if index exists");
+        assert!(
+            index_result.is_ok(),
+            "Should be able to check if index exists"
+        );
         let index_info = index_result.unwrap();
         assert!(index_info.is_some(), "Should have index count");
 
-        let count: i64 = index_info.unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = index_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 0, "Index should be dropped");
 
         // Verify the ancestor_ids column was dropped
@@ -217,15 +250,22 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'ancestor_ids'".to_string(),
+                 AND column_name = 'ancestor_ids'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(column_result.is_ok(), "Should be able to check if column exists");
+        assert!(
+            column_result.is_ok(),
+            "Should be able to check if column exists"
+        );
         let column_info = column_result.unwrap();
         assert!(column_info.is_some(), "Should have column count");
 
-        let col_count: i64 = column_info.unwrap().try_get("", "count").expect("Should get count");
+        let col_count: i64 = column_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(col_count, 0, "Column should be dropped");
 
         // Clean up after test
@@ -303,7 +343,8 @@ mod tests {
                 DbBackend::Postgres,
                 "INSERT INTO hr_public.departments (id, name, parent_department_id)
                  VALUES ('00000000-0000-0000-0000-000000000001'::uuid, 'Root Dept', NULL)
-                 ON CONFLICT (id) DO NOTHING".to_string(),
+                 ON CONFLICT (id) DO NOTHING"
+                    .to_string(),
             ))
             .await;
         assert!(root_result.is_ok(), "Root department insert should succeed");
@@ -317,7 +358,10 @@ mod tests {
                  ON CONFLICT (id) DO NOTHING".to_string(),
             ))
             .await;
-        assert!(child_result.is_ok(), "Child department insert should succeed");
+        assert!(
+            child_result.is_ok(),
+            "Child department insert should succeed"
+        );
 
         // Grandchild department
         let grandchild_result = db
@@ -328,7 +372,10 @@ mod tests {
                  ON CONFLICT (id) DO NOTHING".to_string(),
             ))
             .await;
-        assert!(grandchild_result.is_ok(), "Grandchild department insert should succeed");
+        assert!(
+            grandchild_result.is_ok(),
+            "Grandchild department insert should succeed"
+        );
 
         // Run the migration
         let migration = Migration;
@@ -345,13 +392,19 @@ mod tests {
             ))
             .await;
 
-        assert!(root_ancestor_result.is_ok(), "Should be able to query root ancestor_ids");
+        assert!(
+            root_ancestor_result.is_ok(),
+            "Should be able to query root ancestor_ids"
+        );
         let root_ancestors = root_ancestor_result.unwrap();
         assert!(root_ancestors.is_some(), "Root department should exist");
 
         // Check that root has empty array (array_length returns NULL for empty arrays)
         let root_count: Option<i32> = root_ancestors.unwrap().try_get("", "ancestor_count").ok();
-        assert!(root_count.is_none(), "Root department should have empty ancestor_ids array");
+        assert!(
+            root_count.is_none(),
+            "Root department should have empty ancestor_ids array"
+        );
 
         // Verify child department has root as ancestor
         let child_ancestor_result = db
@@ -361,13 +414,26 @@ mod tests {
             ))
             .await;
 
-        assert!(child_ancestor_result.is_ok(), "Should be able to query child ancestor_ids");
+        assert!(
+            child_ancestor_result.is_ok(),
+            "Should be able to query child ancestor_ids"
+        );
         let child_ancestors = child_ancestor_result.unwrap();
         assert!(child_ancestors.is_some(), "Child department should exist");
 
-        let child_array: Vec<String> = child_ancestors.unwrap().try_get("", "ancestor_ids").expect("Should get ancestor_ids");
-        assert_eq!(child_array.len(), 1, "Child department should have one ancestor");
-        assert_eq!(child_array[0], "00000000-0000-0000-0000-000000000001", "Child's ancestor should be root");
+        let child_array: Vec<String> = child_ancestors
+            .unwrap()
+            .try_get("", "ancestor_ids")
+            .expect("Should get ancestor_ids");
+        assert_eq!(
+            child_array.len(),
+            1,
+            "Child department should have one ancestor"
+        );
+        assert_eq!(
+            child_array[0], "00000000-0000-0000-0000-000000000001",
+            "Child's ancestor should be root"
+        );
 
         // Verify grandchild department has child and root as ancestors (in that order)
         let grandchild_ancestor_result = db
@@ -377,14 +443,33 @@ mod tests {
             ))
             .await;
 
-        assert!(grandchild_ancestor_result.is_ok(), "Should be able to query grandchild ancestor_ids");
+        assert!(
+            grandchild_ancestor_result.is_ok(),
+            "Should be able to query grandchild ancestor_ids"
+        );
         let grandchild_ancestors = grandchild_ancestor_result.unwrap();
-        assert!(grandchild_ancestors.is_some(), "Grandchild department should exist");
+        assert!(
+            grandchild_ancestors.is_some(),
+            "Grandchild department should exist"
+        );
 
-        let grandchild_array: Vec<String> = grandchild_ancestors.unwrap().try_get("", "ancestor_ids").expect("Should get ancestor_ids");
-        assert_eq!(grandchild_array.len(), 2, "Grandchild department should have two ancestors");
-        assert_eq!(grandchild_array[0], "00000000-0000-0000-0000-000000000002", "Grandchild's first ancestor should be child");
-        assert_eq!(grandchild_array[1], "00000000-0000-0000-0000-000000000001", "Grandchild's second ancestor should be root");
+        let grandchild_array: Vec<String> = grandchild_ancestors
+            .unwrap()
+            .try_get("", "ancestor_ids")
+            .expect("Should get ancestor_ids");
+        assert_eq!(
+            grandchild_array.len(),
+            2,
+            "Grandchild department should have two ancestors"
+        );
+        assert_eq!(
+            grandchild_array[0], "00000000-0000-0000-0000-000000000002",
+            "Grandchild's first ancestor should be child"
+        );
+        assert_eq!(
+            grandchild_array[1], "00000000-0000-0000-0000-000000000001",
+            "Grandchild's second ancestor should be root"
+        );
 
         // Clean up test departments
         let _ = db
@@ -431,16 +516,29 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT id, name
                  FROM hr_public.departments
-                 WHERE ancestor_ids @> ARRAY['00000000-0000-0000-0000-000000000010'::uuid]::uuid[]".to_string(),
+                 WHERE ancestor_ids @> ARRAY['00000000-0000-0000-0000-000000000010'::uuid]::uuid[]"
+                    .to_string(),
             ))
             .await;
 
-        assert!(containment_result.is_ok(), "Containment query should succeed with GIN index");
+        assert!(
+            containment_result.is_ok(),
+            "Containment query should succeed with GIN index"
+        );
         let result = containment_result.unwrap();
-        assert!(result.is_some(), "Should find child department using containment query");
+        assert!(
+            result.is_some(),
+            "Should find child department using containment query"
+        );
 
-        let name: String = result.unwrap().try_get("", "name").expect("Should get name");
-        assert_eq!(name, "Test Child", "Should find the correct child department");
+        let name: String = result
+            .unwrap()
+            .try_get("", "name")
+            .expect("Should get name");
+        assert_eq!(
+            name, "Test Child",
+            "Should find the correct child department"
+        );
 
         // Clean up test departments
         let _ = db

@@ -1,13 +1,33 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { logger } from '$lib/utils/logger';
 	import { invalidateAll } from '$app/navigation';
 	import { goto } from '$app/navigation';
 	import { ArrowLeft, Save, Search, Zap, Check, X } from '@lucide/svelte';
 	import PermissionsMatrix from '$lib/components/permissions/PermissionsMatrix.svelte';
 	import { Button } from '$lib/components/ui/button';
 
-	const { data, form } = $props();
+	interface PermissionItem {
+		id: string;
+		resource: string;
+		action: string;
+	}
+
+	interface RoleData {
+		id: string;
+		name: string;
+		permissions: PermissionItem[];
+	}
+
+	interface RolePermissionsPageData {
+		role: RoleData | null;
+		permissions: PermissionItem[];
+		error?: string;
+	}
+
+	const {
+		data,
+		form
+	}: { data: RolePermissionsPageData; form?: { success?: boolean; error?: string } } = $props();
 
 	// State management
 	interface ResourcePermissions {
@@ -26,7 +46,7 @@
 	$effect(() => {
 		const state = new Map<string, ResourcePermissions>();
 
-		data.permissions.forEach((perm: any) => {
+		data.permissions.forEach((perm) => {
 			const resource = perm.resource;
 
 			if (!state.has(resource)) {
@@ -39,7 +59,7 @@
 			}
 
 			const resourceState = state.get(resource)!;
-			const isSelected = data.role?.permissions?.some((p: any) => p.id === perm.id);
+			const isSelected = data.role?.permissions?.some((p) => p.id === perm.id);
 
 			if (isSelected) {
 				if (perm.action === 'read:self') {
@@ -80,37 +100,37 @@
 
 	// Track changes
 	let initialPermissionIds = $state<Set<string>>(
-		new Set(data.role?.permissions?.map((p: any) => p.id) || [])
+		new Set(data.role?.permissions?.map((p) => p.id) || [])
 	);
 
 	const selectedPermissionIds = $derived.by(() => {
 		const permIds: string[] = [];
 
 		permissionsState.forEach((state, resource) => {
-			const resourcePerms = data.permissions.filter((p: any) => p.resource === resource);
+			const resourcePerms = data.permissions.filter((p) => p.resource === resource);
 
 			if (state.readScope !== 'none') {
-				const readPerm = resourcePerms.find((p: any) => p.action === `read:${state.readScope}`);
+				const readPerm = resourcePerms.find((p) => p.action === `read:${state.readScope}`);
 				if (readPerm) permIds.push(readPerm.id);
 				else {
-					const legacyRead = resourcePerms.find((p: any) => p.action === 'read');
+					const legacyRead = resourcePerms.find((p) => p.action === 'read');
 					if (legacyRead) permIds.push(legacyRead.id);
 				}
 			}
 
 			if (state.write) {
-				const writePerm = resourcePerms.find((p: any) => p.action === 'write');
+				const writePerm = resourcePerms.find((p) => p.action === 'write');
 				if (writePerm) permIds.push(writePerm.id);
 			}
 
 			if (state.delete) {
-				const deletePerm = resourcePerms.find((p: any) => p.action === 'delete');
+				const deletePerm = resourcePerms.find((p) => p.action === 'delete');
 				if (deletePerm) permIds.push(deletePerm.id);
 			}
 
 			state.special.forEach((spec) => {
 				if (spec.enabled) {
-					const specialPerm = resourcePerms.find((p: any) => p.action === spec.action);
+					const specialPerm = resourcePerms.find((p) => p.action === spec.action);
 					if (specialPerm) permIds.push(specialPerm.id);
 				}
 			});
@@ -244,7 +264,7 @@
 				action="?/updatePermissions"
 				use:enhance={() => {
 					handleFormSubmit();
-					return async ({ result, update }) => {
+					return async ({ update }) => {
 						handleFormResult();
 						await update();
 					};

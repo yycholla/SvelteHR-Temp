@@ -16,10 +16,25 @@ use crate::seed_data::Result;
 /// Fixed leave types for the system
 const LEAVE_TYPES: &[(&str, i32, &str, bool)] = &[
     ("Annual Leave", 20, "Standard annual vacation days", true),
-    ("Sick Leave", 10, "Medical and health-related absences", true),
-    ("Personal Leave", 5, "Personal days for family or personal matters", true),
+    (
+        "Sick Leave",
+        10,
+        "Medical and health-related absences",
+        true,
+    ),
+    (
+        "Personal Leave",
+        5,
+        "Personal days for family or personal matters",
+        true,
+    ),
     ("Parental Leave", 60, "Maternity and paternity leave", true),
-    ("Bereavement Leave", 3, "Time off for family bereavement", true),
+    (
+        "Bereavement Leave",
+        3,
+        "Time off for family bereavement",
+        true,
+    ),
     ("Public Holiday", 0, "Statutory public holidays", true),
     ("Unpaid Leave", 0, "Leave without pay", false),
 ];
@@ -74,7 +89,9 @@ pub async fn seed_leave_types(
             }
             Err(e) => {
                 result.failed_count += 1;
-                result.errors.push(format!("Failed to create leave type {}: {}", name, e));
+                result
+                    .errors
+                    .push(format!("Failed to create leave type {}: {}", name, e));
                 tracing::error!("Failed to create leave type {}: {}", name, e);
             }
         }
@@ -101,7 +118,9 @@ pub async fn seed_leave_balances(
         .await?;
 
     if users.is_empty() {
-        result.errors.push("No users found for leave balance creation".to_string());
+        result
+            .errors
+            .push("No users found for leave balance creation".to_string());
         return Ok(result);
     }
 
@@ -112,7 +131,9 @@ pub async fn seed_leave_balances(
         .await?;
 
     if leave_types.is_empty() {
-        result.errors.push("No leave types found for leave balance creation".to_string());
+        result
+            .errors
+            .push("No leave types found for leave balance creation".to_string());
         return Ok(result);
     }
 
@@ -152,13 +173,17 @@ pub async fn seed_leave_balances(
                     result.created_count += 1;
 
                     // Log to audit system
-                    if let Err(e) = log_seed_creation(db, context, "leave_balance", balance_id).await {
+                    if let Err(e) =
+                        log_seed_creation(db, context, "leave_balance", balance_id).await
+                    {
                         tracing::warn!("Failed to log audit entry for leave balance: {}", e);
                     }
                 }
                 Err(e) => {
                     result.failed_count += 1;
-                    result.errors.push(format!("Failed to create leave balance: {}", e));
+                    result
+                        .errors
+                        .push(format!("Failed to create leave balance: {}", e));
                 }
             }
         }
@@ -183,7 +208,10 @@ pub async fn seed_leave_requests(
     context: &SeedContext,
 ) -> Result<EntitySeedResult> {
     let mut result = EntitySeedResult::new("leave_requests");
-    let target_count = context.config.get_target_count(EntityType::LeaveRequests).min(50);
+    let target_count = context
+        .config
+        .get_target_count(EntityType::LeaveRequests)
+        .min(50);
 
     // Get all active users
     let users = crate::models::user::Entity::find()
@@ -193,7 +221,9 @@ pub async fn seed_leave_requests(
         .await?;
 
     if users.is_empty() {
-        result.errors.push("No users found for leave request creation".to_string());
+        result
+            .errors
+            .push("No users found for leave request creation".to_string());
         return Ok(result);
     }
 
@@ -204,7 +234,9 @@ pub async fn seed_leave_requests(
         .await?;
 
     if leave_types.is_empty() {
-        result.errors.push("No leave types found for leave request creation".to_string());
+        result
+            .errors
+            .push("No leave types found for leave request creation".to_string());
         return Ok(result);
     }
 
@@ -259,7 +291,11 @@ pub async fn seed_leave_requests(
             status: Set(status.to_string()),
             reason: Set(Some(format!("Seed data leave request {}", i + 1))),
             manager_id: Set(user_model.manager_id),
-            approved_at: Set(if status == "approved" { Some(start_date - chrono::Duration::days(7)) } else { None }),
+            approved_at: Set(if status == "approved" {
+                Some(start_date - chrono::Duration::days(7))
+            } else {
+                None
+            }),
             manager_comments: Set(manager_comments),
             created_at: Set(start_date - chrono::Duration::days(14)),
             updated_at: Set(now),
@@ -277,7 +313,9 @@ pub async fn seed_leave_requests(
             }
             Err(e) => {
                 result.failed_count += 1;
-                result.errors.push(format!("Failed to create leave request: {}", e));
+                result
+                    .errors
+                    .push(format!("Failed to create leave request: {}", e));
             }
         }
     }

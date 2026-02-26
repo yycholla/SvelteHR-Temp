@@ -16,22 +16,26 @@ import { BaseOperations } from './base-operations';
 
 /**
  * Query: Get all departments with pagination
- * Backend: Rust idiomatic - departments(limit, offset) returns direct array
+ * Backend: Rust GraphQL - departments(limit, offset) returns DepartmentQueryResult
  */
 export const GET_DEPARTMENTS_QUERY = gql`
 	query GetDepartments($limit: Int = 100, $offset: Int = 0) {
 		departments(limit: $limit, offset: $offset) {
-			id
-			name
-			description
-			managerId
-			createdAt
-			updatedAt
-			manager {
+			items {
 				id
-				fullName
-				displayName
+				name
+				description
+				managerId
+				createdAt
+				updatedAt
+				manager {
+					id
+					fullName
+					displayName
+				}
 			}
+			totalCount
+			hasNextPage
 		}
 	}
 `;
@@ -190,7 +194,8 @@ export class DepartmentOperations extends BaseOperations {
 			}
 		);
 
-		const departments = result.departments;
+		const departmentResult = result.departments ?? {};
+		const departments = departmentResult.items ?? [];
 
 		// Apply client-side filtering if needed
 		let filteredDepartments = departments;
@@ -200,8 +205,12 @@ export class DepartmentOperations extends BaseOperations {
 
 		return {
 			departments: filteredDepartments,
-			totalCount: filteredDepartments.length,
-			hasNextPage: departments.length === limit
+			totalCount: params.filter
+				? filteredDepartments.length
+				: (departmentResult.totalCount ?? filteredDepartments.length),
+			hasNextPage: params.filter
+				? departments.length === limit
+				: Boolean(departmentResult.hasNextPage ?? departments.length === limit)
 		};
 	}
 

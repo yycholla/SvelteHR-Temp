@@ -9,7 +9,7 @@
 //! ```
 
 use hr_graphql_server::testing::load_testing::{
-    LoadTestConfig, LoadTestOperation, RoleDistribution, run_load_test,
+    run_load_test, LoadTestConfig, LoadTestOperation, RoleDistribution,
 };
 use std::time::Duration;
 

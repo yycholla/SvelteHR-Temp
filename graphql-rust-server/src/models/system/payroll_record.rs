@@ -138,7 +138,10 @@ impl Model {
     }
 
     /// Employee relationship (lazy-loaded)
-    async fn employee(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+    async fn employee(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::user::Model> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.employee_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
@@ -150,7 +153,10 @@ impl Model {
     }
 
     /// Processor relationship (lazy-loaded)
-    async fn processor(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+    async fn processor(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::user::Model> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.processor_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())

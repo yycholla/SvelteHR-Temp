@@ -1,6 +1,6 @@
 export function generateCacheKey(
 	operationName: string,
-	variables: any = {},
+	variables: Record<string, unknown> = {},
 	userContext?: { userId: string; roles: string[] }
 ): string {
 	// Create a stable key from variables

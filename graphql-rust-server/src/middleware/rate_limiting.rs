@@ -30,9 +30,9 @@ pub struct RateLimitConfig {
 impl Default for RateLimitConfig {
     fn default() -> Self {
         Self {
-            max_requests: 100,     // 100 requests
-            window_seconds: 60,    // per minute
-            burst_limit: 20,       // burst of 20 additional requests
+            max_requests: 100,  // 100 requests
+            window_seconds: 60, // per minute
+            burst_limit: 20,    // burst of 20 additional requests
         }
     }
 }
@@ -93,7 +93,11 @@ impl RateLimiter {
 
         if let Some(state) = clients.get(client_id) {
             let window_start = now - Duration::from_secs(self.config.window_seconds);
-            let valid_requests = state.requests.iter().filter(|&&time| time > window_start).count() as u32;
+            let valid_requests = state
+                .requests
+                .iter()
+                .filter(|&&time| time > window_start)
+                .count() as u32;
             (self.config.max_requests + self.config.burst_limit).saturating_sub(valid_requests)
         } else {
             self.config.max_requests + self.config.burst_limit
@@ -103,9 +107,9 @@ impl RateLimiter {
     /// Get reset time for a client
     pub async fn reset_time(&self, client_id: &str) -> Option<Instant> {
         let clients = self.clients.read().await;
-        clients.get(client_id).map(|state| {
-            state.last_reset + Duration::from_secs(self.config.window_seconds)
-        })
+        clients
+            .get(client_id)
+            .map(|state| state.last_reset + Duration::from_secs(self.config.window_seconds))
     }
 }
 
@@ -116,16 +120,17 @@ pub enum RateLimitError {
 }
 
 /// Rate limiting middleware
-pub async fn rate_limiting_middleware(
-    req: Request,
-    next: Next,
-) -> Result<Response, StatusCode> {
+pub async fn rate_limiting_middleware(req: Request, next: Next) -> Result<Response, StatusCode> {
     // Get client identifier (IP address for now, could be user ID for authenticated requests)
     let client_ip = req
         .headers()
         .get("x-forwarded-for")
         .and_then(|hv| hv.to_str().ok())
-        .or_else(|| req.headers().get("x-real-ip").and_then(|hv| hv.to_str().ok()))
+        .or_else(|| {
+            req.headers()
+                .get("x-real-ip")
+                .and_then(|hv| hv.to_str().ok())
+        })
         .unwrap_or("unknown")
         .to_string();
 
@@ -148,11 +153,15 @@ pub async fn rate_limiting_middleware(
         let headers = response.headers_mut();
         headers.insert(
             "X-RateLimit-Limit",
-            format!("{}", rate_limiter.config.max_requests).parse().unwrap(),
+            format!("{}", rate_limiter.config.max_requests)
+                .parse()
+                .unwrap(),
         );
         headers.insert(
             "X-RateLimit-Remaining",
-            format!("{}", rate_limiter.remaining_requests(&client_ip).await).parse().unwrap(),
+            format!("{}", rate_limiter.remaining_requests(&client_ip).await)
+                .parse()
+                .unwrap(),
         );
 
         if let Some(reset_time) = rate_limiter.reset_time(&client_ip).await {
@@ -176,11 +185,15 @@ pub async fn rate_limiting_middleware(
     let headers = response.headers_mut();
     headers.insert(
         "X-RateLimit-Limit",
-        format!("{}", rate_limiter.config.max_requests).parse().unwrap(),
+        format!("{}", rate_limiter.config.max_requests)
+            .parse()
+            .unwrap(),
     );
     headers.insert(
         "X-RateLimit-Remaining",
-        format!("{}", rate_limiter.remaining_requests(&client_ip).await).parse().unwrap(),
+        format!("{}", rate_limiter.remaining_requests(&client_ip).await)
+            .parse()
+            .unwrap(),
     );
 
     Ok(response)

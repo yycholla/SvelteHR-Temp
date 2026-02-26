@@ -97,7 +97,9 @@ fn extract_user_id(ctx: &ExtensionContext<'_>) -> Option<String> {
 }
 
 /// Extract request metadata from extension context
-fn extract_request_metadata(ctx: &ExtensionContext<'_>) -> Option<crate::handlers::RequestMetadata> {
+fn extract_request_metadata(
+    ctx: &ExtensionContext<'_>,
+) -> Option<crate::handlers::RequestMetadata> {
     ctx.data_opt::<crate::handlers::RequestMetadata>().cloned()
 }
 

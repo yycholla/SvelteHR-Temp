@@ -5,11 +5,14 @@
 use chrono::{Duration, Utc};
 use fake::faker::name::en::{FirstName, LastName};
 use fake::Fake;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    Set,
+};
 use uuid::Uuid;
 
-use crate::models::{department, role, user, user_role_assignment};
 use crate::models::user::{CompensationType, PaySchedule};
+use crate::models::{department, role, user, user_role_assignment};
 use crate::seed_data::audit::log_seed_creation;
 use crate::seed_data::config::EntityType;
 use crate::seed_data::context::{EntitySeedResult, SeedContext};
@@ -17,8 +20,7 @@ use crate::seed_data::Result;
 
 /// Pre-computed bcrypt hash for "admin123" (work factor 10)
 /// All seeded users will use this password for easy testing
-const DEFAULT_PASSWORD_HASH: &str =
-    "$2b$10$RAc0JwycgH8Hpq8lRmmb.OXArEiS5Pklvzm5j4RqdQAw5zsNlH8JG";
+const DEFAULT_PASSWORD_HASH: &str = "$2b$10$RAc0JwycgH8Hpq8lRmmb.OXArEiS5Pklvzm5j4RqdQAw5zsNlH8JG";
 
 /// Generates a valid phone number in international format for seed data
 ///
@@ -41,8 +43,8 @@ const DEFAULT_PASSWORD_HASH: &str =
 fn generate_valid_phone() -> String {
     // Generate valid US phone number: +1 + area code (200-999) + exchange (200-999) + subscriber (0000-9999)
     let area_code = 200 + (rand::random::<u16>() % 800); // 200-999
-    let exchange = 200 + (rand::random::<u16>() % 800);   // 200-999
-    let subscriber = rand::random::<u16>() % 10000;        // 0000-9999
+    let exchange = 200 + (rand::random::<u16>() % 800); // 200-999
+    let subscriber = rand::random::<u16>() % 10000; // 0000-9999
     format!("+1{:03}{:03}{:04}", area_code, exchange, subscriber)
 }
 
@@ -68,7 +70,9 @@ pub async fn seed_users(
         .await?;
 
     if departments.is_empty() {
-        result.errors.push("No departments found for user assignment".to_string());
+        result
+            .errors
+            .push("No departments found for user assignment".to_string());
         return Ok(result);
     }
 
@@ -129,7 +133,7 @@ pub async fn seed_users(
             first_name: Set(first_name),
             last_name: Set(last_name),
             display_name: sea_orm::NotSet, // GENERATED column (computed from first_name + last_name)
-            full_name: sea_orm::NotSet,   // GENERATED column (computed from first_name + last_name)
+            full_name: sea_orm::NotSet, // GENERATED column (computed from first_name + last_name)
             phone_number: Set(Some(phone)),
             alternate_phone: Set(None),
             mobile_number: Set(None),
@@ -171,7 +175,10 @@ pub async fn seed_users(
         match new_user.insert(db).await {
             Ok(_) => {
                 result.created_count += 1;
-                let comp_type = compensation.compensation_type.map(|ct| format!("{:?}", ct)).unwrap_or("NO".to_string());
+                let comp_type = compensation
+                    .compensation_type
+                    .map(|ct| format!("{:?}", ct))
+                    .unwrap_or("NO".to_string());
                 tracing::info!("Created user: {} with {} compensation", email, comp_type);
 
                 // Assign default "Employee" role via RBAC
@@ -213,7 +220,9 @@ pub async fn seed_users(
             }
             Err(e) => {
                 result.failed_count += 1;
-                result.errors.push(format!("Failed to create user {}: {}", email, e));
+                result
+                    .errors
+                    .push(format!("Failed to create user {}: {}", email, e));
                 tracing::error!("Failed to create user {}: {}", email, e);
             }
         }
@@ -432,25 +441,33 @@ pub async fn seed_user_role_assignments(
         .filter(role::Column::Name.eq("Admin"))
         .one(db)
         .await?
-        .ok_or_else(|| crate::seed_data::SeedError::SeedOperation("Admin role not found".to_string()))?;
+        .ok_or_else(|| {
+            crate::seed_data::SeedError::SeedOperation("Admin role not found".to_string())
+        })?;
 
     let hr_manager_role = role::Entity::find()
         .filter(role::Column::Name.eq("HR Manager"))
         .one(db)
         .await?
-        .ok_or_else(|| crate::seed_data::SeedError::SeedOperation("HR Manager role not found".to_string()))?;
+        .ok_or_else(|| {
+            crate::seed_data::SeedError::SeedOperation("HR Manager role not found".to_string())
+        })?;
 
     let manager_role = role::Entity::find()
         .filter(role::Column::Name.eq("Manager"))
         .one(db)
         .await?
-        .ok_or_else(|| crate::seed_data::SeedError::SeedOperation("Manager role not found".to_string()))?;
+        .ok_or_else(|| {
+            crate::seed_data::SeedError::SeedOperation("Manager role not found".to_string())
+        })?;
 
     let employee_role = role::Entity::find()
         .filter(role::Column::Name.eq("Employee"))
         .one(db)
         .await?
-        .ok_or_else(|| crate::seed_data::SeedError::SeedOperation("Employee role not found".to_string()))?;
+        .ok_or_else(|| {
+            crate::seed_data::SeedError::SeedOperation("Employee role not found".to_string())
+        })?;
 
     // Get all active users
     let users = user::Entity::find()
@@ -460,7 +477,9 @@ pub async fn seed_user_role_assignments(
         .await?;
 
     if users.is_empty() {
-        result.errors.push("No users found for role assignment".to_string());
+        result
+            .errors
+            .push("No users found for role assignment".to_string());
         return Ok(result);
     }
 
@@ -510,7 +529,9 @@ pub async fn seed_user_role_assignments(
                 tracing::info!("Assigned role to user {}", user_model.email);
 
                 // Log to audit system
-                if let Err(e) = log_seed_creation(db, context, "user_role_assignment", assignment_id).await {
+                if let Err(e) =
+                    log_seed_creation(db, context, "user_role_assignment", assignment_id).await
+                {
                     tracing::warn!("Failed to log audit entry for role assignment: {}", e);
                 }
             }

@@ -67,7 +67,11 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table((Schema::HrPublic, Users::Table))
                     .add_column_if_not_exists(ColumnDef::new(Users::Nickname).string().null())
-                    .add_column_if_not_exists(ColumnDef::new(Users::SocialMediaRelease).boolean().default(false))
+                    .add_column_if_not_exists(
+                        ColumnDef::new(Users::SocialMediaRelease)
+                            .boolean()
+                            .default(false),
+                    )
                     .to_owned(),
             )
             .await

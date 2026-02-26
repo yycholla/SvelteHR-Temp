@@ -2,7 +2,7 @@
 // Database initialization and test environment preparation
 // Created: 2025-09-24
 
-import { type FullConfig, chromium } from '@playwright/test';
+import { type FullConfig, type Page, chromium } from '@playwright/test';
 import { DatabaseTestUtils, createTestContext } from './test-helpers';
 
 async function globalSetup(config: FullConfig) {
@@ -20,38 +20,43 @@ async function globalSetup(config: FullConfig) {
 		// Store test context globally for use in tests
 		process.env.TEST_CONTEXT = JSON.stringify(testContext);
 
-		// Setup browser for authentication state
-		const browser = await chromium.launch();
-		const context = await browser.newContext();
-		const page = await context.newPage();
-
-		// Pre-authenticate test users and store auth states
-		const users = testContext.users;
-
 		// Determine base URL (use Docker port 5173 for local, 5174 for CI)
 		const baseURL =
 			process.env.PLAYWRIGHT_BASE_URL ||
 			(process.env.CI ? 'http://localhost:5174' : 'http://localhost:5173');
 
-		// Admin authentication
-		await page.goto(baseURL);
-		await authenticateUser(page, users.admin.email, 'admin123');
-		await page.context().storageState({ path: 'tests/.auth/admin-auth.json' });
+		// Setup browser for authentication state
+		const browser = await chromium.launch();
+		const users = testContext.users;
 
-		// HR Manager authentication
-		await page.goto(baseURL);
-		await authenticateUser(page, users.hrManager.email, 'admin123');
-		await page.context().storageState({ path: 'tests/.auth/hr-manager-auth.json' });
-
-		// Manager authentication
-		await page.goto(baseURL);
-		await authenticateUser(page, users.manager.email, 'admin123');
-		await page.context().storageState({ path: 'tests/.auth/manager-auth.json' });
-
-		// Employee authentication
-		await page.goto(baseURL);
-		await authenticateUser(page, users.employee.email, 'admin123');
-		await page.context().storageState({ path: 'tests/.auth/employee-auth.json' });
+		await createAuthState(
+			browser,
+			baseURL,
+			users.admin.email,
+			'admin123',
+			'tests/.auth/admin-auth.json'
+		);
+		await createAuthState(
+			browser,
+			baseURL,
+			users.hrManager.email,
+			'admin123',
+			'tests/.auth/hr-manager-auth.json'
+		);
+		await createAuthState(
+			browser,
+			baseURL,
+			users.manager.email,
+			'admin123',
+			'tests/.auth/manager-auth.json'
+		);
+		await createAuthState(
+			browser,
+			baseURL,
+			users.employee.email,
+			'admin123',
+			'tests/.auth/employee-auth.json'
+		);
 
 		await browser.close();
 		console.log('✅ Authentication states created');
@@ -63,26 +68,40 @@ async function globalSetup(config: FullConfig) {
 	}
 }
 
-async function authenticateUser(page: any, email: string, password: string) {
+async function createAuthState(
+	browser: Awaited<ReturnType<typeof chromium.launch>>,
+	baseURL: string,
+	email: string,
+	password: string,
+	statePath: string
+) {
+	const context = await browser.newContext({ baseURL });
+	const page = await context.newPage();
+
 	try {
-		// Navigate to login page
-		await page.goto('/auth/login');
-
-		// Fill in credentials
-		await page.fill('[data-testid="email-input"]', email);
-		await page.fill('[data-testid="password-input"]', password);
-
-		// Submit login form
-		await page.click('[data-testid="login-submit"]');
-
-		// Wait for successful login
-		await page.waitForURL(/\/dashboard/, { timeout: 10000 });
-
-		console.log(`✅ Authenticated user: ${email}`);
+		await authenticateUser(page, email, password);
 	} catch (error) {
 		console.warn(`⚠️  Failed to authenticate ${email}:`, error);
-		// Continue with setup even if authentication fails
 	}
+	await context.storageState({ path: statePath });
+	await context.close();
+}
+
+async function authenticateUser(page: Page, email: string, password: string) {
+	await page.goto('/login');
+
+	await page
+		.locator('[data-testid="login-username-input"], input[type="email"]')
+		.first()
+		.fill(email);
+	await page
+		.locator('[data-testid="login-password-input"], input[type="password"]')
+		.first()
+		.fill(password);
+	await page.locator('[data-testid="login-submit-button"], button[type="submit"]').first().click();
+	await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+
+	console.log(`✅ Authenticated user: ${email}`);
 }
 
 export default globalSetup;

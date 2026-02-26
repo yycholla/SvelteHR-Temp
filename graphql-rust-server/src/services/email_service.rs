@@ -30,8 +30,7 @@ impl EmailConfig {
     /// Load email configuration from environment variables
     pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
-            smtp_host: std::env::var("SMTP_HOST")
-                .unwrap_or_else(|_| "smtp.gmail.com".to_string()),
+            smtp_host: std::env::var("SMTP_HOST").unwrap_or_else(|_| "smtp.gmail.com".to_string()),
             smtp_port: std::env::var("SMTP_PORT")
                 .unwrap_or_else(|_| "587".to_string())
                 .parse()?,
@@ -143,13 +142,10 @@ impl EmailService {
         let mut errors = Vec::new();
 
         for recipient_email in &recipients {
-            match self.send_to_recipient(
-                &mailer,
-                recipient_email,
-                &subject,
-                &html_body,
-                &text_body,
-            ).await {
+            match self
+                .send_to_recipient(&mailer, recipient_email, &subject, &html_body, &text_body)
+                .await
+            {
                 Ok(_) => sent_count += 1,
                 Err(e) => errors.push(format!("{}: {}", recipient_email, e)),
             }
@@ -170,8 +166,8 @@ impl EmailService {
         html_body: &str,
         text_body: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let from: Mailbox = format!("{} <{}>", self.config.from_name, self.config.from_email)
-            .parse()?;
+        let from: Mailbox =
+            format!("{} <{}>", self.config.from_name, self.config.from_email).parse()?;
 
         let to: Mailbox = recipient_email.parse()?;
 
@@ -273,7 +269,10 @@ impl EmailService {
         expires_in_minutes: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Create reset URL
-        let reset_url = format!("{}/auth/reset-password?token={}", self.config.base_url, reset_token);
+        let reset_url = format!(
+            "{}/auth/reset-password?token={}",
+            self.config.base_url, reset_token
+        );
 
         // Create email data
         let data = PasswordResetEmailData {
@@ -304,7 +303,8 @@ impl EmailService {
             "Reset Your Password - SvelteHR",
             &html_body,
             &text_body,
-        ).await?;
+        )
+        .await?;
 
         tracing::info!("Password reset email sent to {}", recipient_email);
 

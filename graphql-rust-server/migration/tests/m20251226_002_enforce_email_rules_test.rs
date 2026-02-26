@@ -40,7 +40,9 @@ async fn constraint_exists(
         ))
         .await?;
 
-    Ok(result.map(|row| row.try_get::<bool>("", "exists").unwrap_or(false)).unwrap_or(false))
+    Ok(result
+        .map(|row| row.try_get::<bool>("", "exists").unwrap_or(false))
+        .unwrap_or(false))
 }
 
 /// Helper to insert a test user with specified email
@@ -83,11 +85,16 @@ async fn test_migration_compiles() {
 
 #[tokio::test]
 async fn test_up_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify constraint exists
     assert!(
@@ -100,11 +107,16 @@ async fn test_up_migration() {
 
 #[tokio::test]
 async fn test_constraint_rejects_null_email() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Attempt to insert user with NULL email - should fail
     let result = insert_test_user(&db, None).await;
@@ -129,11 +141,16 @@ async fn test_constraint_rejects_null_email() {
 
 #[tokio::test]
 async fn test_constraint_rejects_empty_email() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Attempt to insert user with empty string email - should fail
     let result = insert_test_user(&db, Some("")).await;
@@ -158,19 +175,24 @@ async fn test_constraint_rejects_empty_email() {
 
 #[tokio::test]
 async fn test_constraint_rejects_whitespace_only_email() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Test various whitespace patterns
     let whitespace_emails = vec![
-        "   ",      // spaces only
-        "\t",       // tab only
-        "\n",       // newline only
-        "  \t  ",   // mixed whitespace
-        " \n \t ",  // multiple whitespace types
+        "   ",     // spaces only
+        "\t",      // tab only
+        "\n",      // newline only
+        "  \t  ",  // mixed whitespace
+        " \n \t ", // multiple whitespace types
     ];
 
     for email in whitespace_emails {
@@ -189,28 +211,44 @@ async fn test_constraint_rejects_whitespace_only_email() {
 
 #[tokio::test]
 async fn test_constraint_allows_valid_email() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Attempt to insert user with valid email - should succeed
     let result = insert_test_user(&db, Some("test@example.com")).await;
 
-    assert!(result.is_ok(), "Should accept valid email: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should accept valid email: {:?}",
+        result.err()
+    );
 
     // Cleanup
-    cleanup_test_users(&db).await.expect("Failed to cleanup test users");
+    cleanup_test_users(&db)
+        .await
+        .expect("Failed to cleanup test users");
 }
 
 #[tokio::test]
 async fn test_constraint_allows_email_with_surrounding_whitespace() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Email with surrounding whitespace should be accepted (trim() removes it)
     let result = insert_test_user(&db, Some("  test@example.com  ")).await;
@@ -222,16 +260,23 @@ async fn test_constraint_allows_email_with_surrounding_whitespace() {
     );
 
     // Cleanup
-    cleanup_test_users(&db).await.expect("Failed to cleanup test users");
+    cleanup_test_users(&db)
+        .await
+        .expect("Failed to cleanup test users");
 }
 
 #[tokio::test]
 async fn test_constraint_allows_various_valid_email_formats() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Test various valid email formats
     let valid_emails = vec![
@@ -253,18 +298,28 @@ async fn test_constraint_allows_various_valid_email_formats() {
         );
 
         // Cleanup after each insert
-        cleanup_test_users(&db).await.expect("Failed to cleanup test users");
+        cleanup_test_users(&db)
+            .await
+            .expect("Failed to cleanup test users");
     }
 }
 
 #[tokio::test]
 async fn test_idempotent_up_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run migration twice
-    Migration.up(&schema_manager).await.expect("Failed to run first up migration");
-    Migration.up(&schema_manager).await.expect("Failed to run second up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run first up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run second up migration");
 
     // Verify constraint still exists
     assert!(
@@ -277,11 +332,16 @@ async fn test_idempotent_up_migration() {
 
 #[tokio::test]
 async fn test_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run up migration first
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify constraint exists
     assert!(
@@ -292,7 +352,10 @@ async fn test_down_migration() {
     );
 
     // Run down migration
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    Migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run down migration");
 
     // Verify constraint is removed
     assert!(
@@ -305,12 +368,20 @@ async fn test_down_migration() {
 
 #[tokio::test]
 async fn test_down_migration_allows_invalid_emails() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run up then down migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
+    Migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run down migration");
 
     // After down migration, empty emails should be allowed
     let result = insert_test_user(&db, Some("")).await;
@@ -322,20 +393,33 @@ async fn test_down_migration_allows_invalid_emails() {
     );
 
     // Cleanup
-    cleanup_test_users(&db).await.expect("Failed to cleanup test users");
+    cleanup_test_users(&db)
+        .await
+        .expect("Failed to cleanup test users");
 }
 
 #[tokio::test]
 async fn test_idempotent_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run up migration first
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Run down migration twice
-    Migration.down(&schema_manager).await.expect("Failed to run first down migration");
-    Migration.down(&schema_manager).await.expect("Failed to run second down migration");
+    Migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run first down migration");
+    Migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run second down migration");
 
     // Verify constraint is still removed
     assert!(
@@ -348,11 +432,16 @@ async fn test_idempotent_down_migration() {
 
 #[tokio::test]
 async fn test_full_migration_cycle() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run up migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify constraint exists
     assert!(
@@ -369,7 +458,10 @@ async fn test_full_migration_cycle() {
     );
 
     // Run down migration
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    Migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run down migration");
 
     // Verify constraint removed
     assert!(
@@ -380,7 +472,10 @@ async fn test_full_migration_cycle() {
     );
 
     // Run up migration again
-    Migration.up(&schema_manager).await.expect("Failed to run up migration again");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration again");
 
     // Verify constraint exists again
     assert!(

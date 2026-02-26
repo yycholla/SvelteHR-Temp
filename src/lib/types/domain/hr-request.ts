@@ -16,7 +16,7 @@ export interface HRRequest {
 	description: string;
 	priority: RequestPriority;
 	status: ApprovalStatus;
-	requestData: Record<string, any>;
+	requestData: Record<string, unknown>;
 	attachments: Attachment[];
 	submittedAt: string;
 	dueDate?: string;

@@ -71,7 +71,7 @@ pub struct Model {
     pub title: String,
     pub description: Option<String>,
     pub task_type_id: Option<Uuid>,
-    pub status: String, // Using string to match database enum
+    pub status: String,   // Using string to match database enum
     pub priority: String, // Using string to match database enum
     pub due_date: Option<DateTime<Utc>>,
     pub completed_at: Option<DateTime<Utc>>,
@@ -237,8 +237,6 @@ impl Model {
     async fn created_by(&self) -> Uuid {
         self.created_by
     }
-
-
 
     /// Parent task ID (for subtasks)
     async fn parent_task_id(&self) -> Option<Uuid> {
@@ -436,8 +434,6 @@ impl Model {
         Ok(0)
     }
 }
-
-
 
 /// Task creation input
 #[derive(Debug, Clone, InputObject)]

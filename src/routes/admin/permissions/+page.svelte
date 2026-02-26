@@ -1,10 +1,8 @@
 <script lang="ts">
-	import { logger } from '$lib/utils/logger';
 	import { invalidateAll } from '$app/navigation';
-	import { Beaker, Plus, Search, Shield, Users, RefreshCw } from '@lucide/svelte';
+	import { Beaker, Plus, Search, Shield, Users } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { isTestModeActive, permissionTestActions } from '$lib/stores/permission-test.svelte';
-	import type { Permission } from '$lib/types';
 
 	// Import decomposed components
 	import RoleList from './components/RoleList.svelte';
@@ -14,13 +12,42 @@
 	import PermissionAssignModal from './components/PermissionAssignModal.svelte';
 	import UserRoleAssignModal from './components/UserRoleAssignModal.svelte';
 
-	const { data } = $props();
+	interface PermissionItem {
+		id: string;
+		resource?: string;
+		action?: string;
+	}
+
+	interface RoleItem {
+		id: string;
+		name: string;
+		description?: string | null;
+		permissions?: PermissionItem[];
+	}
+
+	interface UserItem {
+		id: string;
+		email?: string;
+		displayName?: string | null;
+		department?: { name?: string } | null;
+		role?: string | null;
+		isActive?: boolean;
+	}
+
+	interface PermissionsPageData {
+		roles: RoleItem[];
+		users: UserItem[];
+		permissions: PermissionItem[];
+		error?: string;
+	}
+
+	const { data }: { data: PermissionsPageData } = $props();
 
 	// State management
 	let activeTab = $state<'roles' | 'users'>('roles');
 	let searchQuery = $state('');
-	let selectedRole = $state<any>(null);
-	let selectedUser = $state<any>(null);
+	let selectedRole = $state<RoleItem | null>(null);
+	let selectedUser = $state<UserItem | null>(null);
 	let expandedRoles = $state<Set<string>>(new Set());
 
 	// Dialog states
@@ -44,19 +71,21 @@
 
 	// Handle test mode
 	function startTestMode() {
-		const role = data.roles.find((r: any) => r.id === selectedTestRoleId);
+		const role = data.roles.find((r) => r.id === selectedTestRoleId);
 		if (!role) return;
 
 		// Get all permission strings for this role
-		const rolePermissions = role.permissions?.map((p: any) => `${p.resource}:${p.action}`) || [];
-		const currentPermissions = data.permissions?.map((p: any) => `${p.resource}:${p.action}`) || [];
+		const rolePermissions =
+			role.permissions?.map((p) => `${p.resource ?? ''}:${p.action ?? ''}`) || [];
+		const currentPermissions =
+			data.permissions?.map((p) => `${p.resource ?? ''}:${p.action ?? ''}`) || [];
 
 		permissionTestActions.startTestMode(role.id, role.name, rolePermissions, currentPermissions);
 	}
 
 	// Derived states
 	const filteredRoles = $derived(
-		data.roles.filter((role: any) => {
+		data.roles.filter((role) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();
 			return (
@@ -66,7 +95,7 @@
 	);
 
 	const filteredUsers = $derived(
-		data.users.filter((user: any) => {
+		data.users.filter((user) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();
 			return (
@@ -78,7 +107,7 @@
 	// Group permissions by resource
 	const permissionsByResource = $derived(
 		data.permissions.reduce(
-			(acc: Record<string, Permission[]>, permission: Permission) => {
+			(acc: Record<string, PermissionItem[]>, permission: PermissionItem) => {
 				const resource = permission.resource || 'general';
 				if (!acc[resource]) {
 					acc[resource] = [];
@@ -86,7 +115,7 @@
 				acc[resource].push(permission);
 				return acc;
 			},
-			{} as Record<string, Permission[]>
+			{} as Record<string, PermissionItem[]>
 		)
 	);
 
@@ -97,7 +126,7 @@
 		actionResult = null;
 	}
 
-	function openEditRoleDialog(role: any) {
+	function openEditRoleDialog(role: RoleItem) {
 		selectedRole = role;
 		roleForm = {
 			name: role.name,
@@ -107,14 +136,7 @@
 		actionResult = null;
 	}
 
-	function openPermissionDialog(role: any) {
-		selectedRole = role;
-		permissionsSelection = new Set(role.permissions?.map((p: any) => p.id) || []);
-		showPermissionDialog = true;
-		actionResult = null;
-	}
-
-	function openUserRoleDialog(user: any) {
+	function openUserRoleDialog(user: UserItem) {
 		selectedUser = user;
 		showUserRoleDialog = true;
 		actionResult = null;

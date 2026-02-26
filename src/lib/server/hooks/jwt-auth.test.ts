@@ -49,7 +49,10 @@ describe('JWT Authentication Server Hooks', () => {
 			'/login-simple',
 			'/privacy',
 			'/terms',
-			'/api/auth/login'
+			'/api/auth/login',
+			'/api/auth/refresh',
+			'/api/auth/logout',
+			'/api/graphql'
 		]);
 
 		function isPublicRoute(pathname: string): boolean {
@@ -70,6 +73,10 @@ describe('JWT Authentication Server Hooks', () => {
 
 		it('should allow access to auth API endpoints', () => {
 			expect(isPublicRoute('/api/auth/login')).toBe(true);
+		});
+
+		it('should allow access to GraphQL API for login/refresh operations', () => {
+			expect(isPublicRoute('/api/graphql')).toBe(true);
 		});
 
 		it('should require authentication for dashboard routes', () => {

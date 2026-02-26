@@ -25,30 +25,28 @@
 	import SettingsNotifications from './components/SettingsNotifications.svelte';
 	import SettingsAppearance from './components/SettingsAppearance.svelte';
 	import SettingsPrivacy from './components/SettingsPrivacy.svelte';
+	import type {
+		AppearanceSettingsState,
+		NotificationSettingsState,
+		PasswordFormState,
+		PrivacySettingsState,
+		ProfileFormState,
+		SettingsPageData
+	} from './types';
 
 	// Modern Svelte 5 props interface
 	interface Props {
-		data: {
-			user: any;
-			userSession: any;
-			userSettings: {
-				profile: any;
-				preferences: any;
-				notifications: any;
-				privacy: any;
-			};
-			activityLog: any[];
-			activeTab: string;
-			permissions: string[];
-			canUpdateProfile: boolean;
-			canChangePassword: boolean;
-			canExportData: boolean;
-			loadedAt: string;
-		};
+		data: SettingsPageData;
 	}
 
 	// Destructure props using Svelte 5 runes
 	const { data }: Props = $props();
+
+	const profileData = data.userSettings.profile;
+	const preferencesData = data.userSettings.preferences ?? {};
+	const notificationsData =
+		data.userSettings.notifications ?? data.userSettings.notificationPreferences ?? {};
+	const privacyData = data.userSettings.privacy ?? data.userSettings.privacyPreferences ?? {};
 
 	// Derived values from server-side data
 	const activityLog = $derived(data.activityLog);
@@ -63,73 +61,75 @@
 	let updateError = $state<string | null>(null);
 
 	// Form state for profile - initialized from data (not derived userSettings)
-	let profileForm = $state({
-		firstName: data.userSettings.profile.firstName || '',
-		lastName: data.userSettings.profile.lastName || '',
-		displayName: data.userSettings.profile.displayName || '',
-		email: data.userSettings.profile.email || '',
-		phoneNumber: data.userSettings.profile.phoneNumber || '',
-		jobTitle: data.userSettings.profile.jobTitle || '',
-		bio: data.userSettings.profile.bio || '',
-		timezone: data.userSettings.profile.timezone || 'America/Los_Angeles',
-		locale: data.userSettings.profile.locale || 'en-US'
+	let profileForm = $state<ProfileFormState>({
+		firstName: profileData.firstName || '',
+		lastName: profileData.lastName || '',
+		displayName: profileData.displayName || '',
+		email: profileData.email || '',
+		phoneNumber: profileData.phoneNumber || profileData.phone || '',
+		jobTitle: profileData.jobTitle || '',
+		bio: profileData.bio || '',
+		timezone: profileData.timezone || 'America/Los_Angeles',
+		locale: profileData.locale || 'en-US'
 	});
 
 	// Form state for password change
-	let passwordForm = $state({
+	let passwordForm = $state<PasswordFormState>({
 		currentPassword: '',
 		newPassword: '',
 		confirmPassword: ''
 	});
 
 	// Form state for notifications - initialized from data (not derived userSettings)
-	let notificationSettings = $state({
-		email: data.userSettings.notifications.email,
-		push: data.userSettings.notifications.push,
-		sms: data.userSettings.notifications.sms,
-		leaveReminders: data.userSettings.notifications.leaveReminders,
-		performanceUpdates: data.userSettings.notifications.performanceUpdates,
-		systemAlerts: data.userSettings.notifications.systemAlerts,
-		teamUpdates: data.userSettings.notifications.teamUpdates
+	let notificationSettings = $state<NotificationSettingsState>({
+		email: notificationsData.email ?? true,
+		push: notificationsData.push ?? false,
+		sms: notificationsData.sms ?? false,
+		leaveReminders: notificationsData.leaveReminders ?? true,
+		performanceUpdates: notificationsData.performanceUpdates ?? true,
+		systemAlerts: notificationsData.systemAlerts ?? true,
+		teamUpdates: notificationsData.teamUpdates ?? false
 	});
 
 	// Form state for appearance
-	let appearanceSettings = $state({
-		darkMode: false,
-		compactView: false,
-		language: 'en',
-		fontSize: 'medium',
-		colorScheme: 'light'
+	let appearanceSettings = $state<AppearanceSettingsState>({
+		darkMode: preferencesData.darkMode ?? preferencesData.theme === 'dark',
+		compactView: preferencesData.compactView ?? false,
+		language: preferencesData.language || 'en',
+		fontSize: preferencesData.fontSize || 'medium',
+		colorScheme: preferencesData.colorScheme || 'blue'
 	});
 
 	// Sync with userSettings preferences using effect
 	$effect(() => {
-		if (data.userSettings?.preferences) {
-			appearanceSettings.darkMode = data.userSettings.preferences.darkMode;
-			appearanceSettings.compactView = data.userSettings.preferences.compactView;
-			appearanceSettings.language = data.userSettings.preferences.language;
-			appearanceSettings.fontSize = data.userSettings.preferences.fontSize;
-			appearanceSettings.colorScheme = data.userSettings.preferences.colorScheme;
+		const preferences = data.userSettings?.preferences;
+		if (preferences) {
+			appearanceSettings.darkMode = preferences.darkMode ?? preferences.theme === 'dark';
+			appearanceSettings.compactView = preferences.compactView ?? false;
+			appearanceSettings.language = preferences.language || 'en';
+			appearanceSettings.fontSize = preferences.fontSize || 'medium';
+			appearanceSettings.colorScheme = preferences.colorScheme || 'blue';
 		}
 	});
 
 	// Form state for privacy
-	let privacySettings = $state({
-		profileVisibility: 'public',
-		showOnlineStatus: true,
-		allowDirectMessages: true,
-		dataSharing: false,
-		analyticsOptOut: false
+	let privacySettings = $state<PrivacySettingsState>({
+		profileVisibility: privacyData.profileVisibility || 'public',
+		showOnlineStatus: privacyData.showOnlineStatus ?? true,
+		allowDirectMessages: privacyData.allowDirectMessages ?? true,
+		dataSharing: privacyData.dataSharing ?? false,
+		analyticsOptOut: privacyData.analyticsOptOut ?? false
 	});
 
 	// Sync with userSettings data using effect
 	$effect(() => {
-		if (data.userSettings?.privacy) {
-			privacySettings.profileVisibility = data.userSettings.privacy.profileVisibility;
-			privacySettings.showOnlineStatus = data.userSettings.privacy.showOnlineStatus;
-			privacySettings.allowDirectMessages = data.userSettings.privacy.allowDirectMessages;
-			privacySettings.dataSharing = data.userSettings.privacy.dataSharing;
-			privacySettings.analyticsOptOut = data.userSettings.privacy.analyticsOptOut;
+		const privacy = data.userSettings?.privacy ?? data.userSettings?.privacyPreferences;
+		if (privacy) {
+			privacySettings.profileVisibility = privacy.profileVisibility || 'public';
+			privacySettings.showOnlineStatus = privacy.showOnlineStatus ?? true;
+			privacySettings.allowDirectMessages = privacy.allowDirectMessages ?? true;
+			privacySettings.dataSharing = privacy.dataSharing ?? false;
+			privacySettings.analyticsOptOut = privacy.analyticsOptOut ?? false;
 		}
 	});
 

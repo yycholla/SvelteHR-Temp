@@ -210,11 +210,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(true),
                     )
-                    .col(
-                        ColumnDef::new(ValidationRules::CreatedBy)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(ValidationRules::CreatedBy).uuid().null())
                     .col(
                         ColumnDef::new(ValidationRules::CreatedAt)
                             .timestamp_with_time_zone()
@@ -258,11 +254,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(ValidationFailures::RuleId)
-                            .uuid()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(ValidationFailures::RuleId).uuid().not_null())
                     .col(
                         ColumnDef::new(ValidationFailures::EntityType)
                             .string_len(50)
@@ -279,7 +271,11 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(ValidationFailures::InvalidValue).text())
-                    .col(ColumnDef::new(ValidationFailures::ErrorMessage).text().not_null())
+                    .col(
+                        ColumnDef::new(ValidationFailures::ErrorMessage)
+                            .text()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(ValidationFailures::Severity)
                             .string_len(20)

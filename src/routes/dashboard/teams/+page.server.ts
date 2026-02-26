@@ -179,12 +179,14 @@ export const load: PageServerLoad = async (event) => {
 					query: `
 						query GetDepartments($limit: Int!, $offset: Int!) {
 							departments(limit: $limit, offset: $offset) {
-								id
-								name
-								description
-								managerId
-								createdAt
-								updatedAt
+								items {
+									id
+									name
+									description
+									managerId
+									createdAt
+									updatedAt
+								}
 							}
 						}
 					`,
@@ -196,7 +198,7 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			const allDeptsData = await allDeptsResponse.json();
-			departments = allDeptsData?.data?.departments || [];
+			departments = allDeptsData?.data?.departments?.items || [];
 		}
 
 		// Fetch manager details for each department

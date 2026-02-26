@@ -10,11 +10,11 @@ use serde_json::json;
 use uuid::Uuid;
 
 // Import test utilities
-use hr_graphql_server::testing::{TestContext, TestUserRole};
 use hr_graphql_server::auth::UserContext;
 use hr_graphql_server::services::permission_checker::{
-    SyncPermission, PermissionChecker, RiskLevel, PermissionCategory, PermissionScope,
+    PermissionCategory, PermissionChecker, PermissionScope, RiskLevel, SyncPermission,
 };
+use hr_graphql_server::testing::{TestContext, TestUserRole};
 
 // ============================================================================
 // Unit Tests - SyncPermission Enum
@@ -62,13 +62,19 @@ fn test_sync_permission_string_format() {
 #[test]
 fn test_sync_permission_resource_extraction() {
     assert_eq!(SyncPermission::TriggerEmployeeSync.resource(), "sync");
-    assert_eq!(SyncPermission::ManageIntegrations.resource(), "integrations");
+    assert_eq!(
+        SyncPermission::ManageIntegrations.resource(),
+        "integrations"
+    );
     assert_eq!(SyncPermission::ViewConflicts.resource(), "sync");
 }
 
 #[test]
 fn test_sync_permission_action_extraction() {
-    assert_eq!(SyncPermission::TriggerEmployeeSync.action(), "trigger_employee");
+    assert_eq!(
+        SyncPermission::TriggerEmployeeSync.action(),
+        "trigger_employee"
+    );
     assert_eq!(SyncPermission::ManageIntegrations.action(), "manage");
     assert_eq!(SyncPermission::ViewConflicts.action(), "view_conflicts");
 }
@@ -84,20 +90,44 @@ fn test_risk_level_assignments() {
     assert_eq!(SyncPermission::ViewSystemLogs.risk_level(), RiskLevel::Low);
 
     // Medium risk - can trigger operations
-    assert_eq!(SyncPermission::TriggerEmployeeSync.risk_level(), RiskLevel::Medium);
-    assert_eq!(SyncPermission::TriggerDepartmentSync.risk_level(), RiskLevel::Medium);
-    assert_eq!(SyncPermission::TriggerBidirectionalSync.risk_level(), RiskLevel::Medium);
+    assert_eq!(
+        SyncPermission::TriggerEmployeeSync.risk_level(),
+        RiskLevel::Medium
+    );
+    assert_eq!(
+        SyncPermission::TriggerDepartmentSync.risk_level(),
+        RiskLevel::Medium
+    );
+    assert_eq!(
+        SyncPermission::TriggerBidirectionalSync.risk_level(),
+        RiskLevel::Medium
+    );
     assert_eq!(SyncPermission::CancelSync.risk_level(), RiskLevel::Medium);
-    assert_eq!(SyncPermission::ResolveConflicts.risk_level(), RiskLevel::Medium);
+    assert_eq!(
+        SyncPermission::ResolveConflicts.risk_level(),
+        RiskLevel::Medium
+    );
 
     // High risk - can modify data
-    assert_eq!(SyncPermission::PushToQuickBooks.risk_level(), RiskLevel::High);
+    assert_eq!(
+        SyncPermission::PushToQuickBooks.risk_level(),
+        RiskLevel::High
+    );
     assert_eq!(SyncPermission::ForceFullSync.risk_level(), RiskLevel::High);
-    assert_eq!(SyncPermission::BulkResolveConflicts.risk_level(), RiskLevel::High);
+    assert_eq!(
+        SyncPermission::BulkResolveConflicts.risk_level(),
+        RiskLevel::High
+    );
 
     // Critical risk - full system access
-    assert_eq!(SyncPermission::ManageIntegrations.risk_level(), RiskLevel::Critical);
-    assert_eq!(SyncPermission::ManagePermissions.risk_level(), RiskLevel::Critical);
+    assert_eq!(
+        SyncPermission::ManageIntegrations.risk_level(),
+        RiskLevel::Critical
+    );
+    assert_eq!(
+        SyncPermission::ManagePermissions.risk_level(),
+        RiskLevel::Critical
+    );
 }
 
 #[test]
@@ -180,11 +210,7 @@ fn test_all_permissions_have_descriptions() {
 
 #[test]
 fn test_admin_role_hierarchy() {
-    let ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Admin".to_string()],
-        vec![],
-    );
+    let ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
 
     assert!(ctx.is_admin());
     assert!(ctx.is_hr_manager());
@@ -194,11 +220,7 @@ fn test_admin_role_hierarchy() {
 
 #[test]
 fn test_hr_manager_role_hierarchy() {
-    let ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["HR Manager".to_string()],
-        vec![],
-    );
+    let ctx = UserContext::new(Uuid::new_v4(), vec!["HR Manager".to_string()], vec![]);
 
     assert!(!ctx.is_admin());
     assert!(ctx.is_hr_manager());
@@ -208,11 +230,7 @@ fn test_hr_manager_role_hierarchy() {
 
 #[test]
 fn test_manager_role_hierarchy() {
-    let ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Manager".to_string()],
-        vec![],
-    );
+    let ctx = UserContext::new(Uuid::new_v4(), vec!["Manager".to_string()], vec![]);
 
     assert!(!ctx.is_admin());
     assert!(!ctx.is_hr_manager());
@@ -221,11 +239,7 @@ fn test_manager_role_hierarchy() {
 
 #[test]
 fn test_employee_role_no_elevated_access() {
-    let ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Employee".to_string()],
-        vec![],
-    );
+    let ctx = UserContext::new(Uuid::new_v4(), vec!["Employee".to_string()], vec![]);
 
     assert!(!ctx.is_admin());
     assert!(!ctx.is_hr_manager());
@@ -245,11 +259,7 @@ fn test_system_context_has_all_permissions() {
 
 #[test]
 fn test_role_case_insensitivity() {
-    let ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["admin".to_string()],
-        vec![],
-    );
+    let ctx = UserContext::new(Uuid::new_v4(), vec!["admin".to_string()], vec![]);
 
     assert!(ctx.has_role("Admin"));
     assert!(ctx.has_role("ADMIN"));
@@ -285,20 +295,12 @@ async fn test_permission_checker_admin_has_all() {
         .expect("Failed to create test context");
 
     let checker = PermissionChecker::new(ctx.connection().clone());
-    let user_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Admin".to_string()],
-        vec![],
-    );
+    let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
 
     // Admin should have all sync permissions
     for perm in SyncPermission::all() {
         let result = checker.check(&user_ctx, perm).await.expect("Check failed");
-        assert!(
-            result.granted,
-            "Admin should have permission: {:?}",
-            perm
-        );
+        assert!(result.granted, "Admin should have permission: {:?}", perm);
     }
 }
 
@@ -329,18 +331,17 @@ async fn test_permission_checker_employee_limited_access() {
         .expect("Failed to create test context");
 
     let checker = PermissionChecker::new(ctx.connection().clone());
-    let user_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Employee".to_string()],
-        vec![],
-    );
+    let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Employee".to_string()], vec![]);
 
     // Employee should have ViewSyncHistory (self-scoped)
     let result = checker
         .check(&user_ctx, SyncPermission::ViewSyncHistory)
         .await
         .expect("Check failed");
-    assert!(result.granted, "Employee should be able to view own sync history");
+    assert!(
+        result.granted,
+        "Employee should be able to view own sync history"
+    );
     assert_eq!(result.scope, Some(PermissionScope::Self_));
 
     // Employee should NOT have trigger permissions
@@ -348,14 +349,20 @@ async fn test_permission_checker_employee_limited_access() {
         .check(&user_ctx, SyncPermission::TriggerEmployeeSync)
         .await
         .expect("Check failed");
-    assert!(!result.granted, "Employee should NOT have trigger sync permission");
+    assert!(
+        !result.granted,
+        "Employee should NOT have trigger sync permission"
+    );
 
     // Employee should NOT have admin permissions
     let result = checker
         .check(&user_ctx, SyncPermission::ManageIntegrations)
         .await
         .expect("Check failed");
-    assert!(!result.granted, "Employee should NOT have manage integrations permission");
+    assert!(
+        !result.granted,
+        "Employee should NOT have manage integrations permission"
+    );
 }
 
 #[tokio::test]
@@ -463,11 +470,7 @@ async fn test_permission_checker_manager_without_department_limited() {
 
     let checker = PermissionChecker::new(ctx.connection().clone());
     // Manager without department_id
-    let user_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Manager".to_string()],
-        vec![],
-    );
+    let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Manager".to_string()], vec![]);
 
     // Manager without department should NOT get department-scoped permissions
     let result = checker
@@ -499,14 +502,20 @@ async fn test_permission_checker_specific_permission_grant() {
         .check(&user_ctx, SyncPermission::TriggerEmployeeSync)
         .await
         .expect("Check failed");
-    assert!(result.granted, "User with specific permission should have it");
+    assert!(
+        result.granted,
+        "User with specific permission should have it"
+    );
 
     // But should NOT have other permissions
     let result = checker
         .check(&user_ctx, SyncPermission::PushToQuickBooks)
         .await
         .expect("Check failed");
-    assert!(!result.granted, "User should not have non-granted permission");
+    assert!(
+        !result.granted,
+        "User should not have non-granted permission"
+    );
 }
 
 #[tokio::test]
@@ -527,26 +536,38 @@ async fn test_permission_checker_legacy_manage_integrations() {
         .check(&user_ctx, SyncPermission::TriggerEmployeeSync)
         .await
         .expect("Check failed");
-    assert!(result.granted, "Legacy manage:integrations should grant TriggerEmployeeSync");
+    assert!(
+        result.granted,
+        "Legacy manage:integrations should grant TriggerEmployeeSync"
+    );
 
     let result = checker
         .check(&user_ctx, SyncPermission::ViewConflicts)
         .await
         .expect("Check failed");
-    assert!(result.granted, "Legacy manage:integrations should grant ViewConflicts");
+    assert!(
+        result.granted,
+        "Legacy manage:integrations should grant ViewConflicts"
+    );
 
     let result = checker
         .check(&user_ctx, SyncPermission::ManageIntegrations)
         .await
         .expect("Check failed");
-    assert!(result.granted, "Legacy manage:integrations should grant ManageIntegrations");
+    assert!(
+        result.granted,
+        "Legacy manage:integrations should grant ManageIntegrations"
+    );
 
     // But should NOT grant non-covered permissions
     let result = checker
         .check(&user_ctx, SyncPermission::ManagePermissions)
         .await
         .expect("Check failed");
-    assert!(!result.granted, "Legacy permission should not grant ManagePermissions");
+    assert!(
+        !result.granted,
+        "Legacy permission should not grant ManagePermissions"
+    );
 }
 
 #[tokio::test]
@@ -576,14 +597,12 @@ async fn test_permission_checker_require_success() {
         .expect("Failed to create test context");
 
     let checker = PermissionChecker::new(ctx.connection().clone());
-    let user_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Admin".to_string()],
-        vec![],
-    );
+    let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
 
     // require() should succeed for admin
-    let result = checker.require(&user_ctx, SyncPermission::ManageIntegrations).await;
+    let result = checker
+        .require(&user_ctx, SyncPermission::ManageIntegrations)
+        .await;
     assert!(result.is_ok(), "require() should succeed for admin");
 }
 
@@ -594,14 +613,12 @@ async fn test_permission_checker_require_failure() {
         .expect("Failed to create test context");
 
     let checker = PermissionChecker::new(ctx.connection().clone());
-    let user_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Employee".to_string()],
-        vec![],
-    );
+    let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Employee".to_string()], vec![]);
 
     // require() should fail for employee requesting admin permission
-    let result = checker.require(&user_ctx, SyncPermission::ManageIntegrations).await;
+    let result = checker
+        .require(&user_ctx, SyncPermission::ManageIntegrations)
+        .await;
     assert!(result.is_err(), "require() should fail for employee");
 
     let err = result.unwrap_err();
@@ -635,7 +652,10 @@ async fn test_permission_checker_check_any() {
         )
         .await
         .expect("Check failed");
-    assert!(result.granted, "check_any should succeed if user has ViewSyncHistory");
+    assert!(
+        result.granted,
+        "check_any should succeed if user has ViewSyncHistory"
+    );
 
     // check_any should fail if user has none of the permissions
     let result = checker
@@ -658,11 +678,7 @@ async fn test_permission_checker_check_all() {
         .expect("Failed to create test context");
 
     let checker = PermissionChecker::new(ctx.connection().clone());
-    let user_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Admin".to_string()],
-        vec![],
-    );
+    let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
 
     // check_all should succeed for admin
     let result = checker
@@ -705,12 +721,11 @@ async fn test_get_user_sync_permissions() {
     let checker = PermissionChecker::new(ctx.connection().clone());
 
     // Admin should get all permissions
-    let admin_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Admin".to_string()],
-        vec![],
-    );
-    let perms = checker.get_user_sync_permissions(&admin_ctx).await.expect("Failed");
+    let admin_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
+    let perms = checker
+        .get_user_sync_permissions(&admin_ctx)
+        .await
+        .expect("Failed");
     assert_eq!(
         perms.len(),
         SyncPermission::all().len(),
@@ -718,12 +733,11 @@ async fn test_get_user_sync_permissions() {
     );
 
     // Employee should get limited permissions
-    let employee_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Employee".to_string()],
-        vec![],
-    );
-    let perms = checker.get_user_sync_permissions(&employee_ctx).await.expect("Failed");
+    let employee_ctx = UserContext::new(Uuid::new_v4(), vec!["Employee".to_string()], vec![]);
+    let perms = checker
+        .get_user_sync_permissions(&employee_ctx)
+        .await
+        .expect("Failed");
     assert!(
         perms.len() < SyncPermission::all().len(),
         "Employee should have fewer permissions than all"
@@ -790,7 +804,9 @@ async fn test_sync_mutation_requires_permission() {
 
     // Employee without sync permissions should be denied
     let employee = ctx.user(TestUserRole::Employee);
-    let response = ctx.execute_query_as(SYNC_ALL_EMPLOYEES_MUTATION, employee).await;
+    let response = ctx
+        .execute_query_as(SYNC_ALL_EMPLOYEES_MUTATION, employee)
+        .await;
 
     // Should have permission error
     if !response.errors.is_empty() {
@@ -815,7 +831,9 @@ async fn test_sync_mutation_allowed_for_admin() {
 
     // Admin should be allowed (may still fail due to no QuickBooks connection, but not due to permissions)
     let admin = ctx.user(TestUserRole::Admin);
-    let response = ctx.execute_query_as(SYNC_ALL_EMPLOYEES_MUTATION, admin).await;
+    let response = ctx
+        .execute_query_as(SYNC_ALL_EMPLOYEES_MUTATION, admin)
+        .await;
 
     // Check that if there are errors, they are not permission errors
     for error in &response.errors {
@@ -840,7 +858,9 @@ async fn test_push_mutation_requires_high_risk_permission() {
 
     // HR Manager without explicit push permission
     let hr_manager = ctx.user(TestUserRole::HrManager);
-    let response = ctx.execute_query_as(PUSH_EMPLOYEES_MUTATION, hr_manager).await;
+    let response = ctx
+        .execute_query_as(PUSH_EMPLOYEES_MUTATION, hr_manager)
+        .await;
 
     // Push is high risk - HR Manager might not have it by default
     println!(

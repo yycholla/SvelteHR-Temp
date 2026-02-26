@@ -1,15 +1,13 @@
 use async_graphql::{Context, Result};
 use chrono::Utc;
-use sea_orm::{EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionTrait};
 use sea_orm::prelude::Expr;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TransactionTrait};
 use uuid::Uuid;
 
 use crate::{
     database::get_db_from_context,
     error::AppError,
-    models::{
-        BulkUpdateDepartmentInput, CreateDepartmentInput, UpdateDepartmentInput, Department,
-    },
+    models::{BulkUpdateDepartmentInput, CreateDepartmentInput, Department, UpdateDepartmentInput},
 };
 
 /// Department mutations
@@ -38,7 +36,11 @@ impl DepartmentMutations {
                 chain
             } else {
                 // Parent not found - return error
-                return Err(AppError::NotFound(format!("Parent department {} not found", parent_id)).into());
+                return Err(AppError::NotFound(format!(
+                    "Parent department {} not found",
+                    parent_id
+                ))
+                .into());
             }
         } else {
             // Root department - empty ancestor chain
@@ -99,7 +101,7 @@ impl DepartmentMutations {
                 // Validation 1: Prevent self-parenting
                 if parent_id == id {
                     return Err(async_graphql::Error::new(
-                        "Department cannot be its own parent"
+                        "Department cannot be its own parent",
                     ));
                 }
 
@@ -107,23 +109,18 @@ impl DepartmentMutations {
                 // Check if parent_id is in this department's descendants
                 let descendants: Vec<crate::models::department::Model> =
                     crate::models::department::Entity::find()
-                        .filter(
-                            Expr::cust_with_values(
-                                "ancestor_ids @> ARRAY[$1]::uuid[]",
-                                vec![id]
-                            )
-                        )
+                        .filter(Expr::cust_with_values(
+                            "ancestor_ids @> ARRAY[$1]::uuid[]",
+                            vec![id],
+                        ))
                         .all(&db)
                         .await?;
 
-                let descendant_ids: Vec<Uuid> = descendants
-                    .iter()
-                    .map(|d| d.id)
-                    .collect();
+                let descendant_ids: Vec<Uuid> = descendants.iter().map(|d| d.id).collect();
 
                 if descendant_ids.contains(&parent_id) {
                     return Err(async_graphql::Error::new(
-                        "Cannot create circular hierarchy: target parent is a descendant"
+                        "Cannot create circular hierarchy: target parent is a descendant",
                     ));
                 }
 
@@ -210,9 +207,10 @@ impl DepartmentMutations {
                 dept.parent_department_id = Set(Some(parent_department_id));
 
                 // Recompute ancestor_ids based on new parent
-                let ancestor_ids = if let Some(parent) = crate::models::department::Entity::find_by_id(parent_department_id)
-                    .one(&txn)
-                    .await?
+                let ancestor_ids = if let Some(parent) =
+                    crate::models::department::Entity::find_by_id(parent_department_id)
+                        .one(&txn)
+                        .await?
                 {
                     // Build chain: [parent_id, ...parent's ancestors]
                     let mut chain = vec![parent_department_id];
@@ -220,7 +218,11 @@ impl DepartmentMutations {
                     chain
                 } else {
                     // Parent not found - return error to rollback transaction
-                    return Err(AppError::NotFound(format!("Parent department {} not found", parent_department_id)).into());
+                    return Err(AppError::NotFound(format!(
+                        "Parent department {} not found",
+                        parent_department_id
+                    ))
+                    .into());
                 };
 
                 dept.ancestor_ids = Set(ancestor_ids);
@@ -338,10 +340,19 @@ mod tests {
         // Assert - Returns updated departments
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("Updated Dept 1"), "Should contain updated name 1");
-        assert!(data_str.contains("Updated Dept 2"), "Should contain updated name 2");
-        assert!(data_str.contains("Bulk updated"), "Should contain updated description");
+
+        assert!(
+            data_str.contains("Updated Dept 1"),
+            "Should contain updated name 1"
+        );
+        assert!(
+            data_str.contains("Updated Dept 2"),
+            "Should contain updated name 2"
+        );
+        assert!(
+            data_str.contains("Bulk updated"),
+            "Should contain updated description"
+        );
     }
 
     /// Test bulk update rolls back on error (atomic transaction)
@@ -390,7 +401,7 @@ mod tests {
 
         // Use one valid ID and one invalid ID - should cause rollback
         let invalid_id = uuid::Uuid::new_v4();
-        
+
         let mutation = format!(
             r#"
             mutation {{
@@ -413,10 +424,16 @@ mod tests {
 
         // Assert - Should have errors
         let errors = ctx.extract_errors(&response);
-        assert!(!errors.is_empty(), "Expected error for invalid department ID");
+        assert!(
+            !errors.is_empty(),
+            "Expected error for invalid department ID"
+        );
 
         let errors_str = errors.join(" ");
-        assert!(errors_str.contains("not found"), "Error should mention department not found");
+        assert!(
+            errors_str.contains("not found"),
+            "Error should mention department not found"
+        );
 
         // Verify the valid department was NOT updated (rollback worked)
         let check_query = format!(
@@ -435,12 +452,16 @@ mod tests {
         let check_str = check_data.to_string();
 
         // Original name should still be present
-        assert!(check_str.contains(original_name), 
-            "Department name should not have changed due to rollback");
-        
+        assert!(
+            check_str.contains(original_name),
+            "Department name should not have changed due to rollback"
+        );
+
         // Updated name should NOT be present
-        assert!(!check_str.contains("This Should Rollback"), 
-            "Failed update should have been rolled back");
+        assert!(
+            !check_str.contains("This Should Rollback"),
+            "Failed update should have been rolled back"
+        );
     }
 
     /// Test bulk update with empty inputs
@@ -473,15 +494,23 @@ mod tests {
         if !errors.is_empty() {
             eprintln!("GraphQL Errors: {:?}", errors);
         }
-        assert!(errors.is_empty(), "Expected no errors for empty inputs, got: {:?}", errors);
+        assert!(
+            errors.is_empty(),
+            "Expected no errors for empty inputs, got: {:?}",
+            errors
+        );
 
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
 
-        assert!(data_str.contains("departments"),
-            "Should contain departments field");
-        assert!(data_str.contains("bulkUpdateDepartments"),
-            "Should contain bulkUpdateDepartments field");
+        assert!(
+            data_str.contains("departments"),
+            "Should contain departments field"
+        );
+        assert!(
+            data_str.contains("bulkUpdateDepartments"),
+            "Should contain bulkUpdateDepartments field"
+        );
     }
 
     /// Test updating department parent (moving in hierarchy)

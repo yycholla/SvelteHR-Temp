@@ -174,7 +174,10 @@ async fn test_tags_column_is_array_type() -> Result<(), DbErr> {
 
     assert_eq!(data_type, "ARRAY", "tags should be ARRAY type");
     assert_eq!(is_nullable, "YES", "tags should be nullable");
-    assert_eq!(udt_name, "_text", "tags should be text array (_text is PostgreSQL's internal name)");
+    assert_eq!(
+        udt_name, "_text",
+        "tags should be text array (_text is PostgreSQL's internal name)"
+    );
 
     Ok(())
 }
@@ -390,8 +393,7 @@ async fn test_tags_array_functionality() -> Result<(), DbErr> {
     let result = db
         .query_one(Statement::from_string(
             DbBackend::Postgres,
-            "SELECT tags FROM hr_public.trainings WHERE title = 'Test Training'"
-                .to_string(),
+            "SELECT tags FROM hr_public.trainings WHERE title = 'Test Training'".to_string(),
         ))
         .await?
         .unwrap();

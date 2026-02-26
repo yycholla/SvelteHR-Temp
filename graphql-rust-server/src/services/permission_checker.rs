@@ -5,13 +5,11 @@
 //! and audit logging for compliance.
 
 use async_graphql::{Error, ErrorExtensions};
-use sea_orm::{
-    DatabaseConnection, ActiveModelTrait, Set,
-};
+use chrono::Utc;
+use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use uuid::Uuid;
-use chrono::Utc;
 
 use crate::auth::UserContext;
 
@@ -117,8 +115,12 @@ impl SyncPermission {
     /// Get human-readable description
     pub fn description(&self) -> &'static str {
         match self {
-            SyncPermission::TriggerEmployeeSync => "Trigger employee synchronization from QuickBooks",
-            SyncPermission::TriggerDepartmentSync => "Trigger department synchronization from QuickBooks",
+            SyncPermission::TriggerEmployeeSync => {
+                "Trigger employee synchronization from QuickBooks"
+            }
+            SyncPermission::TriggerDepartmentSync => {
+                "Trigger department synchronization from QuickBooks"
+            }
             SyncPermission::PushToQuickBooks => "Push local data to QuickBooks",
             SyncPermission::TriggerBidirectionalSync => "Trigger bidirectional synchronization",
             SyncPermission::ForceFullSync => "Force a complete resync ignoring change tracking",
@@ -347,51 +349,68 @@ impl PermissionChecker {
         // Admin role has all permissions
         if user_context.is_admin() {
             let result = self.grant_permission(permission, "Admin role has all permissions");
-            self.log_permission_check(user_context.user_id, permission, true, &result.reason).await?;
+            self.log_permission_check(user_context.user_id, permission, true, &result.reason)
+                .await?;
             return Ok(result);
         }
 
         // Check for wildcard permission
         if user_context.permissions.contains(&"*".to_string()) {
             let result = self.grant_permission(permission, "Wildcard permission granted");
-            self.log_permission_check(user_context.user_id, permission, true, &result.reason).await?;
+            self.log_permission_check(user_context.user_id, permission, true, &result.reason)
+                .await?;
             return Ok(result);
         }
 
         // Check specific permission string
         let perm_string = permission.as_permission_string().to_string();
         if user_context.has_permission(&perm_string) {
-            let result = self.grant_permission(permission, &format!("Permission '{}' found in user context", perm_string));
-            self.log_permission_check(user_context.user_id, permission, true, &result.reason).await?;
+            let result = self.grant_permission(
+                permission,
+                &format!("Permission '{}' found in user context", perm_string),
+            );
+            self.log_permission_check(user_context.user_id, permission, true, &result.reason)
+                .await?;
             return Ok(result);
         }
 
         // Check for legacy manage:integrations permission for backward compatibility
-        if matches!(permission,
+        if matches!(
+            permission,
             SyncPermission::TriggerEmployeeSync
-            | SyncPermission::TriggerDepartmentSync
-            | SyncPermission::TriggerBidirectionalSync
-            | SyncPermission::ViewSyncHistory
-            | SyncPermission::ViewConflicts
-            | SyncPermission::ResolveConflicts
-            | SyncPermission::ManageIntegrations
-        ) && user_context.has_permission("manage:integrations") {
-            let result = self.grant_permission(permission, "Legacy 'manage:integrations' permission grants access");
-            self.log_permission_check(user_context.user_id, permission, true, &result.reason).await?;
+                | SyncPermission::TriggerDepartmentSync
+                | SyncPermission::TriggerBidirectionalSync
+                | SyncPermission::ViewSyncHistory
+                | SyncPermission::ViewConflicts
+                | SyncPermission::ResolveConflicts
+                | SyncPermission::ManageIntegrations
+        ) && user_context.has_permission("manage:integrations")
+        {
+            let result = self.grant_permission(
+                permission,
+                "Legacy 'manage:integrations' permission grants access",
+            );
+            self.log_permission_check(user_context.user_id, permission, true, &result.reason)
+                .await?;
             return Ok(result);
         }
 
         // Check for scoped permissions (department-based)
-        if let Some(result) = self.check_scoped_permission(user_context, permission).await? {
+        if let Some(result) = self
+            .check_scoped_permission(user_context, permission)
+            .await?
+        {
             if result.granted {
-                self.log_permission_check(user_context.user_id, permission, true, &result.reason).await?;
+                self.log_permission_check(user_context.user_id, permission, true, &result.reason)
+                    .await?;
                 return Ok(result);
             }
         }
 
         // Permission denied
         let reason = format!("Permission '{}' not granted to user", perm_string);
-        self.log_permission_check(user_context.user_id, permission, false, &reason).await?;
+        self.log_permission_check(user_context.user_id, permission, false, &reason)
+            .await?;
 
         Ok(PermissionCheckResult {
             granted: false,
@@ -416,7 +435,8 @@ impl PermissionChecker {
                 "Permission denied: {} - {}",
                 permission.as_permission_string(),
                 result.reason
-            )).extend_with(|_, e| {
+            ))
+            .extend_with(|_, e| {
                 e.set("code", "FORBIDDEN");
                 e.set("permission", permission.as_permission_string());
             }))
@@ -437,7 +457,10 @@ impl PermissionChecker {
         }
 
         // None granted
-        let perm_list: Vec<_> = permissions.iter().map(|p| p.as_permission_string()).collect();
+        let perm_list: Vec<_> = permissions
+            .iter()
+            .map(|p| p.as_permission_string())
+            .collect();
         Ok(PermissionCheckResult {
             granted: false,
             permission: permissions[0],
@@ -498,8 +521,7 @@ impl PermissionChecker {
         // Manager role gets limited department-scoped access
         if user_context.is_manager() {
             match permission {
-                SyncPermission::ViewSyncHistory
-                | SyncPermission::ViewConflicts => {
+                SyncPermission::ViewSyncHistory | SyncPermission::ViewConflicts => {
                     // Check if user has department_id set
                     if user_context.department_id.is_some() {
                         return Ok(Some(PermissionCheckResult {
@@ -517,7 +539,8 @@ impl PermissionChecker {
                             granted: true,
                             permission,
                             scope: Some(PermissionScope::Department),
-                            reason: "Manager role can resolve conflicts for own department".to_string(),
+                            reason: "Manager role can resolve conflicts for own department"
+                                .to_string(),
                         }));
                     }
                 }
@@ -634,9 +657,18 @@ mod tests {
     #[test]
     fn test_risk_levels() {
         assert_eq!(SyncPermission::ViewSyncHistory.risk_level(), RiskLevel::Low);
-        assert_eq!(SyncPermission::TriggerEmployeeSync.risk_level(), RiskLevel::Medium);
-        assert_eq!(SyncPermission::PushToQuickBooks.risk_level(), RiskLevel::High);
-        assert_eq!(SyncPermission::ManageIntegrations.risk_level(), RiskLevel::Critical);
+        assert_eq!(
+            SyncPermission::TriggerEmployeeSync.risk_level(),
+            RiskLevel::Medium
+        );
+        assert_eq!(
+            SyncPermission::PushToQuickBooks.risk_level(),
+            RiskLevel::High
+        );
+        assert_eq!(
+            SyncPermission::ManageIntegrations.risk_level(),
+            RiskLevel::Critical
+        );
     }
 
     #[test]
@@ -661,27 +693,23 @@ mod tests {
         let mut strings: Vec<_> = all.iter().map(|p| p.as_permission_string()).collect();
         strings.sort();
         strings.dedup();
-        assert_eq!(strings.len(), all.len(), "All permission strings must be unique");
+        assert_eq!(
+            strings.len(),
+            all.len(),
+            "All permission strings must be unique"
+        );
     }
 
     #[test]
     fn test_permission_check_result_admin() {
-        let user_ctx = UserContext::new(
-            Uuid::new_v4(),
-            vec!["Admin".to_string()],
-            vec![],
-        );
+        let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
 
         assert!(user_ctx.is_admin());
     }
 
     #[test]
     fn test_permission_check_result_hr_manager() {
-        let user_ctx = UserContext::new(
-            Uuid::new_v4(),
-            vec!["HR Manager".to_string()],
-            vec![],
-        );
+        let user_ctx = UserContext::new(Uuid::new_v4(), vec!["HR Manager".to_string()], vec![]);
 
         assert!(user_ctx.is_hr_manager());
         assert!(user_ctx.is_manager());

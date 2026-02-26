@@ -22,9 +22,8 @@ mod tests {
 
     /// Set up test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/hr_test".to_string()
-        });
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
         Database::connect(&db_url)
             .await
             .expect("Failed to connect to test database")
@@ -43,21 +42,24 @@ mod tests {
         let _ = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
-                "DROP INDEX IF EXISTS hr_public.idx_users_password_last_changed CASCADE".to_string(),
+                "DROP INDEX IF EXISTS hr_public.idx_users_password_last_changed CASCADE"
+                    .to_string(),
             ))
             .await;
 
         let _ = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
-                "ALTER TABLE hr_public.users DROP COLUMN IF EXISTS account_locked CASCADE".to_string(),
+                "ALTER TABLE hr_public.users DROP COLUMN IF EXISTS account_locked CASCADE"
+                    .to_string(),
             ))
             .await;
 
         let _ = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
-                "ALTER TABLE hr_public.users DROP COLUMN IF EXISTS password_last_changed CASCADE".to_string(),
+                "ALTER TABLE hr_public.users DROP COLUMN IF EXISTS password_last_changed CASCADE"
+                    .to_string(),
             ))
             .await;
     }
@@ -180,10 +182,7 @@ mod tests {
         assert!(result.is_some(), "Query should return result");
         let row = result.unwrap();
         let default: String = row.try_get("", "column_default").unwrap();
-        assert_eq!(
-            default, "false",
-            "account_locked default should be false"
-        );
+        assert_eq!(default, "false", "account_locked default should be false");
     }
 
     #[tokio::test]
@@ -398,7 +397,10 @@ mod tests {
         assert!(before_result.is_some(), "Query should return result");
         let row = before_result.unwrap();
         let before_count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(before_count, 2, "Both columns should exist before down migration");
+        assert_eq!(
+            before_count, 2,
+            "Both columns should exist before down migration"
+        );
 
         // Run down migration
         Migration

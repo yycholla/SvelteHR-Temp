@@ -77,11 +77,16 @@ pub async fn request_password_reset_handler(
     {
         Ok(Some(user)) => user,
         Ok(None) => {
-            tracing::info!("Password reset requested for non-existent email: {}", payload.email);
+            tracing::info!(
+                "Password reset requested for non-existent email: {}",
+                payload.email
+            );
             // Return success to prevent email enumeration
             return Ok(Json(RequestPasswordResetResponse {
                 success: true,
-                message: "If an account with that email exists, a password reset link has been sent.".to_string(),
+                message:
+                    "If an account with that email exists, a password reset link has been sent."
+                        .to_string(),
             }));
         }
         Err(e) => {
@@ -229,9 +234,9 @@ pub async fn reset_password_handler(
     };
 
     // Find matching token by comparing hashes
-    let valid_token = all_tokens.iter().find(|t| {
-        bcrypt::verify(&payload.token, &t.token).unwrap_or(false) && t.is_valid()
-    });
+    let valid_token = all_tokens
+        .iter()
+        .find(|t| bcrypt::verify(&payload.token, &t.token).unwrap_or(false) && t.is_valid());
 
     let token_model = match valid_token {
         Some(token) => token,
@@ -251,10 +256,7 @@ pub async fn reset_password_handler(
     {
         Ok(Some(user)) => user,
         Ok(None) => {
-            tracing::error!(
-                "User not found for valid token: {}",
-                token_model.user_id
-            );
+            tracing::error!("User not found for valid token: {}", token_model.user_id);
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ResetPasswordResponse {
@@ -314,10 +316,7 @@ pub async fn reset_password_handler(
         // Continue anyway - password was updated successfully
     }
 
-    tracing::info!(
-        "Password reset successful for user {}",
-        token_model.user_id
-    );
+    tracing::info!("Password reset successful for user {}", token_model.user_id);
 
     Ok(Json(ResetPasswordResponse {
         success: true,

@@ -21,9 +21,8 @@ mod tests {
 
     /// Set up test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/hr_test".to_string()
-        });
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
         Database::connect(&db_url)
             .await
             .expect("Failed to connect to test database")
@@ -181,10 +180,7 @@ mod tests {
         assert!(mgmt_result.is_some(), "Query should return result");
         let row = mgmt_result.unwrap();
         let count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(
-            count, 1,
-            "Manager should have management write permission"
-        );
+        assert_eq!(count, 1, "Manager should have management write permission");
     }
 
     #[tokio::test]
@@ -305,10 +301,7 @@ mod tests {
         assert!(result.is_some(), "Query should return result");
         let row = result.unwrap();
         let count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(
-            count, 1,
-            "Admin role should have wildcard permission (*:*)"
-        );
+        assert_eq!(count, 1, "Admin role should have wildcard permission (*:*)");
     }
 
     #[tokio::test]

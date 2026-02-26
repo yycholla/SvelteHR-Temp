@@ -3,9 +3,13 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import Button from '$lib/components/ui/button/button.svelte';
 
+	interface RoleSummary {
+		id: string;
+	}
+
 	interface Props {
 		open: boolean;
-		selectedRole: any;
+		selectedRole: RoleSummary | null;
 		roleForm: { name: string; description: string };
 		loading: boolean;
 		onClose: () => void;

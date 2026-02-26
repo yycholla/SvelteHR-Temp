@@ -27,7 +27,16 @@ export class UnifiedGraphQLClient {
 
 	constructor(event: RequestEvent) {
 		const cookieHeader = event.request.headers.get('cookie') || '';
-		this.client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
+		this.client = createUrqlClient(undefined, event.locals.accessToken, undefined, cookieHeader);
+	}
+
+	private getValueAtPath(data: unknown, path: string): unknown {
+		return path.split('.').reduce<unknown>((current, segment) => {
+			if (!current || typeof current !== 'object') {
+				return undefined;
+			}
+			return (current as Record<string, unknown>)[segment];
+		}, data);
 	}
 
 	/**
@@ -66,7 +75,7 @@ export class UnifiedGraphQLClient {
 			}
 
 			// Extract data from specified path or return full data
-			return dataPath ? (result.data as any)[dataPath] : result.data;
+			return dataPath ? (this.getValueAtPath(result.data, dataPath) as TData) : result.data;
 		} catch (err) {
 			logger.error(`[${operationName || 'GraphQL'}] Query failed`, err as Error);
 			throw err;

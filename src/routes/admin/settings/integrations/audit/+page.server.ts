@@ -2,6 +2,21 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { gql } from '@urql/svelte';
 import type { PageServerLoad } from './$types';
 
+interface SyncHistoryRecord {
+	id: string;
+	syncType: string;
+	direction: string;
+	changeDirection: string | null;
+	status: string;
+	pushedCount: number;
+	pulledCount: number;
+	updatedCount: number;
+	skippedCount: number;
+	conflictDetected: boolean;
+	errorMessage: string | null;
+	createdAt: string;
+}
+
 // Query integration-specific sync history
 const GET_INTEGRATION_SYNC_HISTORY = gql`
 	query GetIntegrationSyncHistory($limit: Int) {
@@ -53,18 +68,18 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, url }) => 
 			};
 		}
 
-		const syncHistory = result.data?.intuit?.syncHistory || [];
+		const syncHistory: SyncHistoryRecord[] = result.data?.intuit?.syncHistory || [];
 
 		// Transform sync history to match audit log structure expected by frontend
 		const logs = syncHistory
-			.filter((log: any) => {
+			.filter((log) => {
 				// Client-side filtering by sync type if provided
 				if (entityType && entityType !== 'all' && log.syncType !== entityType) return false;
 				if (eventCategory && eventCategory !== 'all' && log.direction !== eventCategory)
 					return false;
 				return true;
 			})
-			.map((log: any) => ({
+			.map((log) => ({
 				id: log.id,
 				eventType: `${log.syncType}_${log.direction}`,
 				eventCategory: log.direction, // push/pull/bidirectional

@@ -1,7 +1,5 @@
 use super::{AccessTokenClaims, JwtConfig, JwtKeys, RefreshTokenClaims};
-use crate::models::{
-    permission, refresh_token, role, role_permission, user, user_role_assignment,
-};
+use crate::models::{permission, refresh_token, role, role_permission, user, user_role_assignment};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, Header, Validation};
 use sea_orm::{
@@ -248,7 +246,9 @@ impl JwtService {
         let token_hash = self.hash_token(plaintext_token);
 
         // Find token in database by hash
-        let token_id = claims.token_id().map_err(|_| JwtError::InvalidTokenFormat)?;
+        let token_id = claims
+            .token_id()
+            .map_err(|_| JwtError::InvalidTokenFormat)?;
         let stored_token = refresh_token::Entity::find_by_id(token_id)
             .one(&self.db)
             .await?
@@ -593,8 +593,7 @@ DRNLTSLyQNk1u7QFAYLP3WRSh/pQ8YH1jszCWSEXlU46L2vqsvwf4Ukb3YiBF1kb
         let hash = service.hash_token(token);
 
         // SHA256 of "test" should always produce the same hash
-        let expected_hash =
-            "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+        let expected_hash = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
         assert_eq!(hash, expected_hash);
     }
 

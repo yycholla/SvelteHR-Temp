@@ -9,7 +9,6 @@ use sea_orm::{entity::prelude::*, QueryFilter, QueryOrder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-
 /// Daily snapshot of employee statistics
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "employee_statistics", schema_name = "hr_public")]

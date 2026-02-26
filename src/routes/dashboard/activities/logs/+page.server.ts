@@ -7,6 +7,32 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
+interface LogUser {
+	id: string;
+	displayName: string;
+	email: string;
+	fullName: string;
+}
+
+interface ActivityLog {
+	id: string;
+	action: string;
+	resourceType: string;
+	resourceId?: string | null;
+	ipAddress?: string | null;
+	isRollback?: boolean;
+	createdAt: string;
+	user?: LogUser | null;
+	[key: string]: unknown;
+}
+
+interface ActivityLogsResponse {
+	data?: {
+		activityLogs?: ActivityLog[];
+	};
+	errors?: Array<{ message?: string }>;
+}
+
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
@@ -73,33 +99,33 @@ export const load: PageServerLoad = async (event) => {
 			event.request
 		);
 
-		const logsData = await logsResponse.json();
+		const logsData = (await logsResponse.json()) as ActivityLogsResponse;
 
-		if (logsData.errors) {
-			logger.error('[Audit Logs] GraphQL errors:', logsData.errors);
+		if (logsData.errors?.length) {
+			logger.error('[Audit Logs] GraphQL errors:', undefined, { errors: logsData.errors });
 			throw new Error(logsData.errors[0]?.message || 'Failed to load audit logs');
 		}
 
-		const logs = logsData?.data?.activityLogs || [];
+		const logs: ActivityLog[] = logsData?.data?.activityLogs || [];
 
 		// Step 6: Client-side filtering (for search and additional filters)
-		let filteredLogs = logs;
+		let filteredLogs: ActivityLog[] = logs;
 
 		if (action) {
 			filteredLogs = filteredLogs.filter(
-				(log: any) => log.action.toLowerCase() === action.toLowerCase()
+				(log) => log.action.toLowerCase() === action.toLowerCase()
 			);
 		}
 
 		if (resourceType) {
 			filteredLogs = filteredLogs.filter(
-				(log: any) => log.resourceType.toLowerCase() === resourceType.toLowerCase()
+				(log) => log.resourceType.toLowerCase() === resourceType.toLowerCase()
 			);
 		}
 
 		if (searchTerm) {
 			const searchLower = searchTerm.toLowerCase();
-			filteredLogs = filteredLogs.filter((log: any) => {
+			filteredLogs = filteredLogs.filter((log) => {
 				const actionMatch = log.action?.toLowerCase().includes(searchLower);
 				const resourceTypeMatch = log.resourceType?.toLowerCase().includes(searchLower);
 				const userMatch =
@@ -115,7 +141,7 @@ export const load: PageServerLoad = async (event) => {
 		const groupedLogsMap = new Map<
 			string,
 			{
-				log: any;
+				log: ActivityLog;
 				totalEdits: number;
 				allLogIds: string[];
 			}
@@ -170,36 +196,31 @@ export const load: PageServerLoad = async (event) => {
 		// Step 7: Calculate statistics from filtered logs (matching Rust backend action types)
 		const stats = {
 			total: filteredLogs.length,
-			creates: filteredLogs.filter((l: any) => l.action === 'CREATE').length,
-			updates: filteredLogs.filter((l: any) => l.action === 'UPDATE').length,
-			deletes: filteredLogs.filter((l: any) => l.action === 'DELETE').length,
-			uploads: filteredLogs.filter((l: any) => l.action === 'UPLOAD').length,
-			assigns: filteredLogs.filter((l: any) => l.action === 'ASSIGN').length,
-			unassigns: filteredLogs.filter((l: any) => l.action === 'UNASSIGN').length,
-			approves: filteredLogs.filter((l: any) => l.action === 'APPROVE').length,
-			rejects: filteredLogs.filter((l: any) => l.action === 'REJECT').length,
-			executes: filteredLogs.filter((l: any) => l.action === 'EXECUTE').length,
-			rollbacks: filteredLogs.filter((l: any) => l.isRollback).length
+			creates: filteredLogs.filter((l) => l.action === 'CREATE').length,
+			updates: filteredLogs.filter((l) => l.action === 'UPDATE').length,
+			deletes: filteredLogs.filter((l) => l.action === 'DELETE').length,
+			uploads: filteredLogs.filter((l) => l.action === 'UPLOAD').length,
+			assigns: filteredLogs.filter((l) => l.action === 'ASSIGN').length,
+			unassigns: filteredLogs.filter((l) => l.action === 'UNASSIGN').length,
+			approves: filteredLogs.filter((l) => l.action === 'APPROVE').length,
+			rejects: filteredLogs.filter((l) => l.action === 'REJECT').length,
+			executes: filteredLogs.filter((l) => l.action === 'EXECUTE').length,
+			rollbacks: filteredLogs.filter((l) => Boolean(l.isRollback)).length
 		};
 
 		// Step 8: Get unique values for filter dropdowns
-		const uniqueActions = [...new Set(logs.map((log: any) => log.action))].filter(Boolean).sort();
-		const uniqueResourceTypes = [...new Set(logs.map((log: any) => log.resourceType))]
+		const uniqueActions = [...new Set(logs.map((log) => log.action))].filter(Boolean).sort();
+		const uniqueResourceTypes = [...new Set(logs.map((log) => log.resourceType))]
 			.filter(Boolean)
 			.sort();
 
-		interface LogUser {
-			id: string;
-			displayName: string;
-			email: string;
-			fullName: string;
-		}
-
 		const uniqueUsers: LogUser[] = [
 			...new Map(
-				logs.filter((log: any) => log.user).map((log: any) => [log.user.id, log.user])
+				logs
+					.filter((log): log is ActivityLog & { user: LogUser } => Boolean(log.user))
+					.map((log) => [log.user.id, log.user])
 			).values()
-		] as LogUser[];
+		];
 
 		// Step 9: Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);

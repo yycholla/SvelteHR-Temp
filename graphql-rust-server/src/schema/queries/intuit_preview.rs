@@ -7,10 +7,10 @@ use crate::auth::UserContext;
 use crate::integrations::intuit::IntuitClient;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 use crate::services::sync_preview::{
-    SyncPreviewService, SyncPreview as ServiceSyncPreview, PreviewItem as ServicePreviewItem,
-    FieldChange as ServiceFieldChange, PreviewConflict as ServicePreviewConflict,
-    PreviewSummary as ServicePreviewSummary, PreviewDirection as ServicePreviewDirection,
-    PreviewEntityType as ServicePreviewEntityType, ChangeType as ServiceChangeType,
+    ChangeType as ServiceChangeType, FieldChange as ServiceFieldChange,
+    PreviewConflict as ServicePreviewConflict, PreviewDirection as ServicePreviewDirection,
+    PreviewEntityType as ServicePreviewEntityType, PreviewItem as ServicePreviewItem,
+    PreviewSummary as ServicePreviewSummary, SyncPreview as ServiceSyncPreview, SyncPreviewService,
 };
 
 #[derive(Default)]
@@ -121,7 +121,11 @@ impl From<ServiceSyncPreview> for SyncPreview {
             creates: service.creates.into_iter().map(PreviewItem::from).collect(),
             updates: service.updates.into_iter().map(PreviewItem::from).collect(),
             deletes: service.deletes.into_iter().map(PreviewItem::from).collect(),
-            conflicts: service.conflicts.into_iter().map(PreviewConflict::from).collect(),
+            conflicts: service
+                .conflicts
+                .into_iter()
+                .map(PreviewConflict::from)
+                .collect(),
             summary: PreviewSummary::from(service.summary),
             generated_at: service.generated_at,
         }
@@ -179,7 +183,11 @@ impl From<ServicePreviewItem> for PreviewItem {
             entity_name: service.entity_name,
             local_data: service.local_data,
             remote_data: service.remote_data,
-            field_changes: service.field_changes.into_iter().map(FieldChange::from).collect(),
+            field_changes: service
+                .field_changes
+                .into_iter()
+                .map(FieldChange::from)
+                .collect(),
             change_reason: service.change_reason,
         }
     }

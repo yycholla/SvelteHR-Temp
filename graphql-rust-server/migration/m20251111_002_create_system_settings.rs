@@ -221,5 +221,3 @@ enum ApplicationSettings {
     UpdatedAt,
     UpdatedBy,
 }
-
-

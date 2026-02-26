@@ -152,8 +152,8 @@ pub struct UpdateLeaveTypeInput {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::Model as LeaveType;
+    use super::*;
 
     #[test]
     fn test_leave_type_model_compiles() {

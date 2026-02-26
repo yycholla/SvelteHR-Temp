@@ -5,7 +5,8 @@
 use crate::models::{audit_logs, compliance_reports, report_schedules};
 use chrono::{DateTime, Timelike, Utc};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, Set,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -63,10 +64,7 @@ impl ComplianceReportService {
         let audit_logs = audit_logs::Entity::find()
             .filter(audit_logs::Column::CreatedAt.gte(period_start))
             .filter(audit_logs::Column::CreatedAt.lte(period_end))
-            .filter(
-                audit_logs::Column::EventCategory
-                    .is_in(["data_change", "auth", "system"])
-            )
+            .filter(audit_logs::Column::EventCategory.is_in(["data_change", "auth", "system"]))
             .order_by_asc(audit_logs::Column::CreatedAt)
             .all(&*self.db)
             .await?;
@@ -97,11 +95,23 @@ impl ComplianceReportService {
 
         // Count different event types
         let total_events = audit_logs.len();
-        let auth_events = audit_logs.iter().filter(|l| l.event_category == "auth").count();
-        let data_changes = audit_logs.iter().filter(|l| l.event_category == "data_change").count();
-        let system_changes = audit_logs.iter().filter(|l| l.event_category == "system").count();
+        let auth_events = audit_logs
+            .iter()
+            .filter(|l| l.event_category == "auth")
+            .count();
+        let data_changes = audit_logs
+            .iter()
+            .filter(|l| l.event_category == "data_change")
+            .count();
+        let system_changes = audit_logs
+            .iter()
+            .filter(|l| l.event_category == "system")
+            .count();
         let failed_attempts = audit_logs.iter().filter(|l| l.status == "failed").count();
-        let successful_auths = audit_logs.iter().filter(|l| l.event_category == "auth" && l.status == "success").count();
+        let successful_auths = audit_logs
+            .iter()
+            .filter(|l| l.event_category == "auth" && l.status == "success")
+            .count();
 
         // Build comprehensive SOX report data
         let report_data = json!({
@@ -196,10 +206,7 @@ impl ComplianceReportService {
         let audit_logs = audit_logs::Entity::find()
             .filter(audit_logs::Column::CreatedAt.gte(period_start))
             .filter(audit_logs::Column::CreatedAt.lte(period_end))
-            .filter(
-                audit_logs::Column::EntityType
-                    .is_in(["employee", "user"])
-            )
+            .filter(audit_logs::Column::EntityType.is_in(["employee", "user"]))
             .order_by_asc(audit_logs::Column::CreatedAt)
             .all(&*self.db)
             .await?;
@@ -359,10 +366,24 @@ impl ComplianceReportService {
             .await?;
 
         let total_events = audit_logs.len();
-        let security_events = audit_logs.iter().filter(|l| l.event_category == "auth" || l.event_category == "security").count();
-        let availability_incidents = audit_logs.iter().filter(|l| l.status == "failed" || l.event_type.contains("error")).count();
-        let processing_errors = audit_logs.iter().filter(|l| l.error_message.is_some()).count();
-        let confidential_access = audit_logs.iter().filter(|l| l.event_category == "data_change" && l.entity_type.as_deref() == Some("employee")).count();
+        let security_events = audit_logs
+            .iter()
+            .filter(|l| l.event_category == "auth" || l.event_category == "security")
+            .count();
+        let availability_incidents = audit_logs
+            .iter()
+            .filter(|l| l.status == "failed" || l.event_type.contains("error"))
+            .count();
+        let processing_errors = audit_logs
+            .iter()
+            .filter(|l| l.error_message.is_some())
+            .count();
+        let confidential_access = audit_logs
+            .iter()
+            .filter(|l| {
+                l.event_category == "data_change" && l.entity_type.as_deref() == Some("employee")
+            })
+            .count();
 
         let report_data = json!({
             "report_type": "SOC2 Type II Compliance Report",
@@ -569,10 +590,20 @@ impl ComplianceReportService {
             .await?;
 
         let total_activities = audit_logs.len();
-        let unique_users = audit_logs.iter().filter_map(|l| l.user_id).collect::<std::collections::HashSet<_>>().len();
-        let login_events = audit_logs.iter().filter(|l| l.event_type.contains("login") || l.event_category == "auth").count();
+        let unique_users = audit_logs
+            .iter()
+            .filter_map(|l| l.user_id)
+            .collect::<std::collections::HashSet<_>>()
+            .len();
+        let login_events = audit_logs
+            .iter()
+            .filter(|l| l.event_type.contains("login") || l.event_category == "auth")
+            .count();
         let data_access = audit_logs.iter().filter(|l| l.action == "read").count();
-        let data_modifications = audit_logs.iter().filter(|l| l.action == "update" || l.action == "create" || l.action == "delete").count();
+        let data_modifications = audit_logs
+            .iter()
+            .filter(|l| l.action == "update" || l.action == "create" || l.action == "delete")
+            .count();
 
         // Calculate user activity distribution
         let mut user_activity_counts = std::collections::HashMap::new();
@@ -674,8 +705,9 @@ impl ComplianceReportService {
             .filter(audit_logs::Column::CreatedAt.gte(period_start))
             .filter(audit_logs::Column::CreatedAt.lte(period_end))
             .filter(
-                audit_logs::Column::EventCategory.is_in(["auth", "access", "read"])
-                    .or(audit_logs::Column::Action.eq("read"))
+                audit_logs::Column::EventCategory
+                    .is_in(["auth", "access", "read"])
+                    .or(audit_logs::Column::Action.eq("read")),
             )
             .order_by_asc(audit_logs::Column::CreatedAt)
             .all(&*self.db)
@@ -683,9 +715,20 @@ impl ComplianceReportService {
 
         let total_access_events = audit_logs.len();
         let successful_access = audit_logs.iter().filter(|l| l.status == "success").count();
-        let denied_access = audit_logs.iter().filter(|l| l.status == "failed" || l.status == "denied").count();
-        let unique_users = audit_logs.iter().filter_map(|l| l.user_id).collect::<std::collections::HashSet<_>>().len();
-        let unique_resources = audit_logs.iter().filter_map(|l| l.entity_id.as_ref()).collect::<std::collections::HashSet<_>>().len();
+        let denied_access = audit_logs
+            .iter()
+            .filter(|l| l.status == "failed" || l.status == "denied")
+            .count();
+        let unique_users = audit_logs
+            .iter()
+            .filter_map(|l| l.user_id)
+            .collect::<std::collections::HashSet<_>>()
+            .len();
+        let unique_resources = audit_logs
+            .iter()
+            .filter_map(|l| l.entity_id.as_ref())
+            .collect::<std::collections::HashSet<_>>()
+            .len();
 
         // Group by resource type
         let mut resource_access = std::collections::HashMap::new();

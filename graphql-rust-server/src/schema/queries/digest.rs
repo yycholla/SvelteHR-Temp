@@ -2,13 +2,13 @@
 
 use async_graphql::{Context, Object, Result};
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::auth::UserContext;
+use crate::models::{email_digest_log, email_digests};
 use crate::services::digest_service::DigestService;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::models::{email_digests, email_digest_log};
 
 #[derive(Default)]
 pub struct DigestQueries;
@@ -40,10 +40,7 @@ impl DigestQueries {
     }
 
     /// Get all active email digests
-    async fn email_digests(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<Vec<EmailDigest>> {
+    async fn email_digests(&self, ctx: &Context<'_>) -> Result<Vec<EmailDigest>> {
         let user_ctx = ctx.data::<UserContext>()?;
         let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
@@ -54,7 +51,9 @@ impl DigestQueries {
             .await?;
 
         let service = DigestService::new(Arc::new(db.clone()));
-        let digests = service.get_active_digests().await
+        let digests = service
+            .get_active_digests()
+            .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to get digests: {}", e)))?;
 
         Ok(digests.into_iter().map(EmailDigest::from).collect())
@@ -111,21 +110,51 @@ pub struct EmailDigest {
 
 #[Object]
 impl EmailDigest {
-    async fn id(&self) -> &str { &self.id }
-    async fn name(&self) -> &str { &self.name }
-    async fn schedule_cron(&self) -> &str { &self.schedule_cron }
-    async fn recipients(&self) -> &Vec<String> { &self.recipients }
-    async fn include_sync_summary(&self) -> bool { self.include_sync_summary }
-    async fn include_conflicts(&self) -> bool { self.include_conflicts }
-    async fn include_health_metrics(&self) -> bool { self.include_health_metrics }
-    async fn include_new_employees(&self) -> bool { self.include_new_employees }
-    async fn template_id(&self) -> Option<&str> { self.template_id.as_deref() }
-    async fn enabled(&self) -> bool { self.enabled }
-    async fn last_sent_at(&self) -> Option<DateTime<Utc>> { self.last_sent_at }
-    async fn next_send_at(&self) -> Option<DateTime<Utc>> { self.next_send_at }
-    async fn created_by(&self) -> &str { &self.created_by }
-    async fn created_at(&self) -> DateTime<Utc> { self.created_at }
-    async fn updated_at(&self) -> DateTime<Utc> { self.updated_at }
+    async fn id(&self) -> &str {
+        &self.id
+    }
+    async fn name(&self) -> &str {
+        &self.name
+    }
+    async fn schedule_cron(&self) -> &str {
+        &self.schedule_cron
+    }
+    async fn recipients(&self) -> &Vec<String> {
+        &self.recipients
+    }
+    async fn include_sync_summary(&self) -> bool {
+        self.include_sync_summary
+    }
+    async fn include_conflicts(&self) -> bool {
+        self.include_conflicts
+    }
+    async fn include_health_metrics(&self) -> bool {
+        self.include_health_metrics
+    }
+    async fn include_new_employees(&self) -> bool {
+        self.include_new_employees
+    }
+    async fn template_id(&self) -> Option<&str> {
+        self.template_id.as_deref()
+    }
+    async fn enabled(&self) -> bool {
+        self.enabled
+    }
+    async fn last_sent_at(&self) -> Option<DateTime<Utc>> {
+        self.last_sent_at
+    }
+    async fn next_send_at(&self) -> Option<DateTime<Utc>> {
+        self.next_send_at
+    }
+    async fn created_by(&self) -> &str {
+        &self.created_by
+    }
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+    async fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 impl From<email_digests::Model> for EmailDigest {
@@ -166,15 +195,33 @@ pub struct EmailDigestLog {
 
 #[Object]
 impl EmailDigestLog {
-    async fn id(&self) -> &str { &self.id }
-    async fn digest_id(&self) -> &str { &self.digest_id }
-    async fn sent_at(&self) -> DateTime<Utc> { self.sent_at }
-    async fn recipients(&self) -> &Vec<String> { &self.recipients }
-    async fn success(&self) -> bool { self.success }
-    async fn error_message(&self) -> Option<&str> { self.error_message.as_deref() }
-    async fn period_start(&self) -> Option<DateTime<Utc>> { self.period_start }
-    async fn period_end(&self) -> Option<DateTime<Utc>> { self.period_end }
-    async fn content_summary(&self) -> Option<&serde_json::Value> { self.content_summary.as_ref() }
+    async fn id(&self) -> &str {
+        &self.id
+    }
+    async fn digest_id(&self) -> &str {
+        &self.digest_id
+    }
+    async fn sent_at(&self) -> DateTime<Utc> {
+        self.sent_at
+    }
+    async fn recipients(&self) -> &Vec<String> {
+        &self.recipients
+    }
+    async fn success(&self) -> bool {
+        self.success
+    }
+    async fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+    async fn period_start(&self) -> Option<DateTime<Utc>> {
+        self.period_start
+    }
+    async fn period_end(&self) -> Option<DateTime<Utc>> {
+        self.period_end
+    }
+    async fn content_summary(&self) -> Option<&serde_json::Value> {
+        self.content_summary.as_ref()
+    }
 }
 
 impl From<email_digest_log::Model> for EmailDigestLog {

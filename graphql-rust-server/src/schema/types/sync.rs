@@ -172,10 +172,9 @@ impl SyncReport {
     }
 
     async fn duration_ms(&self) -> Option<i64> {
-        self.domain_report.completed_at.map(|completed| {
-            (completed - self.domain_report.started_at)
-                .num_milliseconds()
-        })
+        self.domain_report
+            .completed_at
+            .map(|completed| (completed - self.domain_report.started_at).num_milliseconds())
     }
 
     async fn pushed_count(&self) -> i32 {

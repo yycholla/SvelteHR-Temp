@@ -1,5 +1,5 @@
 // src/adapters/graphql/GraphQLRoleAdapter.ts
-import { Client } from '@urql/core';
+import { Client, gql } from '@urql/core';
 import { Result } from '$domain/Result';
 import {
 	Role,
@@ -24,14 +24,30 @@ import {
 	REMOVE_PERMISSION_FROM_ROLE
 } from '$lib/graphql/rbac/mutations';
 
+const LIST_PERMISSIONS_FOR_LOOKUP = gql`
+	query ListPermissionsForLookup($limit: Int!, $offset: Int!) {
+		permissions(limit: $limit, offset: $offset) {
+			id
+			resource
+			action
+			fullPermission
+		}
+	}
+`;
+
 /**
  * GraphQL schema response shape
  */
 interface GraphQLRole {
 	id: string;
 	name: string;
-	hierarchyLevel: number;
-	permissions: string[];
+	level: number;
+	permissions: Array<{
+		id?: string;
+		resource?: string;
+		action?: string;
+		fullPermission?: string;
+	}>;
 	description?: string;
 	createdAt: string;
 	updatedAt: string;
@@ -75,9 +91,9 @@ export class GraphQLRoleAdapter implements RoleRepository {
 		}
 	}
 
-	async findAll(filter?: RoleFilter): Promise<Result<Role[], RBACError>> {
+	async findAll(_filter?: RoleFilter): Promise<Result<Role[], RBACError>> {
 		try {
-			const result = await this.client.query(GET_ALL_ROLES, { filter }).toPromise();
+			const result = await this.client.query(GET_ALL_ROLES, {}).toPromise();
 
 			if (result.error) {
 				return Result.error(new RBACError(result.error.message));
@@ -107,7 +123,12 @@ export class GraphQLRoleAdapter implements RoleRepository {
 
 	async create(data: CreateRoleData): Promise<Result<Role, RoleValidationError>> {
 		try {
-			const result = await this.client.mutation(CREATE_ROLE, { input: data }).toPromise();
+			const roleInput = {
+				name: data.name,
+				description: data.description,
+				level: data.hierarchyLevel
+			};
+			const result = await this.client.mutation(CREATE_ROLE, { input: roleInput }).toPromise();
 
 			if (result.error) {
 				return Result.error(new RoleValidationError(result.error.message));
@@ -129,7 +150,11 @@ export class GraphQLRoleAdapter implements RoleRepository {
 
 	async update(id: string, data: UpdateRoleData): Promise<Result<Role, RBACError>> {
 		try {
-			const result = await this.client.mutation(UPDATE_ROLE, { id, input: data }).toPromise();
+			const roleInput = {
+				name: data.name,
+				description: data.description
+			};
+			const result = await this.client.mutation(UPDATE_ROLE, { id, input: roleInput }).toPromise();
 
 			if (result.error) {
 				return Result.error(new RBACError(result.error.message));
@@ -165,19 +190,21 @@ export class GraphQLRoleAdapter implements RoleRepository {
 
 	async addPermissionToRole(roleId: string, permission: string): Promise<Result<Role, RBACError>> {
 		try {
+			const permissionId = await this.resolvePermissionId(permission);
+			if (!permissionId) {
+				return Result.error(new RBACError(`Permission not found: ${permission}`));
+			}
+
 			const result = await this.client
-				.mutation(ADD_PERMISSION_TO_ROLE, { roleId, permission })
+				.mutation(ADD_PERMISSION_TO_ROLE, { roleId, permissionId })
 				.toPromise();
 
 			if (result.error) {
 				return Result.error(new RBACError(result.error.message));
 			}
 
-			if (!result.data?.addPermissionToRole) {
-				return Result.error(new RoleNotFoundError(roleId));
-			}
-
-			return this.mapToRole(result.data.addPermissionToRole);
+			const roleResult = await this.findById(roleId);
+			return roleResult.isOk ? roleResult : Result.error(new RBACError(roleResult.error.message));
 		} catch (error) {
 			return Result.error(
 				new RBACError(
@@ -192,19 +219,21 @@ export class GraphQLRoleAdapter implements RoleRepository {
 		permission: string
 	): Promise<Result<Role, RBACError>> {
 		try {
+			const permissionId = await this.resolvePermissionId(permission);
+			if (!permissionId) {
+				return Result.error(new RBACError(`Permission not found: ${permission}`));
+			}
+
 			const result = await this.client
-				.mutation(REMOVE_PERMISSION_FROM_ROLE, { roleId, permission })
+				.mutation(REMOVE_PERMISSION_FROM_ROLE, { roleId, permissionId })
 				.toPromise();
 
 			if (result.error) {
 				return Result.error(new RBACError(result.error.message));
 			}
 
-			if (!result.data?.removePermissionFromRole) {
-				return Result.error(new RoleNotFoundError(roleId));
-			}
-
-			return this.mapToRole(result.data.removePermissionFromRole);
+			const roleResult = await this.findById(roleId);
+			return roleResult.isOk ? roleResult : Result.error(new RBACError(roleResult.error.message));
 		} catch (error) {
 			return Result.error(
 				new RBACError(
@@ -243,6 +272,46 @@ export class GraphQLRoleAdapter implements RoleRepository {
 		}
 	}
 
+	private async resolvePermissionId(permission: string): Promise<string | null> {
+		const uuidPattern =
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		if (uuidPattern.test(permission)) {
+			return permission;
+		}
+
+		const permissionsResult = await this.client
+			.query(LIST_PERMISSIONS_FOR_LOOKUP, { limit: 1000, offset: 0 })
+			.toPromise();
+
+		if (permissionsResult.error) {
+			return null;
+		}
+
+		const permissions = permissionsResult.data?.permissions ?? [];
+		type PermissionLookup = {
+			id?: string;
+			resource?: string;
+			action?: string;
+			fullPermission?: string;
+		};
+
+		const match = (permissions as PermissionLookup[]).find((candidate) => {
+			if (typeof candidate.fullPermission === 'string' && candidate.fullPermission === permission) {
+				return true;
+			}
+			if (
+				typeof candidate.resource === 'string' &&
+				typeof candidate.action === 'string' &&
+				`${candidate.resource}:${candidate.action}` === permission
+			) {
+				return true;
+			}
+			return false;
+		});
+
+		return typeof match?.id === 'string' ? match.id : null;
+	}
+
 	/**
 	 * Map GraphQL role data to domain Role entity
 	 * @private
@@ -257,19 +326,31 @@ export class GraphQLRoleAdapter implements RoleRepository {
 			0: 'guest'
 		};
 
-		const roleName = hierarchyMap[data.hierarchyLevel] ?? 'Employee';
+		const roleName = hierarchyMap[data.level] ?? 'Employee';
 		const hierarchyResult = RoleHierarchy.create(roleName);
 
 		if (hierarchyResult.isError) {
-			return Result.error(
-				new RoleValidationError(`Invalid hierarchy level: ${data.hierarchyLevel}`)
-			);
+			return Result.error(new RoleValidationError(`Invalid hierarchy level: ${data.level}`));
 		}
 
 		// Data sanitization: filter invalid permissions
 		const permissions: Permission[] = [];
-		for (const permString of data.permissions) {
-			const permResult = Permission.create(permString);
+		for (const permissionData of data.permissions ?? []) {
+			const fullPermission = permissionData.fullPermission?.trim();
+			const resource = permissionData.resource?.trim();
+			const action = permissionData.action?.trim();
+			const permissionString =
+				fullPermission && fullPermission.length > 0
+					? fullPermission
+					: resource && action
+						? `${resource}:${action}`
+						: '';
+
+			if (!permissionString) {
+				continue;
+			}
+
+			const permResult = Permission.create(permissionString);
 			if (permResult.isOk) {
 				permissions.push(permResult.value);
 			}

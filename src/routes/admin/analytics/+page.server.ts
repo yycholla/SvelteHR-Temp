@@ -7,8 +7,31 @@ import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { logger } from '$lib/utils/logger';
 
+interface AnalyticsUserRole {
+	id: string;
+	name: string;
+}
+
+interface AnalyticsUser {
+	id: string;
+	isActive: boolean;
+	departmentId: string | null;
+	roles?: AnalyticsUserRole[] | null;
+}
+
+interface AnalyticsDepartment {
+	id: string;
+	name: string;
+}
+
+interface UserRoleAssignment {
+	id: string;
+	roleName: string;
+	userId: string;
+}
+
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies } = event;
+	const { cookies } = event;
 
 	// Check authentication and permissions
 	PermissionChecks.adminRead(event);
@@ -35,8 +58,10 @@ export const load: PageServerLoad = async (event) => {
 					}
 				}
 				departments(limit: $limit) {
-					id
-					name
+					items {
+						id
+						name
+					}
 				}
 			}
 		`;
@@ -44,31 +69,33 @@ export const load: PageServerLoad = async (event) => {
 		const result = await client.query(statsQuery, { limit: 1000 });
 
 		// Calculate analytics from real data
-		const users = result.data?.users || [];
-		const departments = result.data?.departments || [];
+		const users: AnalyticsUser[] = result.data?.users || [];
+		const departments: AnalyticsDepartment[] = result.data?.departments?.items || [];
 
 		// Extract unique roles from users (roles is now an array of objects)
-		const userRoles = users.map((u: any) => ({
+		const userRoles: UserRoleAssignment[] = users.map((u) => ({
 			id: u.id,
-			roleName: u.roles && u.roles.length > 0 ? u.roles[0].name : 'Employee',
+			roleName: u.roles && u.roles.length > 0 ? u.roles[0]?.name || 'Employee' : 'Employee',
 			userId: u.id
 		}));
 
 		// Calculate active users from real data
-		const activeUsers = users.filter((user: any) => user.isActive).length;
+		const activeUsers = users.filter((user) => user.isActive).length;
 
 		// Calculate department distribution from real data
 		const departmentCounts = new Map<string, number>();
-		const departmentNames = new Map<number, string>();
+		const departmentNames = new Map<string, string>();
 
 		// Map department IDs to names
-		departments.forEach((dept: any) => {
+		departments.forEach((dept) => {
 			departmentNames.set(dept.id, dept.name);
 		});
 
 		// Count users per department
-		users.forEach((user: any) => {
-			const deptName = departmentNames.get(user.departmentId) || 'Unknown';
+		users.forEach((user) => {
+			const deptName = user.departmentId
+				? (departmentNames.get(user.departmentId) ?? 'Unknown')
+				: 'Unknown';
 			departmentCounts.set(deptName, (departmentCounts.get(deptName) || 0) + 1);
 		});
 
@@ -140,14 +167,14 @@ export const load: PageServerLoad = async (event) => {
 			roleDistribution: (() => {
 				// Calculate role distribution from real data using role assignments
 				const roleCounts = new Map<string, number>();
-				userRoles.forEach((roleAssignment: any) => {
+				userRoles.forEach((roleAssignment) => {
 					const role = roleAssignment.roleName || 'Employee';
 					roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
 				});
 
 				return Array.from(roleCounts.entries())
 					.map(([role, count]: [string, number]) => ({ role, count }))
-					.sort((a: any, b: any) => b.count - a.count);
+					.sort((a, b) => b.count - a.count);
 			})()
 		};
 

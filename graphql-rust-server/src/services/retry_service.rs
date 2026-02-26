@@ -209,7 +209,8 @@ impl RetryService {
                     None,
                     None,
                     duration_ms,
-                ).await?;
+                )
+                .await?;
 
                 Ok(RetryResult {
                     operation_id,
@@ -246,7 +247,8 @@ impl RetryService {
                         Some(error_message.clone()),
                         Some(backoff_duration),
                         duration_ms,
-                    ).await?;
+                    )
+                    .await?;
 
                     Ok(RetryResult {
                         operation_id,
@@ -260,8 +262,12 @@ impl RetryService {
                     // Max retries reached - move to dead letter queue
                     self.move_to_dead_letter(
                         operation_id,
-                        format!("Max retries ({}) exceeded. Last error: {}", operation.max_retries, error_message),
-                    ).await?;
+                        format!(
+                            "Max retries ({}) exceeded. Last error: {}",
+                            operation.max_retries, error_message
+                        ),
+                    )
+                    .await?;
 
                     // Record final retry history
                     self.record_retry_history(
@@ -271,7 +277,8 @@ impl RetryService {
                         Some(error_message.clone()),
                         None,
                         duration_ms,
-                    ).await?;
+                    )
+                    .await?;
 
                     Ok(RetryResult {
                         operation_id,

@@ -13,7 +13,7 @@ pub struct TimeOffPolicy {
     pub id: Uuid,
     pub policy_name: String,
     pub leave_type: String, // Will be empty for now since table doesn't have this column
-    pub accrual_rate: f64, // Will be 0.0 for now since table doesn't have this column
+    pub accrual_rate: f64,  // Will be 0.0 for now since table doesn't have this column
     pub max_balance: Option<f64>, // Will be NULL for now since table doesn't have this column
     pub carryover_limit: Option<f64>, // Will be NULL for now since table doesn't have this column
     pub effective_date: NaiveDate, // Will be CURRENT_DATE for now since table doesn't have this column

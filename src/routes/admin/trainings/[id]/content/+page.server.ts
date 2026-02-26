@@ -90,7 +90,7 @@ export const actions: Actions = {
 			if (response.errors) {
 				return fail(500, { error: 'Failed to create content' });
 			}
-		} catch (err) {
+		} catch {
 			return fail(500, { error: 'Internal server error' });
 		}
 
@@ -124,7 +124,7 @@ export const actions: Actions = {
 			if (response.errors) {
 				return fail(500, { error: 'Failed to update content' });
 			}
-		} catch (err) {
+		} catch {
 			return fail(500, { error: 'Internal server error' });
 		}
 
@@ -141,7 +141,7 @@ export const actions: Actions = {
 
 		try {
 			await client.mutation(DELETE_CONTENT_MUTATION, { id });
-		} catch (err) {
+		} catch {
 			return fail(500, { error: 'Failed to delete content' });
 		}
 

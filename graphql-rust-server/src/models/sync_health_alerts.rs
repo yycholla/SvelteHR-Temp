@@ -19,6 +19,7 @@ pub struct Model {
     pub resolved_at: Option<DateTimeWithTimeZone>,
 
     pub entity_type: Option<String>,
+    #[sea_orm(column_name = "metadata")]
     pub metric_snapshot: Option<Json>,
     pub notified_users: Option<Vec<Uuid>>,
 

@@ -169,11 +169,7 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(
-                        ColumnDef::new(EmployeeImportRows::JobId)
-                            .uuid()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(EmployeeImportRows::JobId).uuid().not_null())
                     .col(
                         ColumnDef::new(EmployeeImportRows::RawData)
                             .json_binary()

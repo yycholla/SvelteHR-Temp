@@ -6,6 +6,60 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
+import type { Task } from '$lib/types/task';
+
+interface GraphQLErrorItem {
+	message?: string;
+}
+
+interface TaskItem {
+	id: string;
+	title?: string;
+	description?: string | null;
+	status?: string;
+	priority?: string;
+	dueDate?: string | null;
+	[key: string]: unknown;
+}
+
+interface TasksResponse {
+	data?: {
+		tasks?: TaskItem[];
+	};
+	errors?: GraphQLErrorItem[];
+}
+
+interface EventAttendee {
+	employeeId: string;
+	responseStatus?: string;
+}
+
+interface EventItem {
+	id: string;
+	title: string;
+	startTime: string;
+	endTime?: string | null;
+	isAllDay?: boolean;
+	location?: string | null;
+	attendees?: EventAttendee[];
+}
+
+interface EventsResponse {
+	data?: {
+		events?: EventItem[];
+	};
+	errors?: GraphQLErrorItem[];
+}
+
+interface TodayEvent {
+	id: string;
+	title: string;
+	time: string;
+	location?: string | null;
+	startTime: string;
+	endTime?: string | null;
+	isAllDay?: boolean;
+}
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -101,12 +155,12 @@ export const load: PageServerLoad = async (event) => {
 			event.request
 		);
 
-		const tasksData = await tasksResponse.json();
+		const tasksData = (await tasksResponse.json()) as TasksResponse;
 		logger.info('[My Tasks] Tasks response received', {
 			tasksCount: tasksData?.data?.tasks?.length || 0
 		});
 
-		if (tasksData.errors) {
+		if (tasksData.errors?.length) {
 			const errorMsg = tasksData.errors[0]?.message || 'Failed to load tasks';
 			logger.error('[My Tasks] GraphQL errors', new Error(errorMsg), {
 				errors: tasksData.errors
@@ -114,26 +168,26 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error(errorMsg);
 		}
 
-		let tasks = tasksData?.data?.tasks || [];
+		let tasks: TaskItem[] = tasksData?.data?.tasks || [];
 
 		// Client-side filtering for status
 		if (statusFilter) {
 			// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE
 			// Convert filter to uppercase to match
 			const statusUpper = statusFilter.toUpperCase().replace('-', '_');
-			tasks = tasks.filter((task: any) => task.status === statusUpper);
+			tasks = tasks.filter((task) => task.status === statusUpper);
 		}
 
 		// Client-side filtering for priority
 		if (priorityFilter) {
 			const priorityUpper = priorityFilter.toUpperCase();
-			tasks = tasks.filter((task: any) => task.priority === priorityUpper);
+			tasks = tasks.filter((task) => task.priority === priorityUpper);
 		}
 
 		// Client-side search filtering
 		if (searchTerm) {
 			const searchLower = searchTerm.toLowerCase();
-			tasks = tasks.filter((task: any) => {
+			tasks = tasks.filter((task) => {
 				const title = task.title?.toLowerCase() || '';
 				const description = task.description?.toLowerCase() || '';
 				return title.includes(searchLower) || description.includes(searchLower);
@@ -146,12 +200,12 @@ export const load: PageServerLoad = async (event) => {
 		// GraphQL returns: 'TODO', 'IN_PROGRESS', etc. (uppercase)
 		const taskStats = {
 			total: tasks.length,
-			notStarted: tasks.filter((t: any) => t.status === 'TODO').length,
-			inProgress: tasks.filter((t: any) => t.status === 'IN_PROGRESS').length,
-			blocked: tasks.filter((t: any) => t.status === 'BLOCKED').length,
-			review: tasks.filter((t: any) => t.status === 'REVIEW').length,
-			completed: tasks.filter((t: any) => t.status === 'DONE').length,
-			overdue: tasks.filter((t: any) => {
+			notStarted: tasks.filter((t) => t.status === 'TODO').length,
+			inProgress: tasks.filter((t) => t.status === 'IN_PROGRESS').length,
+			blocked: tasks.filter((t) => t.status === 'BLOCKED').length,
+			review: tasks.filter((t) => t.status === 'REVIEW').length,
+			completed: tasks.filter((t) => t.status === 'DONE').length,
+			overdue: tasks.filter((t) => {
 				if (!t.dueDate) return false;
 				return new Date(t.dueDate) < new Date() && t.status !== 'DONE';
 			}).length
@@ -245,19 +299,20 @@ export const load: PageServerLoad = async (event) => {
 			event.request
 		);
 
-		const eventsData = await eventsResponse.json();
+		const eventsData = (await eventsResponse.json()) as EventsResponse;
 
 		// Filter events for today and user's RSVP status (accepted, tentative, pending)
-		const allEvents = eventsData?.data?.events || [];
-		const todayEvents = allEvents
-			.filter((evt: any) => {
+		const allEvents: EventItem[] = eventsData?.data?.events || [];
+		const todayEvents: TodayEvent[] = allEvents
+			.filter((evt) => {
 				// Check if user is an attendee
-				const userAttendee = evt.attendees?.find((a: any) => a.employeeId === locals.user.id);
+				const userAttendee = evt.attendees?.find((a) => a.employeeId === locals.user.id);
 				if (!userAttendee) return false;
 
 				// Check RSVP status (accepted, tentative, or pending)
 				const validStatuses = ['accepted', 'tentative', 'pending'];
-				if (!validStatuses.includes(userAttendee.responseStatus)) return false;
+				const responseStatus = userAttendee.responseStatus ?? '';
+				if (!validStatuses.includes(responseStatus)) return false;
 
 				// Check if event is today
 				const eventStart = new Date(evt.startTime);
@@ -269,7 +324,7 @@ export const load: PageServerLoad = async (event) => {
 				const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 				return eventDay.getTime() === todayDay.getTime();
 			})
-			.map((evt: any) => ({
+			.map((evt) => ({
 				id: evt.id,
 				title: evt.title,
 				time: new Date(evt.startTime).toLocaleTimeString('en-US', {
@@ -282,14 +337,14 @@ export const load: PageServerLoad = async (event) => {
 				endTime: evt.endTime,
 				isAllDay: evt.isAllDay
 			}))
-			.sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+			.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
 		return {
 			userSession: userSession.toJSON(),
-			tasks,
+			tasks: tasks as unknown as Task[],
 			totalTasks: tasks.length,
 			taskStats,
 			assignees: assigneesData?.data?.users || [],
@@ -393,7 +448,7 @@ export const actions: Actions = {
 			});
 
 			// Prepare create input for Rust GraphQL schema
-			const createInput: Record<string, any> = {
+			const createInput: Record<string, unknown> = {
 				title,
 				status: 'TODO', // Default status for quick-add
 				priority,

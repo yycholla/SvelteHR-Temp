@@ -110,7 +110,10 @@ impl Model {
     }
 
     /// Event relationship (lazy-loaded)
-    async fn event(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::event::Model> {
+    async fn event(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::event::Model> {
         let db = get_db_from_context(ctx)?;
         let event = crate::models::event::Entity::find_by_id(self.event_id)
             .filter(crate::models::event::Column::DeletedAt.is_null())
@@ -122,7 +125,10 @@ impl Model {
     }
 
     /// User relationship (lazy-loaded)
-    async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+    async fn user(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::user::Model> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.user_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())

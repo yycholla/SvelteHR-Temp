@@ -1,7 +1,7 @@
-use async_graphql::{Context, Result, SimpleObject, InputObject};
+use async_graphql::{Context, InputObject, Result, SimpleObject};
 use chrono::Utc;
 use csv::ReaderBuilder;
-use sea_orm::{EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -9,9 +9,7 @@ use crate::{
     auth::UserContext,
     database::get_db_from_context,
     error::AppError,
-    models::{
-        CreateUserInput, UpdateUserInput, User, UserStatus,
-    },
+    models::{CreateUserInput, UpdateUserInput, User, UserStatus},
 };
 
 // ============================================================================
@@ -46,7 +44,11 @@ fn parse_name(name: &str) -> Result<(String, String)> {
     let parts: Vec<&str> = name.split(',').map(|s| s.trim()).collect();
 
     if parts.len() != 2 {
-        return Err(AppError::Validation(format!("Invalid name format: '{}'. Expected 'LAST, FIRST'", name)).into());
+        return Err(AppError::Validation(format!(
+            "Invalid name format: '{}'. Expected 'LAST, FIRST'",
+            name
+        ))
+        .into());
     }
 
     let last_name = parts[0].to_string();
@@ -100,14 +102,17 @@ fn parse_csv_content(csv_content: &str) -> Result<Vec<ParsedEmployee>> {
         })?;
 
         // Parse name
-        let (first_name, last_name) = parse_name(&row.name).map_err(|e| {
-            AppError::Validation(format!("Row {}: {:?}", row_number, e))
-        })?;
+        let (first_name, last_name) = parse_name(&row.name)
+            .map_err(|e| AppError::Validation(format!("Row {}: {:?}", row_number, e)))?;
 
         // Parse hire date
         let hire_date = parse_hire_date(&row.hire_date);
         if hire_date.is_none() {
-            tracing::warn!("Row {}: Could not parse hire date '{}', setting to None", row_number, row.hire_date);
+            tracing::warn!(
+                "Row {}: Could not parse hire date '{}', setting to None",
+                row_number,
+                row.hire_date
+            );
         }
 
         // Normalize role name
@@ -200,7 +205,9 @@ impl UserMutations {
             .await?;
 
         if existing_user.is_some() {
-            return Err(AppError::Validation(format!("Email '{}' is already in use", input.email)).into());
+            return Err(
+                AppError::Validation(format!("Email '{}' is already in use", input.email)).into(),
+            );
         }
 
         // Use provided password or generate a temporary one
@@ -208,7 +215,10 @@ impl UserMutations {
             (provided_password, "provided")
         } else {
             // Generate a temporary secure password
-            let temp_password = format!("TempPass{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase());
+            let temp_password = format!(
+                "TempPass{}",
+                uuid::Uuid::new_v4().to_string()[..8].to_uppercase()
+            );
             (temp_password, "generated")
         };
 
@@ -217,7 +227,11 @@ impl UserMutations {
 
         // Log password info (in production, generated passwords should be sent via email)
         if password_source == "generated" {
-            tracing::info!("Created user {} with temporary password: {}", input.email, password_to_hash);
+            tracing::info!(
+                "Created user {} with temporary password: {}",
+                input.email,
+                password_to_hash
+            );
         } else {
             tracing::info!("Created user {} with provided password", input.email);
         }
@@ -262,7 +276,11 @@ impl UserMutations {
             role_assignment.insert(&db).await?;
             tracing::info!("Assigned '{}' role to new user {}", role_name, input.email);
         } else {
-            tracing::warn!("Role '{}' not found, user {} created without role assignment", role_name, input.email);
+            tracing::warn!(
+                "Role '{}' not found, user {} created without role assignment",
+                role_name,
+                input.email
+            );
         }
 
         Ok(user)
@@ -388,12 +406,17 @@ impl UserMutations {
             .map_err(|e| AppError::Internal(format!("Password verification failed: {}", e)))?;
 
         if !password_valid {
-            return Err(AppError::Authentication("Current password is incorrect".to_string()).into());
+            return Err(
+                AppError::Authentication("Current password is incorrect".to_string()).into(),
+            );
         }
 
         // Validate new password (min 8 characters)
         if new_password.len() < 8 {
-            return Err(AppError::Validation("New password must be at least 8 characters long".to_string()).into());
+            return Err(AppError::Validation(
+                "New password must be at least 8 characters long".to_string(),
+            )
+            .into());
         }
 
         // Hash new password
@@ -408,7 +431,10 @@ impl UserMutations {
 
         user.update(&db).await?;
 
-        tracing::info!("Password changed successfully for user ID: {}", user_context.user_id);
+        tracing::info!(
+            "Password changed successfully for user ID: {}",
+            user_context.user_id
+        );
 
         Ok(ChangePasswordResponse {
             success: true,
@@ -429,18 +455,24 @@ impl UserMutations {
         // Validate temporary password
         if input.temporary_password.len() < 8 {
             return Err(AppError::Validation(
-                "Temporary password must be at least 8 characters".to_string()
-            ).into());
+                "Temporary password must be at least 8 characters".to_string(),
+            )
+            .into());
         }
 
         // Parse CSV content
         let parsed_employees = parse_csv_content(&input.csv_content)?;
 
         if parsed_employees.is_empty() {
-            return Err(AppError::Validation("CSV file contains no employee data".to_string()).into());
+            return Err(
+                AppError::Validation("CSV file contains no employee data".to_string()).into(),
+            );
         }
 
-        tracing::info!("Starting bulk import of {} employees", parsed_employees.len());
+        tracing::info!(
+            "Starting bulk import of {} employees",
+            parsed_employees.len()
+        );
 
         // Hash temporary password once (reused for all employees)
         let password_hash = bcrypt::hash(&input.temporary_password, bcrypt::DEFAULT_COST)
@@ -470,7 +502,11 @@ impl UserMutations {
                 .await?;
 
             if existing_user.is_some() {
-                tracing::warn!("Row {}: Email '{}' already exists, skipping", row_number, email);
+                tracing::warn!(
+                    "Row {}: Email '{}' already exists, skipping",
+                    row_number,
+                    email
+                );
                 results.push(EmployeeImportResult {
                     row_number,
                     success: false,
@@ -490,7 +526,7 @@ impl UserMutations {
             let hire_date_utc = employee.hire_date.map(|d| {
                 chrono::DateTime::<Utc>::from_naive_utc_and_offset(
                     d.and_hms_opt(0, 0, 0).unwrap(),
-                    Utc
+                    Utc,
                 )
             });
 
@@ -526,16 +562,28 @@ impl UserMutations {
                         };
 
                         if let Err(e) = role_assignment.insert(&db).await {
-                            tracing::error!("Row {}: Failed to assign role '{}' to user {}: {}",
-                                row_number, role_name, email, e);
+                            tracing::error!(
+                                "Row {}: Failed to assign role '{}' to user {}: {}",
+                                row_number,
+                                role_name,
+                                email,
+                                e
+                            );
                             // User created but role assignment failed - still count as partial success
                         } else {
-                            tracing::info!("Row {}: Successfully created user {} with role '{}'",
-                                row_number, email, role_name);
+                            tracing::info!(
+                                "Row {}: Successfully created user {} with role '{}'",
+                                row_number,
+                                email,
+                                role_name
+                            );
                         }
                     } else {
-                        tracing::warn!("Row {}: Role '{}' not found, user created without role",
-                            row_number, role_name);
+                        tracing::warn!(
+                            "Row {}: Role '{}' not found, user created without role",
+                            row_number,
+                            role_name
+                        );
                     }
 
                     results.push(EmployeeImportResult {
@@ -565,7 +613,9 @@ impl UserMutations {
 
         tracing::info!(
             "Bulk import completed: {} successful, {} failed out of {} total",
-            successful, failed, parsed_employees.len()
+            successful,
+            failed,
+            parsed_employees.len()
         );
 
         Ok(ImportEmployeesResponse {

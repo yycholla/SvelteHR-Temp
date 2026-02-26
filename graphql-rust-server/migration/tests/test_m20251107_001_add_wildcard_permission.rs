@@ -21,9 +21,8 @@ mod tests {
 
     /// Set up test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/hr_test".to_string()
-        });
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
         Database::connect(&db_url)
             .await
             .expect("Failed to connect to test database")
@@ -176,10 +175,7 @@ mod tests {
         assert!(result.is_some(), "Query should return result");
         let row = result.unwrap();
         let count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(
-            count, 20,
-            "Should create 20 category wildcard permissions"
-        );
+        assert_eq!(count, 20, "Should create 20 category wildcard permissions");
 
         // Verify specific category wildcards
         let categories = vec![
@@ -208,11 +204,7 @@ mod tests {
             assert!(cat_result.is_some(), "Query should return result");
             let row = cat_result.unwrap();
             let count: i64 = row.try_get("", "count").unwrap();
-            assert_eq!(
-                count, 1,
-                "Should have {}:* wildcard permission",
-                category
-            );
+            assert_eq!(count, 1, "Should have {}:* wildcard permission", category);
         }
     }
 

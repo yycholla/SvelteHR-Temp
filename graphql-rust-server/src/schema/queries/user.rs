@@ -1,11 +1,11 @@
 use async_graphql::{Context, InputObject, Object, Result, SimpleObject};
-use sea_orm::{EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait};
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect};
 use uuid::Uuid;
 
 use crate::{
-    auth::{UserContext, RlsFilterable},
+    auth::{RlsFilterable, UserContext},
     database::get_db_from_context,
-    models::user::{Model as User, Entity as UserEntity, Column as UserColumn},
+    models::user::{Column as UserColumn, Entity as UserEntity, Model as User},
 };
 
 #[derive(Debug, Clone, InputObject, Default)]
@@ -73,12 +73,12 @@ impl UserQueries {
         let offset = offset.unwrap_or(0).max(0);
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Build query with RLS filter (removed hardcoded isActive filter - let client filter)
-        let mut query = UserEntity::find()
-            .filter(UserColumn::DeletedAt.is_null());
+        let mut query = UserEntity::find().filter(UserColumn::DeletedAt.is_null());
 
         // Apply RLS filter based on user context
         query = UserEntity::apply_rls(query, user_context);
@@ -91,7 +91,7 @@ impl UserQueries {
                     sea_orm::Condition::any()
                         .add(UserColumn::Email.contains(&pattern))
                         .add(UserColumn::FirstName.contains(&pattern))
-                        .add(UserColumn::LastName.contains(&pattern))
+                        .add(UserColumn::LastName.contains(&pattern)),
                 );
             }
             if let Some(dept_id) = f.department_id {
@@ -147,8 +147,9 @@ impl UserQueries {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Build query with RLS filter (CRITICAL: even direct ID lookups must be filtered!)
         let mut query = UserEntity::find()
@@ -171,8 +172,9 @@ impl UserQueries {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Normalize email to lowercase for case-insensitive lookup
         let normalized_email = email.to_lowercase();
@@ -198,13 +200,15 @@ impl UserQueries {
         // Count total (excluding soft-deleted)
         let total = UserEntity::find()
             .filter(UserColumn::DeletedAt.is_null())
-            .count(&db).await? as i64;
+            .count(&db)
+            .await? as i64;
 
         // Count active
         let active = UserEntity::find()
             .filter(UserColumn::DeletedAt.is_null())
             .filter(UserColumn::IsActive.eq(true))
-            .count(&db).await? as i64;
+            .count(&db)
+            .await? as i64;
 
         let inactive = total - active;
 
@@ -216,4 +220,3 @@ impl UserQueries {
         })
     }
 }
-

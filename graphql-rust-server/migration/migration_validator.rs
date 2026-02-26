@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Migration validation results
 #[derive(Debug)]
@@ -33,15 +33,23 @@ pub enum IssueSeverity {
 
 impl ValidationReport {
     pub fn is_valid(&self) -> bool {
-        self.issues.iter().all(|i| matches!(i.severity, IssueSeverity::Medium))
+        self.issues
+            .iter()
+            .all(|i| matches!(i.severity, IssueSeverity::Medium))
     }
 
     pub fn critical_count(&self) -> usize {
-        self.issues.iter().filter(|i| i.severity == IssueSeverity::Critical).count()
+        self.issues
+            .iter()
+            .filter(|i| i.severity == IssueSeverity::Critical)
+            .count()
     }
 
     pub fn high_count(&self) -> usize {
-        self.issues.iter().filter(|i| i.severity == IssueSeverity::High).count()
+        self.issues
+            .iter()
+            .filter(|i| i.severity == IssueSeverity::High)
+            .count()
     }
 
     pub fn print_report(&self) {
@@ -59,17 +67,23 @@ impl ValidationReport {
         }
 
         // Group by severity
-        let mut critical: Vec<_> = self.issues.iter()
+        let mut critical: Vec<_> = self
+            .issues
+            .iter()
             .filter(|i| i.severity == IssueSeverity::Critical)
             .collect();
         critical.sort_by_key(|i| &i.file);
 
-        let mut high: Vec<_> = self.issues.iter()
+        let mut high: Vec<_> = self
+            .issues
+            .iter()
             .filter(|i| i.severity == IssueSeverity::High)
             .collect();
         high.sort_by_key(|i| &i.file);
 
-        let mut medium: Vec<_> = self.issues.iter()
+        let mut medium: Vec<_> = self
+            .issues
+            .iter()
             .filter(|i| i.severity == IssueSeverity::Medium)
             .collect();
         medium.sort_by_key(|i| &i.file);
@@ -191,7 +205,8 @@ impl MigrationValidator {
     }
 
     fn validate_file(&self, file_path: &Path, report: &mut ValidationReport) {
-        let filename = file_path.file_name()
+        let filename = file_path
+            .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("unknown");
 
@@ -216,7 +231,12 @@ impl MigrationValidator {
         self.check_helper_usage(&content, filename, report);
     }
 
-    fn check_add_column_idempotency(&self, content: &str, filename: &str, report: &mut ValidationReport) {
+    fn check_add_column_idempotency(
+        &self,
+        content: &str,
+        filename: &str,
+        report: &mut ValidationReport,
+    ) {
         for (line_num, line) in content.lines().enumerate() {
             // Skip comments
             if line.trim_start().starts_with("//") || line.trim_start().starts_with("#") {
@@ -235,7 +255,12 @@ impl MigrationValidator {
         }
     }
 
-    fn check_create_index_idempotency(&self, content: &str, filename: &str, report: &mut ValidationReport) {
+    fn check_create_index_idempotency(
+        &self,
+        content: &str,
+        filename: &str,
+        report: &mut ValidationReport,
+    ) {
         for (line_num, line) in content.lines().enumerate() {
             if line.trim_start().starts_with("//") || line.trim_start().starts_with("#") {
                 continue;
@@ -247,13 +272,20 @@ impl MigrationValidator {
                     file: filename.to_string(),
                     line: Some(line_num + 1),
                     message: "Non-idempotent CREATE INDEX statement".to_string(),
-                    fix_suggestion: "Replace 'CREATE INDEX idx_name' with 'CREATE INDEX IF NOT EXISTS idx_name'".to_string(),
+                    fix_suggestion:
+                        "Replace 'CREATE INDEX idx_name' with 'CREATE INDEX IF NOT EXISTS idx_name'"
+                            .to_string(),
                 });
             }
         }
     }
 
-    fn check_create_table_idempotency(&self, content: &str, filename: &str, report: &mut ValidationReport) {
+    fn check_create_table_idempotency(
+        &self,
+        content: &str,
+        filename: &str,
+        report: &mut ValidationReport,
+    ) {
         for (line_num, line) in content.lines().enumerate() {
             if line.trim_start().starts_with("//") || line.trim_start().starts_with("#") {
                 continue;
@@ -282,21 +314,24 @@ impl MigrationValidator {
                 file: filename.to_string(),
                 line: None,
                 message: "Direct error propagation without idempotent error handling".to_string(),
-                fix_suggestion: "Use MigrationHelpers for graceful handling of 'already exists' errors".to_string(),
+                fix_suggestion:
+                    "Use MigrationHelpers for graceful handling of 'already exists' errors"
+                        .to_string(),
             });
         }
     }
 
     fn check_helper_usage(&self, content: &str, filename: &str, report: &mut ValidationReport) {
-        let uses_helpers = content.contains("migration_helpers") ||
-                          content.contains("MigrationHelpers");
+        let uses_helpers =
+            content.contains("migration_helpers") || content.contains("MigrationHelpers");
 
         let has_raw_sql = content.contains("execute_unprepared");
 
         if has_raw_sql && !uses_helpers {
             report.warnings.push(ValidationWarning {
                 file: filename.to_string(),
-                message: "Consider using MigrationHelpers for better error handling and logging".to_string(),
+                message: "Consider using MigrationHelpers for better error handling and logging"
+                    .to_string(),
             });
         }
     }

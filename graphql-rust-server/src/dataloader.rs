@@ -4,14 +4,16 @@
 //! N+1 query problems in GraphQL resolvers.
 
 use async_graphql::dataloader::*;
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::models::task::{Model as Task, Entity as TaskEntity, Column as TaskColumn};
-use crate::models::user::{Model as User, Entity as UserEntity, Column as UserColumn};
-use crate::models::department::{Model as Department, Entity as DepartmentEntity, Column as DepartmentColumn};
+use crate::models::department::{
+    Column as DepartmentColumn, Entity as DepartmentEntity, Model as Department,
+};
+use crate::models::task::{Column as TaskColumn, Entity as TaskEntity, Model as Task};
+use crate::models::user::{Column as UserColumn, Entity as UserEntity, Model as User};
 
 /// DataLoader for loading users by ID
 pub struct UserLoader {
@@ -51,7 +53,10 @@ impl Loader<Uuid> for DepartmentLoader {
             .all(&self.db)
             .await?;
 
-        Ok(departments.into_iter().map(|dept| (dept.id, dept)).collect())
+        Ok(departments
+            .into_iter()
+            .map(|dept| (dept.id, dept))
+            .collect())
     }
 }
 
@@ -131,7 +136,10 @@ impl Loader<Uuid> for TasksByAssigneeLoader {
         let mut result = HashMap::new();
         for task in tasks {
             if let Some(assignee_id) = task.assignee_id {
-                result.entry(assignee_id).or_insert_with(Vec::new).push(task);
+                result
+                    .entry(assignee_id)
+                    .or_insert_with(Vec::new)
+                    .push(task);
             }
         }
 
@@ -164,7 +172,10 @@ impl Loader<Uuid> for TasksByCreatorLoader {
         // Group tasks by created_by
         let mut result = HashMap::new();
         for task in tasks {
-            result.entry(task.created_by).or_insert_with(Vec::new).push(task);
+            result
+                .entry(task.created_by)
+                .or_insert_with(Vec::new)
+                .push(task);
         }
 
         // Ensure all requested keys have entries (even if empty)
@@ -192,11 +203,23 @@ impl DataLoaderContext {
     pub fn new(db: DatabaseConnection) -> Self {
         Self {
             users: Arc::new(DataLoader::new(UserLoader { db: db.clone() }, tokio::spawn)),
-            departments: Arc::new(DataLoader::new(DepartmentLoader { db: db.clone() }, tokio::spawn)),
+            departments: Arc::new(DataLoader::new(
+                DepartmentLoader { db: db.clone() },
+                tokio::spawn,
+            )),
             tasks: Arc::new(DataLoader::new(TaskLoader { db: db.clone() }, tokio::spawn)),
-            users_by_department: Arc::new(DataLoader::new(UsersByDepartmentLoader { db: db.clone() }, tokio::spawn)),
-            tasks_by_assignee: Arc::new(DataLoader::new(TasksByAssigneeLoader { db: db.clone() }, tokio::spawn)),
-            tasks_by_creator: Arc::new(DataLoader::new(TasksByCreatorLoader { db: db.clone() }, tokio::spawn)),
+            users_by_department: Arc::new(DataLoader::new(
+                UsersByDepartmentLoader { db: db.clone() },
+                tokio::spawn,
+            )),
+            tasks_by_assignee: Arc::new(DataLoader::new(
+                TasksByAssigneeLoader { db: db.clone() },
+                tokio::spawn,
+            )),
+            tasks_by_creator: Arc::new(DataLoader::new(
+                TasksByCreatorLoader { db: db.clone() },
+                tokio::spawn,
+            )),
         }
     }
 }

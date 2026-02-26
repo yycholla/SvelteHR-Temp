@@ -14,12 +14,14 @@ import { gql } from '@urql/svelte';
 export const GET_ALL_TEAMS = gql`
 	query GetAllTeams($limit: Int = 50, $offset: Int = 0) {
 		departments(limit: $limit, offset: $offset) {
-			id
-			name
-			description
-			parentDepartmentId
-			createdAt
-			updatedAt
+			items {
+				id
+				name
+				description
+				parentDepartmentId
+				createdAt
+				updatedAt
+			}
 		}
 	}
 `;
@@ -49,12 +51,14 @@ export const GET_TEAM_DETAILS = gql`
 export const GET_TEAM_HIERARCHY = gql`
 	query GetTeamHierarchy($limit: Int = 200, $offset: Int = 0) {
 		departments(limit: $limit, offset: $offset) {
-			id
-			name
-			description
-			parentDepartmentId
-			createdAt
-			updatedAt
+			items {
+				id
+				name
+				description
+				parentDepartmentId
+				createdAt
+				updatedAt
+			}
 		}
 	}
 `;
@@ -67,12 +71,14 @@ export const GET_TEAM_HIERARCHY = gql`
 export const SEARCH_TEAMS = gql`
 	query SearchTeams($limit: Int = 50, $offset: Int = 0) {
 		departments(limit: $limit, offset: $offset) {
-			id
-			name
-			description
-			parentDepartmentId
-			createdAt
-			updatedAt
+			items {
+				id
+				name
+				description
+				parentDepartmentId
+				createdAt
+				updatedAt
+			}
 		}
 	}
 `;

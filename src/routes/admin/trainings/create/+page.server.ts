@@ -29,7 +29,6 @@ export const actions: Actions = {
 		const metaTitle = formData.get('metaTitle')?.toString().trim();
 		const metaDescription = formData.get('metaDescription')?.toString().trim();
 		const tagsJson = formData.get('tags')?.toString();
-		const authorId = formData.get('authorId')?.toString();
 		const recurrencePatternJson = formData.get('recurrencePattern')?.toString();
 
 		let tags: string[] = [];

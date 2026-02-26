@@ -6,27 +6,10 @@
 	import UploadDocumentModal from '$lib/components/documents/UploadDocumentModal.svelte';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import * as Card from '$lib/components/ui/card';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { Badge } from '$lib/components/ui/badge';
-	import {
-		Calendar,
-		ChevronRight,
-		Download,
-		Eye,
-		FileText,
-		Filter,
-		HardDrive,
-		LayoutGrid,
-		Lock,
-		PieChart,
-		ShieldCheck,
-		Table as TableIcon,
-		Upload,
-		User,
-		X
-	} from '@lucide/svelte';
+	import { Download, FileText, Filter, HardDrive, ShieldCheck, Upload, X } from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import type { VisibilityState } from '@tanstack/table-core';
 
@@ -115,18 +98,6 @@
 
 	// Stats
 	const totalDocuments = $derived(data.totalCount);
-	const encryptedCount = $derived(
-		data.documents.filter((doc: { is_encrypted: boolean }) => doc.is_encrypted).length
-	);
-	const expiringCount = $derived(
-		data.documents.filter((doc: { expiration_date?: Date | string }) => {
-			if (!doc.expiration_date) return false;
-			const expiryDate = new Date(doc.expiration_date);
-			const now = Date.now();
-			const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
-			return expiryDate.getTime() <= thirtyDaysFromNow;
-		}).length
-	);
 	const totalSize = $derived(
 		data.documents.reduce(
 			(acc: number, doc: { file_size_bytes: number }) => acc + doc.file_size_bytes,
@@ -258,7 +229,7 @@
 								applyFilters();
 							}}>All</DropdownMenu.Item
 						>
-						{#each categories as category}
+						{#each categories as category (category)}
 							<DropdownMenu.Item
 								onclick={() => {
 									selectedCategory = category;
@@ -287,7 +258,7 @@
 								applyFilters();
 							}}>All</DropdownMenu.Item
 						>
-						{#each sensitivityLevels as level}
+						{#each sensitivityLevels as level (level)}
 							<DropdownMenu.Item
 								onclick={() => {
 									selectedSensitivity = level;
@@ -355,7 +326,7 @@
 			</Tooltip.Provider>
 		{:else}
 			<div class="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 overflow-auto h-full">
-				{#each data.documents as doc}
+				{#each data.documents as doc (doc.id)}
 					<div
 						class="flex flex-col rounded-md border bg-background p-3 shadow-sm hover:border-primary/50 transition-colors"
 					>

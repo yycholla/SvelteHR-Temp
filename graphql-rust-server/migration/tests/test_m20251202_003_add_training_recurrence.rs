@@ -165,10 +165,7 @@ async fn test_recurrence_end_date_column_properties() -> Result<(), DbErr> {
         data_type, "timestamp with time zone",
         "recurrence_end_date should be TIMESTAMPTZ type"
     );
-    assert_eq!(
-        is_nullable, "YES",
-        "recurrence_end_date should be nullable"
-    );
+    assert_eq!(is_nullable, "YES", "recurrence_end_date should be nullable");
 
     Ok(())
 }
@@ -261,10 +258,7 @@ async fn test_foreign_key_is_self_referential() -> Result<(), DbErr> {
         foreign_table_name, "trainings",
         "FK should reference trainings table (self-referential)"
     );
-    assert_eq!(
-        foreign_column_name, "id",
-        "FK should reference id column"
-    );
+    assert_eq!(foreign_column_name, "id", "FK should reference id column");
 
     Ok(())
 }
@@ -493,7 +487,10 @@ async fn test_full_migration_cycle() -> Result<(), DbErr> {
         ))
         .await?;
 
-    assert!(index_exists.is_some(), "Index should exist after full cycle");
+    assert!(
+        index_exists.is_some(),
+        "Index should exist after full cycle"
+    );
 
     Ok(())
 }

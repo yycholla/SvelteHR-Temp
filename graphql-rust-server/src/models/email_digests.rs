@@ -67,10 +67,10 @@ pub enum DigestFrequency {
 impl DigestFrequency {
     pub fn to_cron(&self) -> &str {
         match self {
-            DigestFrequency::Daily => "0 9 * * *",      // Daily at 9 AM
-            DigestFrequency::Weekly => "0 9 * * 1",     // Weekly Monday at 9 AM
-            DigestFrequency::Monthly => "0 9 1 * *",    // Monthly on 1st at 9 AM
-            DigestFrequency::Custom => "",              // User provides custom cron
+            DigestFrequency::Daily => "0 9 * * *",   // Daily at 9 AM
+            DigestFrequency::Weekly => "0 9 * * 1",  // Weekly Monday at 9 AM
+            DigestFrequency::Monthly => "0 9 1 * *", // Monthly on 1st at 9 AM
+            DigestFrequency::Custom => "",           // User provides custom cron
         }
     }
 

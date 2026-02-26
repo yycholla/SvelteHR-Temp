@@ -61,7 +61,7 @@ export async function fetchDashboardData({
 	logger.info('Dashboard: Critical queries completed', { duration: criticalDuration });
 
 	const users: User[] = usersData?.users || [];
-	const departments: Department[] = departmentsData?.departments || [];
+	const departments: Department[] = departmentsData?.departments?.items || [];
 
 	// Date calculations
 	const thirtyDaysAgo = new Date();

@@ -11,6 +11,9 @@ export const PUBLIC_ROUTES = new Set([
 	'/health',
 	'/metrics', // Prometheus metrics endpoint (unauthenticated for cluster scraping)
 	'/api/auth/login',
+	'/api/auth/refresh',
+	'/api/auth/logout',
+	'/api/graphql', // GraphQL endpoint must allow unauthenticated login/refresh mutations
 	'/api/health',
 	'/api/metrics',
 	'/api/auth/verify',

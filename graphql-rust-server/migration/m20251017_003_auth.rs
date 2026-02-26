@@ -161,19 +161,9 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(
-                        ColumnDef::new(Roles::Name)
-                            .string()
-                            .not_null()
-                            .unique_key(),
-                    )
+                    .col(ColumnDef::new(Roles::Name).string().not_null().unique_key())
                     .col(ColumnDef::new(Roles::Description).string())
-                    .col(
-                        ColumnDef::new(Roles::Level)
-                            .integer()
-                            .not_null()
-                            .default(0),
-                    )
+                    .col(ColumnDef::new(Roles::Level).integer().not_null().default(0))
                     .col(
                         ColumnDef::new(Roles::CreatedAt)
                             .timestamp_with_time_zone()
@@ -252,7 +242,11 @@ impl MigrationTrait for Migration {
                             .extra("DEFAULT gen_random_uuid()"),
                     )
                     .col(ColumnDef::new(RolePermissions::RoleId).uuid().not_null())
-                    .col(ColumnDef::new(RolePermissions::PermissionId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(RolePermissions::PermissionId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(RolePermissions::CreatedAt)
                             .timestamp_with_time_zone()
@@ -269,16 +263,22 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_role_permissions_role_id")
-                            .from((Schema::HrPublic, RolePermissions::Table), RolePermissions::RoleId)
+                            .from(
+                                (Schema::HrPublic, RolePermissions::Table),
+                                RolePermissions::RoleId,
+                            )
                             .to((Schema::HrPublic, Roles::Table), Roles::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_role_permissions_permission_id")
-                            .from((Schema::HrPublic, RolePermissions::Table), RolePermissions::PermissionId)
+                            .from(
+                                (Schema::HrPublic, RolePermissions::Table),
+                                RolePermissions::PermissionId,
+                            )
                             .to((Schema::HrPublic, Permissions::Table), Permissions::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -311,8 +311,16 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(UserRoleAssignments::UserId).uuid().not_null())
-                    .col(ColumnDef::new(UserRoleAssignments::RoleId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(UserRoleAssignments::UserId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(UserRoleAssignments::RoleId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(UserRoleAssignments::CreatedAt)
                             .timestamp_with_time_zone()
@@ -329,16 +337,22 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_user_role_assignments_user_id")
-                            .from((Schema::HrPublic, UserRoleAssignments::Table), UserRoleAssignments::UserId)
+                            .from(
+                                (Schema::HrPublic, UserRoleAssignments::Table),
+                                UserRoleAssignments::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_user_role_assignments_role_id")
-                            .from((Schema::HrPublic, UserRoleAssignments::Table), UserRoleAssignments::RoleId)
+                            .from(
+                                (Schema::HrPublic, UserRoleAssignments::Table),
+                                UserRoleAssignments::RoleId,
+                            )
                             .to((Schema::HrPublic, Roles::Table), Roles::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -371,8 +385,17 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(Sessions::SessionToken).string().not_null().unique_key())
-                    .col(ColumnDef::new(Sessions::ExpiresAt).timestamp_with_time_zone().not_null())
+                    .col(
+                        ColumnDef::new(Sessions::SessionToken)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Sessions::ExpiresAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(Sessions::CreatedAt)
                             .timestamp_with_time_zone()
@@ -413,16 +436,22 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_user_sessions_user_id")
-                            .from((Schema::HrPublic, UserSessions::Table), UserSessions::UserId)
+                            .from(
+                                (Schema::HrPublic, UserSessions::Table),
+                                UserSessions::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_user_sessions_session_id")
-                            .from((Schema::HrPublic, UserSessions::Table), UserSessions::SessionId)
+                            .from(
+                                (Schema::HrPublic, UserSessions::Table),
+                                UserSessions::SessionId,
+                            )
                             .to((Schema::HrPublic, Sessions::Table), Sessions::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -433,31 +462,59 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, UserSessions::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, UserSessions::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Sessions::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Sessions::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, UserRoleAssignments::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, UserRoleAssignments::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, RolePermissions::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, RolePermissions::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Permissions::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Permissions::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Roles::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Roles::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Users::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Users::Table))
+                    .to_owned(),
+            )
             .await?;
 
         Ok(())

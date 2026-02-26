@@ -22,6 +22,7 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
 const DEFAULT_GRAPHQL_URL =
 	typeof browser !== 'undefined' && browser ? '/api/graphql' : 'http://localhost:4000/graphql';
 const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // WebSocket endpoint for subscriptions
+const REQUEST_CONTEXT_TOKEN_GETTER_KEY = '__SVELTEHR_GET_REQUEST_ACCESS_TOKEN__';
 
 // Rust GraphQL server uses session-based authorization with HTTP-only cookies
 // All GraphQL queries require authentication via session cookies (sent automatically)
@@ -65,6 +66,25 @@ const setAuthState = (authState: Partial<AuthState>) => {
 	// This function is kept for backwards compatibility but does nothing
 	// Authentication state is managed server-side via sessions
 };
+
+function getRequestContextAccessToken(): string | undefined {
+	if (browser) return undefined;
+
+	const getter = (globalThis as Record<string, unknown>)[REQUEST_CONTEXT_TOKEN_GETTER_KEY];
+	if (typeof getter !== 'function') {
+		return undefined;
+	}
+
+	try {
+		return (getter as () => string | undefined)();
+	} catch {
+		return undefined;
+	}
+}
+
+function getEffectiveAuthToken(explicitToken?: string): string | undefined {
+	return explicitToken || getRequestContextAccessToken();
+}
 
 // Session validation via REST API endpoint
 const validateTokenViaAPI = async () => {
@@ -144,9 +164,14 @@ const createAuthExchange = (serverSideToken?: string) => {
 	return authExchange(async (utils) => {
 		return {
 			addAuthToOperation(operation) {
-				// Session-based authentication uses HTTP-only cookies automatically sent by browser
-				// No need to add Authorization headers - cookies are sent automatically
-				return operation;
+				const token = getEffectiveAuthToken(serverSideToken);
+				if (!token) {
+					return operation;
+				}
+
+				return utils.appendHeaders(operation, {
+					Authorization: `Bearer ${token}`
+				});
 			},
 
 			didAuthError(error) {
@@ -252,9 +277,14 @@ export const createUrqlClient = (
 		exchanges,
 		fetch: fetchFn,
 		fetchOptions: () => {
+			const token = getEffectiveAuthToken(authToken);
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json'
 			};
+
+			if (token) {
+				headers['Authorization'] = `Bearer ${token}`;
+			}
 
 			// Session-based authentication
 			// For server-side requests, explicitly forward cookies

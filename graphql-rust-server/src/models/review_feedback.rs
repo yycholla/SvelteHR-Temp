@@ -142,14 +142,18 @@ impl Model {
         ctx: &Context<'_>,
     ) -> GqlResult<Option<super::performance_review::Model>> {
         let db = get_db_from_context(ctx)?;
-        let review = super::performance_review::Entity::find_by_id(self.review_id).one(&db).await?;
+        let review = super::performance_review::Entity::find_by_id(self.review_id)
+            .one(&db)
+            .await?;
         Ok(review)
     }
 
     /// User who provided the feedback
     async fn provider(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.provider_id).one(&db).await?;
+        let user = super::user::Entity::find_by_id(self.provider_id)
+            .one(&db)
+            .await?;
         Ok(user)
     }
 

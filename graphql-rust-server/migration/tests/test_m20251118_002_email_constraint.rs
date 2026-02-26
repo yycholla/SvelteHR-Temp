@@ -9,16 +9,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251118_002_fix_email_unique_constraint_for_soft_delete::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251118_002_fix_email_unique_constraint_for_soft_delete::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
         let db_url = std::env::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -43,7 +45,8 @@ mod tests {
         let _ = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
-                "ALTER TABLE hr_public.users ADD CONSTRAINT users_email_key UNIQUE (email)".to_string(),
+                "ALTER TABLE hr_public.users ADD CONSTRAINT users_email_key UNIQUE (email)"
+                    .to_string(),
             ))
             .await;
     }
@@ -79,7 +82,8 @@ mod tests {
                  FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'users'
-                 AND indexname = 'idx_users_email_unique_when_active'".to_string(),
+                 AND indexname = 'idx_users_email_unique_when_active'"
+                    .to_string(),
             ))
             .await;
 
@@ -88,9 +92,15 @@ mod tests {
         assert!(index_def.is_some(), "Should have index definition");
 
         // Verify the index has the WHERE clause
-        let indexdef: String = index_def.unwrap().try_get("", "indexdef").expect("Should get indexdef");
-        assert!(indexdef.contains("WHERE (deleted_at IS NULL)"),
-            "Index should have WHERE clause for partial index. Got: {}", indexdef);
+        let indexdef: String = index_def
+            .unwrap()
+            .try_get("", "indexdef")
+            .expect("Should get indexdef");
+        assert!(
+            indexdef.contains("WHERE (deleted_at IS NULL)"),
+            "Index should have WHERE clause for partial index. Got: {}",
+            indexdef
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -126,7 +136,8 @@ mod tests {
                  FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'users'
-                 AND indexname = 'idx_users_email_unique_when_active'".to_string(),
+                 AND indexname = 'idx_users_email_unique_when_active'"
+                    .to_string(),
             ))
             .await;
 
@@ -141,11 +152,15 @@ mod tests {
                  WHERE constraint_schema = 'hr_public'
                  AND table_name = 'users'
                  AND constraint_name = 'users_email_key'
-                 AND constraint_type = 'UNIQUE'".to_string(),
+                 AND constraint_type = 'UNIQUE'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(constraint_result.is_ok(), "Should be able to check if constraint exists");
+        assert!(
+            constraint_result.is_ok(),
+            "Should be able to check if constraint exists"
+        );
     }
 
     #[tokio::test]
@@ -223,26 +238,37 @@ mod tests {
             .execute(Statement::from_string(
                 DbBackend::Postgres,
                 "INSERT INTO hr_public.users (email, password_hash, full_name, deleted_at)
-                 VALUES ('test_email_constraint_active@example.com', 'hash', 'Test User 1', NULL)".to_string(),
+                 VALUES ('test_email_constraint_active@example.com', 'hash', 'Test User 1', NULL)"
+                    .to_string(),
             ))
             .await;
 
-        assert!(insert_result1.is_ok(), "First active user insert should succeed");
+        assert!(
+            insert_result1.is_ok(),
+            "First active user insert should succeed"
+        );
 
         // Try to insert second active user with same email - should fail
         let insert_result2 = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
                 "INSERT INTO hr_public.users (email, password_hash, full_name, deleted_at)
-                 VALUES ('test_email_constraint_active@example.com', 'hash', 'Test User 2', NULL)".to_string(),
+                 VALUES ('test_email_constraint_active@example.com', 'hash', 'Test User 2', NULL)"
+                    .to_string(),
             ))
             .await;
 
-        assert!(insert_result2.is_err(), "Second active user with same email should fail due to unique constraint");
+        assert!(
+            insert_result2.is_err(),
+            "Second active user with same email should fail due to unique constraint"
+        );
 
         let error_msg = insert_result2.unwrap_err().to_string();
-        assert!(error_msg.contains("duplicate key") || error_msg.contains("unique"),
-            "Error should be about unique constraint violation. Got: {}", error_msg);
+        assert!(
+            error_msg.contains("duplicate key") || error_msg.contains("unique"),
+            "Error should be about unique constraint violation. Got: {}",
+            error_msg
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -271,7 +297,10 @@ mod tests {
             ))
             .await;
 
-        assert!(insert_result1.is_ok(), "First soft-deleted user insert should succeed");
+        assert!(
+            insert_result1.is_ok(),
+            "First soft-deleted user insert should succeed"
+        );
 
         // Insert second soft-deleted user with same email - should succeed (partial index allows this)
         let insert_result2 = db
@@ -282,8 +311,10 @@ mod tests {
             ))
             .await;
 
-        assert!(insert_result2.is_ok(),
-            "Second soft-deleted user with same email should succeed (partial index doesn't apply)");
+        assert!(
+            insert_result2.is_ok(),
+            "Second soft-deleted user with same email should succeed (partial index doesn't apply)"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -308,23 +339,30 @@ mod tests {
             .execute(Statement::from_string(
                 DbBackend::Postgres,
                 "INSERT INTO hr_public.users (email, password_hash, full_name, deleted_at)
-                 VALUES ('test_email_constraint_reuse@example.com', 'hash', 'Old User', NOW())".to_string(),
+                 VALUES ('test_email_constraint_reuse@example.com', 'hash', 'Old User', NOW())"
+                    .to_string(),
             ))
             .await;
 
-        assert!(insert_result.is_ok(), "Soft-deleted user insert should succeed");
+        assert!(
+            insert_result.is_ok(),
+            "Soft-deleted user insert should succeed"
+        );
 
         // Insert new active user with same email - should succeed
         let reuse_result = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
                 "INSERT INTO hr_public.users (email, password_hash, full_name, deleted_at)
-                 VALUES ('test_email_constraint_reuse@example.com', 'hash', 'New User', NULL)".to_string(),
+                 VALUES ('test_email_constraint_reuse@example.com', 'hash', 'New User', NULL)"
+                    .to_string(),
             ))
             .await;
 
-        assert!(reuse_result.is_ok(),
-            "New active user should be able to reuse soft-deleted user's email");
+        assert!(
+            reuse_result.is_ok(),
+            "New active user should be able to reuse soft-deleted user's email"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;

@@ -60,8 +60,8 @@ export interface TeamReport {
 		email?: string;
 		jobTitle?: string;
 	};
-	parameters?: any;
-	data?: any;
+	parameters?: unknown;
+	data?: unknown;
 	createdAt: string;
 	updatedAt: string;
 }

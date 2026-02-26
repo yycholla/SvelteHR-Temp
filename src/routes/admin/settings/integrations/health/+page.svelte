@@ -17,6 +17,26 @@
 	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
 
+	interface DiagnosticSyncResult {
+		employeeNumber: string | null;
+		employeeId: string | null;
+		employeeName: string | null;
+		employeeEmail: string | null;
+		success: boolean;
+		error: string | null;
+	}
+
+	interface DiagnosticSyncSummary {
+		total?: number;
+		succeeded?: number;
+		failed?: number;
+		summary?: string;
+		results?: DiagnosticSyncResult[];
+		error?: string;
+	}
+
+	type DiagnosticState = DiagnosticSyncSummary | null;
+
 	let { data } = $props();
 	let health = $derived(data.healthStatus);
 	let alerts = $derived(data.alerts);
@@ -24,7 +44,7 @@
 
 	let refreshing = $state(false);
 	let diagnosticRunning = $state(false);
-	let diagnosticResults: any = $state(null);
+	let diagnosticResults = $state<DiagnosticState>(null);
 	let dismissingAlerts = $state<Set<string>>(new Set());
 	let runningHealthCheck = $state(false);
 

@@ -9,14 +9,17 @@
 //!
 //! Run with: cargo test --test auth_backend_tests
 
+use axum_login::AuthnBackend;
 use bcrypt::{hash, verify, DEFAULT_COST};
 use hr_graphql_server::{
     auth::{AuthBackend, Credentials},
-    testing::{TestDatabase, auth::{TestUser, TestUserRole}},
+    testing::{
+        auth::{TestUser, TestUserRole},
+        TestDatabase,
+    },
 };
-use sea_orm::{EntityTrait, Set, ActiveModelTrait, ColumnTrait, QueryFilter};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
-use axum_login::AuthnBackend;
 
 // ============================================================================
 // Password Hashing & Verification Tests
@@ -82,12 +85,16 @@ async fn test_empty_password_handling() {
 
 #[tokio::test]
 async fn test_authenticate_with_valid_credentials() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let test_user = TestUser::create_with_password(
         db.connection(),
         TestUserRole::Employee,
-        "test_password_123"
-    ).await.expect("Failed to create test user");
+        "test_password_123",
+    )
+    .await
+    .expect("Failed to create test user");
 
     let auth_backend = AuthBackend::new(db.connection().clone());
 
@@ -111,12 +118,13 @@ async fn test_authenticate_with_valid_credentials() {
 
 #[tokio::test]
 async fn test_authenticate_with_invalid_password() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
-    let test_user = TestUser::create_with_password(
-        db.connection(),
-        TestUserRole::Employee,
-        "correct_password"
-    ).await.expect("Failed to create test user");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
+    let test_user =
+        TestUser::create_with_password(db.connection(), TestUserRole::Employee, "correct_password")
+            .await
+            .expect("Failed to create test user");
 
     let auth_backend = AuthBackend::new(db.connection().clone());
 
@@ -127,12 +135,17 @@ async fn test_authenticate_with_invalid_password() {
 
     let result = auth_backend.authenticate(creds).await;
     assert!(result.is_ok(), "Should not error, but return None");
-    assert!(result.unwrap().is_none(), "Should return None for invalid password");
+    assert!(
+        result.unwrap().is_none(),
+        "Should return None for invalid password"
+    );
 }
 
 #[tokio::test]
 async fn test_authenticate_with_nonexistent_user() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let auth_backend = AuthBackend::new(db.connection().clone());
 
     let creds = Credentials {
@@ -142,17 +155,21 @@ async fn test_authenticate_with_nonexistent_user() {
 
     let result = auth_backend.authenticate(creds).await;
     assert!(result.is_ok(), "Should not error, but return None");
-    assert!(result.unwrap().is_none(), "Should return None for non-existent user");
+    assert!(
+        result.unwrap().is_none(),
+        "Should return None for non-existent user"
+    );
 }
 
 #[tokio::test]
 async fn test_authenticate_with_inactive_user() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
-    let test_user = TestUser::create_with_password(
-        db.connection(),
-        TestUserRole::Employee,
-        "test_password"
-    ).await.expect("Failed to create test user");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
+    let test_user =
+        TestUser::create_with_password(db.connection(), TestUserRole::Employee, "test_password")
+            .await
+            .expect("Failed to create test user");
 
     // Deactivate the user
     use hr_graphql_server::models::user;
@@ -163,7 +180,10 @@ async fn test_authenticate_with_inactive_user() {
         .expect("User not found")
         .into();
     user_model.is_active = Set(false);
-    user_model.update(db.connection()).await.expect("Failed to update user");
+    user_model
+        .update(db.connection())
+        .await
+        .expect("Failed to update user");
 
     let auth_backend = AuthBackend::new(db.connection().clone());
 
@@ -174,14 +194,20 @@ async fn test_authenticate_with_inactive_user() {
 
     let result = auth_backend.authenticate(creds).await;
     assert!(result.is_ok(), "Should not error");
-    assert!(result.unwrap().is_none(), "Should return None for inactive user");
+    assert!(
+        result.unwrap().is_none(),
+        "Should return None for inactive user"
+    );
 }
 
 #[tokio::test]
 async fn test_get_user_by_id() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let test_user = TestUser::create(db.connection(), TestUserRole::HrManager)
-        .await.expect("Failed to create test user");
+        .await
+        .expect("Failed to create test user");
 
     let auth_backend = AuthBackend::new(db.connection().clone());
 
@@ -198,14 +224,19 @@ async fn test_get_user_by_id() {
 
 #[tokio::test]
 async fn test_get_nonexistent_user_by_id() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
     let auth_backend = AuthBackend::new(db.connection().clone());
 
     let fake_id = Uuid::new_v4();
     let result = auth_backend.get_user(&fake_id).await;
 
     assert!(result.is_ok(), "Should not error");
-    assert!(result.unwrap().is_none(), "Should return None for non-existent user");
+    assert!(
+        result.unwrap().is_none(),
+        "Should return None for non-existent user"
+    );
 }
 
 // ============================================================================
@@ -214,12 +245,13 @@ async fn test_get_nonexistent_user_by_id() {
 
 #[tokio::test]
 async fn test_failed_login_increments_attempt_counter() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
-    let test_user = TestUser::create_with_password(
-        db.connection(),
-        TestUserRole::Employee,
-        "correct_password"
-    ).await.expect("Failed to create test user");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
+    let test_user =
+        TestUser::create_with_password(db.connection(), TestUserRole::Employee, "correct_password")
+            .await
+            .expect("Failed to create test user");
 
     let auth_backend = AuthBackend::new(db.connection().clone());
 
@@ -240,17 +272,21 @@ async fn test_failed_login_increments_attempt_counter() {
         .expect("DB query failed")
         .expect("User not found");
 
-    assert_eq!(user_record.failed_login_attempts, 1, "Failed login attempt should be recorded");
+    assert_eq!(
+        user_record.failed_login_attempts, 1,
+        "Failed login attempt should be recorded"
+    );
 }
 
 #[tokio::test]
 async fn test_successful_login_resets_failed_attempts() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
-    let test_user = TestUser::create_with_password(
-        db.connection(),
-        TestUserRole::Employee,
-        "correct_password"
-    ).await.expect("Failed to create test user");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
+    let test_user =
+        TestUser::create_with_password(db.connection(), TestUserRole::Employee, "correct_password")
+            .await
+            .expect("Failed to create test user");
 
     // Set failed attempts to 3
     use hr_graphql_server::models::user;
@@ -261,7 +297,10 @@ async fn test_successful_login_resets_failed_attempts() {
         .expect("User not found")
         .into();
     user_model.failed_login_attempts = Set(3);
-    user_model.update(db.connection()).await.expect("Failed to update user");
+    user_model
+        .update(db.connection())
+        .await
+        .expect("Failed to update user");
 
     let auth_backend = AuthBackend::new(db.connection().clone());
 
@@ -281,17 +320,21 @@ async fn test_successful_login_resets_failed_attempts() {
         .expect("DB query failed")
         .expect("User not found");
 
-    assert_eq!(user_record.failed_login_attempts, 0, "Failed attempts should be reset after successful login");
+    assert_eq!(
+        user_record.failed_login_attempts, 0,
+        "Failed attempts should be reset after successful login"
+    );
 }
 
 #[tokio::test]
 async fn test_account_locked_after_max_failed_attempts() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
-    let test_user = TestUser::create_with_password(
-        db.connection(),
-        TestUserRole::Employee,
-        "correct_password"
-    ).await.expect("Failed to create test user");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
+    let test_user =
+        TestUser::create_with_password(db.connection(), TestUserRole::Employee, "correct_password")
+            .await
+            .expect("Failed to create test user");
 
     let auth_backend = AuthBackend::new(db.connection().clone());
 
@@ -315,21 +358,28 @@ async fn test_account_locked_after_max_failed_attempts() {
         .expect("User not found");
 
     assert_eq!(user_record.failed_login_attempts, 5);
-    assert!(user_record.locked_until.is_some(), "Account should be locked");
+    assert!(
+        user_record.locked_until.is_some(),
+        "Account should be locked"
+    );
 
     // Verify lock time is in the future (should be ~15 minutes)
     let locked_until = user_record.locked_until.unwrap();
-    assert!(locked_until > chrono::Utc::now(), "Lock time should be in the future");
+    assert!(
+        locked_until > chrono::Utc::now(),
+        "Lock time should be in the future"
+    );
 }
 
 #[tokio::test]
 async fn test_locked_account_rejects_correct_password() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
-    let test_user = TestUser::create_with_password(
-        db.connection(),
-        TestUserRole::Employee,
-        "correct_password"
-    ).await.expect("Failed to create test user");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
+    let test_user =
+        TestUser::create_with_password(db.connection(), TestUserRole::Employee, "correct_password")
+            .await
+            .expect("Failed to create test user");
 
     // Lock the account manually
     use hr_graphql_server::models::user;
@@ -340,7 +390,10 @@ async fn test_locked_account_rejects_correct_password() {
         .expect("User not found")
         .into();
     user_model.locked_until = Set(Some(chrono::Utc::now() + chrono::Duration::hours(1)));
-    user_model.update(db.connection()).await.expect("Failed to update user");
+    user_model
+        .update(db.connection())
+        .await
+        .expect("Failed to update user");
 
     let auth_backend = AuthBackend::new(db.connection().clone());
 
@@ -351,7 +404,10 @@ async fn test_locked_account_rejects_correct_password() {
     };
 
     let result = auth_backend.authenticate(creds).await;
-    assert!(result.unwrap().is_none(), "Locked account should reject even correct password");
+    assert!(
+        result.unwrap().is_none(),
+        "Locked account should reject even correct password"
+    );
 }
 
 // ============================================================================
@@ -361,14 +417,21 @@ async fn test_locked_account_rejects_correct_password() {
 #[tokio::test]
 async fn test_rate_limiter_ip_based_limiting() {
     let auth_backend = AuthBackend::new(
-        TestDatabase::new().await.expect("Failed to create test database").connection().clone()
+        TestDatabase::new()
+            .await
+            .expect("Failed to create test database")
+            .connection()
+            .clone(),
     );
     let rate_limiter = auth_backend.rate_limiter();
 
     let test_ip = "192.168.1.100";
 
     // Initial state - not rate limited
-    assert!(!rate_limiter.is_ip_rate_limited(test_ip).await, "Should not be rate limited initially");
+    assert!(
+        !rate_limiter.is_ip_rate_limited(test_ip).await,
+        "Should not be rate limited initially"
+    );
 
     // Record max_attempts_per_ip (10) attempts
     for _ in 0..10 {
@@ -376,20 +439,30 @@ async fn test_rate_limiter_ip_based_limiting() {
     }
 
     // Now should be rate limited
-    assert!(rate_limiter.is_ip_rate_limited(test_ip).await, "Should be rate limited after 10 attempts");
+    assert!(
+        rate_limiter.is_ip_rate_limited(test_ip).await,
+        "Should be rate limited after 10 attempts"
+    );
 }
 
 #[tokio::test]
 async fn test_rate_limiter_account_based_limiting() {
     let auth_backend = AuthBackend::new(
-        TestDatabase::new().await.expect("Failed to create test database").connection().clone()
+        TestDatabase::new()
+            .await
+            .expect("Failed to create test database")
+            .connection()
+            .clone(),
     );
     let rate_limiter = auth_backend.rate_limiter();
 
     let test_email = "test@example.com";
 
     // Initial state - not rate limited
-    assert!(!rate_limiter.is_account_rate_limited(test_email).await, "Should not be rate limited initially");
+    assert!(
+        !rate_limiter.is_account_rate_limited(test_email).await,
+        "Should not be rate limited initially"
+    );
 
     // Record max_attempts_per_account (5) attempts
     for _ in 0..5 {
@@ -397,13 +470,20 @@ async fn test_rate_limiter_account_based_limiting() {
     }
 
     // Now should be rate limited
-    assert!(rate_limiter.is_account_rate_limited(test_email).await, "Should be rate limited after 5 attempts");
+    assert!(
+        rate_limiter.is_account_rate_limited(test_email).await,
+        "Should be rate limited after 5 attempts"
+    );
 }
 
 #[tokio::test]
 async fn test_rate_limiter_cleanup_old_attempts() {
     let auth_backend = AuthBackend::new(
-        TestDatabase::new().await.expect("Failed to create test database").connection().clone()
+        TestDatabase::new()
+            .await
+            .expect("Failed to create test database")
+            .connection()
+            .clone(),
     );
     let rate_limiter = auth_backend.rate_limiter();
 
@@ -428,7 +508,11 @@ async fn test_rate_limiter_cleanup_old_attempts() {
 #[tokio::test]
 async fn test_generate_csrf_token() {
     let auth_backend = AuthBackend::new(
-        TestDatabase::new().await.expect("Failed to create test database").connection().clone()
+        TestDatabase::new()
+            .await
+            .expect("Failed to create test database")
+            .connection()
+            .clone(),
     );
 
     let token1 = auth_backend.generate_csrf_token();
@@ -438,8 +522,14 @@ async fn test_generate_csrf_token() {
     assert_ne!(token1, token2, "CSRF tokens should be unique");
 
     // Tokens should be valid UUIDs
-    assert!(Uuid::parse_str(&token1).is_ok(), "Token should be valid UUID");
-    assert!(Uuid::parse_str(&token2).is_ok(), "Token should be valid UUID");
+    assert!(
+        Uuid::parse_str(&token1).is_ok(),
+        "Token should be valid UUID"
+    );
+    assert!(
+        Uuid::parse_str(&token2).is_ok(),
+        "Token should be valid UUID"
+    );
 }
 
 // ============================================================================
@@ -448,7 +538,9 @@ async fn test_generate_csrf_token() {
 
 #[tokio::test]
 async fn test_admin_development_shortcut_authentication() {
-    let db = TestDatabase::new().await.expect("Failed to create test database");
+    let db = TestDatabase::new()
+        .await
+        .expect("Failed to create test database");
 
     // Check if admin user already exists (from migrations)
     use hr_graphql_server::models::user;
@@ -478,7 +570,10 @@ async fn test_admin_development_shortcut_authentication() {
             force_password_change: Set(false),
             ..Default::default()
         };
-        admin_model.insert(db.connection()).await.expect("Failed to create admin user");
+        admin_model
+            .insert(db.connection())
+            .await
+            .expect("Failed to create admin user");
 
         // Assign Admin role if it exists in the database
         if let Ok(Some(admin_role)) = role::Entity::find()

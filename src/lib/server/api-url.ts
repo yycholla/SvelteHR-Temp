@@ -7,44 +7,97 @@ import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 import { print } from 'graphql';
 import type { TypedDocumentNode } from '@urql/core';
+import { existsSync } from 'node:fs';
+
+const RUNNING_IN_CONTAINER = existsSync('/.dockerenv');
+const DOCKER_ONLY_HOSTS = new Set(['hr-graphql-rust']);
+
+function normalizeUrl(rawUrl: string): string {
+	const parsed = new URL(rawUrl);
+
+	// Local host development can fail on IPv6 localhost resolution in some setups.
+	if (!RUNNING_IN_CONTAINER && parsed.hostname === 'localhost') {
+		parsed.hostname = '127.0.0.1';
+	}
+
+	// Docker service DNS names are not resolvable from host-native processes.
+	if (!RUNNING_IN_CONTAINER && DOCKER_ONLY_HOSTS.has(parsed.hostname)) {
+		parsed.hostname = '127.0.0.1';
+	}
+
+	return parsed.toString().replace(/\/$/, '');
+}
+
+function ensureGraphQLEndpoint(rawUrl: string): string {
+	const parsed = new URL(normalizeUrl(rawUrl));
+	const path = parsed.pathname.replace(/\/$/, '');
+
+	if (!path || path === '') {
+		parsed.pathname = '/graphql';
+	} else if (path !== '/graphql' && !path.endsWith('/graphql')) {
+		parsed.pathname = `${path}/graphql`;
+	} else {
+		parsed.pathname = path;
+	}
+
+	return parsed.toString().replace(/\/$/, '');
+}
+
+function toApiBaseUrl(rawUrl: string): string {
+	const parsed = new URL(normalizeUrl(rawUrl));
+	const path = parsed.pathname.replace(/\/$/, '');
+
+	if (path === '/graphql') {
+		parsed.pathname = '';
+	} else {
+		parsed.pathname = path;
+	}
+
+	return parsed.toString().replace(/\/$/, '');
+}
 
 /**
  * Get the GraphQL API URL for server-side requests
  *
- * In containerized environment: Uses backend-dev:4000 (Docker container name)
+ * In containerized environment: Uses hr-graphql-rust:4000 (Docker service name)
  * On host: Uses localhost:4000
  */
 export function getGraphQLEndpoint(): string {
-	// Check if we're running in a container (PUBLIC_API_URL is set in docker-compose)
-	const containerApiUrl = publicEnv.PUBLIC_API_URL;
-
-	if (containerApiUrl) {
-		// Running in container - use container network
-		return `${containerApiUrl}/graphql`;
+	const explicitGraphqlUrl = env.GRAPHQL_URL || process.env.GRAPHQL_URL;
+	if (explicitGraphqlUrl) {
+		return ensureGraphQLEndpoint(explicitGraphqlUrl);
 	}
 
-	// Running on host - use localhost (Rust GraphQL API on port 4000)
-	return 'http://localhost:4000/graphql';
+	const containerApiUrl = env.VITE_API_URL || publicEnv.PUBLIC_API_URL;
+	if (containerApiUrl) {
+		return ensureGraphQLEndpoint(containerApiUrl);
+	}
+
+	return 'http://127.0.0.1:4000/graphql';
 }
 
 /**
  * Get the base API URL (without /graphql path)
  */
 export function getApiBaseUrl(): string {
-	const containerApiUrl = env.VITE_API_URL;
-
+	const containerApiUrl = env.VITE_API_URL || publicEnv.PUBLIC_API_URL;
 	if (containerApiUrl) {
-		return containerApiUrl;
+		return toApiBaseUrl(containerApiUrl);
 	}
 
-	return publicEnv.PUBLIC_API_URL || 'http://localhost:4000';
+	const explicitGraphqlUrl = env.GRAPHQL_URL || process.env.GRAPHQL_URL;
+	if (explicitGraphqlUrl) {
+		return toApiBaseUrl(explicitGraphqlUrl);
+	}
+
+	return 'http://127.0.0.1:4000';
 }
 
 /**
  * Check if running in containerized environment
  */
 export function isContainerized(): boolean {
-	return Boolean(env.VITE_API_URL);
+	return RUNNING_IN_CONTAINER;
 }
 
 /**
@@ -53,7 +106,7 @@ export function isContainerized(): boolean {
 export async function authenticatedGraphQLRequest(
 	endpoint: string,
 	query: TypedDocumentNode | string,
-	variables?: any,
+	variables?: Record<string, unknown>,
 	request?: Request
 ): Promise<Response> {
 	const headers: Record<string, string> = {
@@ -77,7 +130,7 @@ export async function authenticatedGraphQLRequest(
 		headers,
 		body: JSON.stringify({
 			query: queryString,
-			variables: variables || {}
+			variables: variables ?? {}
 		})
 	});
 }

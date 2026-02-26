@@ -10,7 +10,6 @@ use uuid::Uuid;
 
 use crate::database::get_db_from_context;
 
-
 /// UserRoleAssignment entity - maps to hr_public.user_role_assignments table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "user_role_assignments", schema_name = "hr_public")]
@@ -93,8 +92,12 @@ impl Model {
     /// Role name (loaded from role relationship)
     async fn role_name(&self, ctx: &Context<'_>) -> GqlResult<String> {
         let db = get_db_from_context(ctx)?;
-        let role = super::role::Entity::find_by_id(self.role_id).one(&db).await?;
-        Ok(role.map(|r| r.name).unwrap_or_else(|| "Unknown".to_string()))
+        let role = super::role::Entity::find_by_id(self.role_id)
+            .one(&db)
+            .await?;
+        Ok(role
+            .map(|r| r.name)
+            .unwrap_or_else(|| "Unknown".to_string()))
     }
 
     /// Record creation timestamp
@@ -115,14 +118,18 @@ impl Model {
     /// User who has this role assignment
     async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.user_id).one(&db).await?;
+        let user = super::user::Entity::find_by_id(self.user_id)
+            .one(&db)
+            .await?;
         Ok(user)
     }
 
     /// Role that was assigned
     async fn role(&self, ctx: &Context<'_>) -> GqlResult<Option<super::role::Model>> {
         let db = get_db_from_context(ctx)?;
-        let role = super::role::Entity::find_by_id(self.role_id).one(&db).await?;
+        let role = super::role::Entity::find_by_id(self.role_id)
+            .one(&db)
+            .await?;
         Ok(role)
     }
 }

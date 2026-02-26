@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Notification, NotificationProps } from './Notification';
+import { Notification, type NotificationProps } from './Notification';
 import { NotificationType } from '../value-objects/NotificationType';
 import { NotificationCategory } from '../value-objects/NotificationCategory';
 import { NotificationPriority } from '../value-objects/NotificationPriority';

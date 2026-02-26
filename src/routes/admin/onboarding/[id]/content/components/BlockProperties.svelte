@@ -4,11 +4,23 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import { Save, ArrowLeft, Trash2, FileText, Link } from '@lucide/svelte';
+	import { ArrowLeft, Link, Save, Trash2 } from '@lucide/svelte';
+
+	interface OnboardingBlock {
+		id: string;
+		title: string;
+		type: 'TEXT' | 'DOCUMENT' | 'FORM' | 'FILE_UPLOAD' | 'SIGNATURE';
+		sequenceOrder: number;
+		isRequired: boolean;
+		textContent?: string | null;
+		documentUrl?: string | null;
+		formTemplateId?: string | null;
+		inlineFormElements?: unknown[] | null;
+	}
 
 	interface Props {
-		block: any;
-		onUpdate: (data: any) => void;
+		block: OnboardingBlock;
+		onUpdate: (data: OnboardingBlock) => void;
 		onSave: () => void;
 		onBack: () => void;
 		onDelete: () => void;

@@ -4,10 +4,22 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import Button from '$lib/components/ui/button/button.svelte';
 
+	interface RoleOption {
+		id: string;
+		name: string;
+		description?: string | null;
+	}
+
+	interface UserRoleSubject {
+		id: string;
+		email?: string;
+		role?: string | null;
+	}
+
 	interface Props {
 		open: boolean;
-		selectedUser: any;
-		roles: any[];
+		selectedUser: UserRoleSubject | null;
+		roles: RoleOption[];
 		loading: boolean;
 		onClose: () => void;
 		onSubmit: () => void;
@@ -24,8 +36,8 @@
 		onSuccess
 	}: Props = $props();
 
-	function userHasRole(user: any, roleId: string): boolean {
-		return user.role === roleId || false;
+	function userHasRole(user: UserRoleSubject | null, roleId: string): boolean {
+		return user?.role === roleId;
 	}
 </script>
 

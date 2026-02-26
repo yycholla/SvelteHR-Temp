@@ -7,17 +7,12 @@
 //! - Bidirectional sync with conflict resolution
 //! - Batch sync operations
 
-use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::{
-    integrations::intuit::IntuitClient,
-    models::time::time_entry,
-};
+use crate::{integrations::intuit::IntuitClient, models::time::time_entry};
 
 /// Time Activity data from QuickBooks
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -86,7 +81,10 @@ impl TimeTrackingSync {
         let mut errors = Vec::new();
 
         for entry in time_entries {
-            match self.push_single_entry(intuit_client, realm_id, &entry).await {
+            match self
+                .push_single_entry(intuit_client, realm_id, &entry)
+                .await
+            {
                 Ok(_) => synced += 1,
                 Err(e) => {
                     failed += 1;
@@ -143,7 +141,6 @@ impl TimeTrackingSync {
 
     /// Get sync statistics
     pub async fn get_sync_stats(&self) -> Result<SyncStats, sea_orm::DbErr> {
-
         let total = time_entry::Entity::find()
             .filter(time_entry::Column::DeletedAt.is_null())
             .count(&*self.db)

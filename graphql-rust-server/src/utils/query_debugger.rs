@@ -42,12 +42,8 @@ impl<'a> QueryDebugger<'a> {
         params: Vec<sea_orm::Value>,
     ) -> Result<QueryStats, Error> {
         let start = Instant::now();
-        
-        let statement = Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            sql,
-            params,
-        );
+
+        let statement = Statement::from_sql_and_values(DbBackend::Postgres, sql, params);
 
         let result = self
             .db
@@ -56,7 +52,7 @@ impl<'a> QueryDebugger<'a> {
             .map_err(|e| Error::new(format!("Query execution failed: {}", e)))?;
 
         let duration = start.elapsed();
-        
+
         Ok(QueryStats {
             query: sql.to_string(),
             duration_ms: duration.as_millis() as u64,
@@ -68,11 +64,8 @@ impl<'a> QueryDebugger<'a> {
     /// Get EXPLAIN output for a query
     pub async fn explain(&self, sql: &str) -> Result<ExplainResult, Error> {
         let explain_query = format!("EXPLAIN (FORMAT JSON) {}", sql);
-        
-        let statement = Statement::from_string(
-            DbBackend::Postgres,
-            explain_query,
-        );
+
+        let statement = Statement::from_string(DbBackend::Postgres, explain_query);
 
         let result = self
             .db
@@ -82,9 +75,7 @@ impl<'a> QueryDebugger<'a> {
 
         let plan: Vec<String> = result
             .iter()
-            .filter_map(|row| {
-                row.try_get::<String>("", "QUERY PLAN").ok()
-            })
+            .filter_map(|row| row.try_get::<String>("", "QUERY PLAN").ok())
             .collect();
 
         Ok(ExplainResult {
@@ -97,11 +88,8 @@ impl<'a> QueryDebugger<'a> {
     /// Get EXPLAIN ANALYZE output for a query (actually executes)
     pub async fn explain_analyze(&self, sql: &str) -> Result<ExplainResult, Error> {
         let explain_query = format!("EXPLAIN (ANALYZE, FORMAT JSON) {}", sql);
-        
-        let statement = Statement::from_string(
-            DbBackend::Postgres,
-            explain_query,
-        );
+
+        let statement = Statement::from_string(DbBackend::Postgres, explain_query);
 
         let result = self
             .db
@@ -111,9 +99,7 @@ impl<'a> QueryDebugger<'a> {
 
         let plan: Vec<String> = result
             .iter()
-            .filter_map(|row| {
-                row.try_get::<String>("", "QUERY PLAN").ok()
-            })
+            .filter_map(|row| row.try_get::<String>("", "QUERY PLAN").ok())
             .collect();
 
         Ok(ExplainResult {
@@ -192,13 +178,11 @@ impl<'a> QueryDebugger<'a> {
 /// Query logger macro for easy query debugging
 #[macro_export]
 macro_rules! log_query {
-    ($debugger:expr, $query:expr) => {
-        {
-            let formatted = $debugger.format_query($query);
-            tracing::debug!("Executing query: {}", formatted);
-            formatted
-        }
-    };
+    ($debugger:expr, $query:expr) => {{
+        let formatted = $debugger.format_query($query);
+        tracing::debug!("Executing query: {}", formatted);
+        formatted
+    }};
 }
 
 #[cfg(test)]

@@ -144,7 +144,9 @@ impl Model {
     /// User who performed the action
     async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<crate::models::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = crate::models::user::Entity::find_by_id(self.user_id).one(&db).await?;
+        let user = crate::models::user::Entity::find_by_id(self.user_id)
+            .one(&db)
+            .await?;
         Ok(user)
     }
 
@@ -152,7 +154,9 @@ impl Model {
     async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<crate::models::user::Model>> {
         if let Some(employee_id) = self.employee_id {
             let db = get_db_from_context(ctx)?;
-            let employee = crate::models::user::Entity::find_by_id(employee_id).one(&db).await?;
+            let employee = crate::models::user::Entity::find_by_id(employee_id)
+                .one(&db)
+                .await?;
             Ok(employee)
         } else {
             Ok(None)
@@ -270,4 +274,3 @@ impl ActivityLogsConnection {
         &self.page_info
     }
 }
-

@@ -11,7 +11,7 @@ pub mod report_analytic;
 
 // Re-exports for convenient access
 pub use dashboard_summary::DashboardSummary;
-pub use department_metric::{Model as DepartmentMetric};
+pub use department_metric::Model as DepartmentMetric;
 pub use employee_statistic::{Entity as EmployeeStatisticEntity, Model as EmployeeStatistic};
-pub use goal_statistic::{Model as GoalStatistic};
-pub use report_analytic::{Model as ReportAnalytic};
+pub use goal_statistic::Model as GoalStatistic;
+pub use report_analytic::Model as ReportAnalytic;

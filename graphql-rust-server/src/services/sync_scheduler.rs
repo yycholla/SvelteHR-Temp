@@ -6,8 +6,8 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Datelike, Timelike, Utc};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, Set,
 };
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -154,11 +154,7 @@ impl SyncScheduler {
         // Add each schedule to the cron scheduler
         for schedule in schedules {
             if let Err(e) = self.add_schedule_to_cron(&schedule).await {
-                tracing::error!(
-                    "Failed to add schedule {} to cron: {}",
-                    schedule.name,
-                    e
-                );
+                tracing::error!("Failed to add schedule {} to cron: {}", schedule.name, e);
             }
         }
 
@@ -196,10 +192,7 @@ impl SyncScheduler {
         let db = self.db.clone();
 
         // Parse timezone
-        let timezone: chrono_tz::Tz = schedule
-            .timezone
-            .parse()
-            .unwrap_or(chrono_tz::UTC);
+        let timezone: chrono_tz::Tz = schedule.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         tracing::info!(
             "Adding schedule '{}' with cron: {} (timezone: {})",
@@ -524,9 +517,7 @@ impl SyncScheduler {
     }
 
     /// Get all schedules
-    pub async fn get_all_schedules(
-        &self,
-    ) -> Result<Vec<crate::models::sync_schedule::Model>> {
+    pub async fn get_all_schedules(&self) -> Result<Vec<crate::models::sync_schedule::Model>> {
         use crate::models::sync_schedule::{Column, Entity};
 
         let schedules = Entity::find()

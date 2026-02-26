@@ -239,7 +239,7 @@ describe('ErrorHandler', () => {
 			const circular: Record<string, unknown> = { name: 'test' };
 			circular.self = circular;
 
-			const error = new AppError('Circular reference', 'CIRCULAR', circular);
+			const error = new AppError('Circular reference', 'CIRCULAR', 500, circular);
 
 			// Should not throw when handling
 			expect(() => ErrorHandler.handle(error)).not.toThrow();

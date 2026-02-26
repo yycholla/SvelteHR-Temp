@@ -13,7 +13,7 @@
 		Network,
 		Shield,
 		ExternalLink
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 
 	interface Props {

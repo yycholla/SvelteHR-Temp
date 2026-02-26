@@ -8,11 +8,10 @@ use axum::{
 use bcrypt::verify;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
-
 
 /// Login request payload
 #[derive(Debug, Deserialize)]
@@ -165,9 +164,10 @@ pub async fn login_handler(
     }
 
     // 3. Verify password (development bypass for admin user)
-    let password_valid = if login_request.email == "admin@mountainhr.dev" &&
-                         login_request.password == "admin" &&
-                         std::env::var("RUST_ENV").unwrap_or_default() != "production" {
+    let password_valid = if login_request.email == "admin@mountainhr.dev"
+        && login_request.password == "admin"
+        && std::env::var("RUST_ENV").unwrap_or_default() != "production"
+    {
         tracing::info!("Development mode: bypassing password verification for admin user");
         true
     } else {
@@ -200,7 +200,8 @@ pub async fn login_handler(
     }
 
     // 4. Get user roles and permissions
-    let (roles, permissions) = match crate::auth::get_user_roles_and_permissions(&db, user.id).await {
+    let (roles, permissions) = match crate::auth::get_user_roles_and_permissions(&db, user.id).await
+    {
         Ok(result) => result,
         Err(e) => {
             tracing::error!("Failed to fetch user roles/permissions: {}", e);
@@ -251,10 +252,6 @@ pub async fn login_handler(
     }))
 }
 
-
-
-
-
 /// Get user roles and permissions from database
 // Removed: get_user_roles_and_permissions() - now using shared function from crate::auth::permissions
 
@@ -265,8 +262,7 @@ fn generate_jwt_token(
     roles: &[String],
     permissions: &[String],
 ) -> Result<String, jsonwebtoken::errors::Error> {
-    let secret = std::env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "test-secret-key".to_string());
+    let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "test-secret-key".to_string());
 
     let now = Utc::now();
     let expiration = now + Duration::hours(24);

@@ -8,6 +8,38 @@ import { RBACDataLoader } from '$lib/server/route-loaders';
 import { QueryParamExtractor } from '$lib/server/route-helpers';
 import { GET_DOCUMENTS } from '$lib/graphql/document-operations';
 
+interface DocumentAssignmentRecord {
+	userId: string;
+}
+
+interface DocumentQueryRecord {
+	id: string;
+	title: string;
+	mimeType: string;
+	fileSize: number;
+	category?: { name?: string | null } | null;
+	sensitivityLevel?: string | null;
+	createdAt: string;
+	uploaderId: string;
+	accessLevel: string;
+	isEncrypted: boolean;
+	description?: string | null;
+	expiryDate?: string | null;
+	versionNumber?: number | null;
+	assignments?: DocumentAssignmentRecord[];
+}
+
+interface AssigneeInfo {
+	id: string;
+	displayName: string;
+	email: string;
+}
+
+interface EmployeeOption {
+	id: string;
+	displayName: string;
+}
+
 export const load: PageServerLoad = async (event) => {
 	const loader = new RBACDataLoader(event, ['documents:read:all']);
 
@@ -36,8 +68,9 @@ export const load: PageServerLoad = async (event) => {
 				await import('$lib/server/db');
 
 			// Step 6: Get total count from database and load assignee data
-			const allAssignments = data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
-			const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))];
+			const sourceDocuments: DocumentQueryRecord[] = data?.documents || [];
+			const allAssignments = sourceDocuments.flatMap((doc) => doc.assignments || []);
+			const uniqueUserIds = [...new Set(allAssignments.map((assignment) => assignment.userId))];
 
 			const transactionResult = await dbTransaction(async (dbClient) => {
 				await setDbClaims(dbClient, userId, locals.user!.role || 'employee');
@@ -52,7 +85,7 @@ export const load: PageServerLoad = async (event) => {
 				const count = parseInt(countResult.rows[0].count, 10);
 
 				// Load user data for assignees
-				const userMap = new Map();
+				const userMap = new Map<string, AssigneeInfo>();
 
 				if (uniqueUserIds.length > 0) {
 					const userResult = await dbClient.query(
@@ -89,12 +122,12 @@ export const load: PageServerLoad = async (event) => {
 
 			const [totalCount, assigneeMap, allEmployees] = transactionResult as [
 				number,
-				Map<string, { id: string; displayName: string; email: string }>,
-				{ id: string; displayName: string }[]
+				Map<string, AssigneeInfo>,
+				EmployeeOption[]
 			];
 
 			// Step 7: Transform GraphQL response to match page format
-			const documents = (data?.documents || []).map((doc: any) => ({
+			const documents = sourceDocuments.map((doc) => ({
 				id: doc.id,
 				filename: doc.title,
 				file_type: doc.mimeType,
@@ -108,10 +141,10 @@ export const load: PageServerLoad = async (event) => {
 				description: doc.description,
 				expiration_date: doc.expiryDate,
 				version_number: doc.versionNumber,
-				assigned_users: (doc.assignments || []).map((a: any) => {
-					const userInfo = (assigneeMap as Map<string, any>).get(a.userId);
+				assigned_users: (doc.assignments || []).map((assignment) => {
+					const userInfo = assigneeMap.get(assignment.userId);
 					return {
-						id: a.userId,
+						id: assignment.userId,
 						email: userInfo?.email || 'Unknown',
 						displayName: userInfo?.displayName || 'Unknown User'
 					};
@@ -119,9 +152,7 @@ export const load: PageServerLoad = async (event) => {
 			}));
 
 			// Step 8: Get all assignee options for MultiSearchInput
-			const assigneeOptions = Array.from(
-				(assigneeMap as Map<string, { id: string; displayName: string; email: string }>).values()
-			).map((user) => ({
+			const assigneeOptions = Array.from(assigneeMap.values()).map((user) => ({
 				id: user.id,
 				displayName: user.displayName,
 				email: user.email

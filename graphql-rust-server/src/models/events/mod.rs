@@ -10,4 +10,6 @@ pub mod event_waitlist;
 // Re-exports for convenient access
 pub use event_comment::{CreateEventCommentInput, Model as EventComment, UpdateEventCommentInput};
 pub use event_history::{CreateEventHistoryInput, Model as EventHistory};
-pub use event_waitlist::{CreateEventWaitlistInput, Model as EventWaitlist, UpdateEventWaitlistInput};
+pub use event_waitlist::{
+    CreateEventWaitlistInput, Model as EventWaitlist, UpdateEventWaitlistInput,
+};

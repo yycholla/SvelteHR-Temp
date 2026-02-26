@@ -135,7 +135,10 @@ pub async fn csrf_protection_middleware(
     next: Next,
 ) -> Result<axum::response::Response, StatusCode> {
     // Only check CSRF for state-changing methods
-    if !matches!(req.method(), &Method::POST | &Method::PUT | &Method::PATCH | &Method::DELETE) {
+    if !matches!(
+        req.method(),
+        &Method::POST | &Method::PUT | &Method::PATCH | &Method::DELETE
+    ) {
         return Ok(next.run(req).await);
     }
 
@@ -143,7 +146,11 @@ pub async fn csrf_protection_middleware(
     if req.uri().path().contains("/graphql") {
         let content_type = req.headers().get(header::CONTENT_TYPE);
         if let Some(content_type) = content_type {
-            if content_type.to_str().unwrap_or("").contains("application/json") {
+            if content_type
+                .to_str()
+                .unwrap_or("")
+                .contains("application/json")
+            {
                 // For GraphQL, we need to check if it's a mutation
                 // This is a simplified check - in production, you'd parse the GraphQL query
                 // For now, we'll check for mutation keyword in the body
@@ -186,11 +193,7 @@ pub async fn csrf_protection_middleware(
 
     // Validate token
     if let Err(CsrfError::InvalidToken) = token_store.validate_token(session_id, token).await {
-        return Ok((
-            StatusCode::FORBIDDEN,
-            "CSRF token invalid or expired.",
-        )
-            .into_response());
+        return Ok((StatusCode::FORBIDDEN, "CSRF token invalid or expired.").into_response());
     }
 
     // Proceed with request

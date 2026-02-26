@@ -154,7 +154,7 @@ impl<'a> SchemaValidator<'a> {
 
         // Get all tables
         let tables = self.get_tables().await?;
-        
+
         if tables.is_empty() {
             result.add_error("No tables found in database");
             return Ok(result);
@@ -185,7 +185,10 @@ impl<'a> SchemaValidator<'a> {
                         self.validate_table_structure(&table_info, &mut result);
                     }
                     Err(e) => {
-                        result.add_error(format!("Failed to get info for table {}: {:?}", table_name, e));
+                        result.add_error(format!(
+                            "Failed to get info for table {}: {:?}",
+                            table_name, e
+                        ));
                     }
                 }
             }
@@ -198,7 +201,7 @@ impl<'a> SchemaValidator<'a> {
     fn validate_table_structure(&self, table: &TableInfo, result: &mut ValidationResult) {
         // Check for required columns
         let required_columns = vec!["id", "created_at", "updated_at"];
-        
+
         for required in &required_columns {
             if !table.columns.iter().any(|c| c.name == *required) {
                 result.add_warning(format!(
@@ -211,7 +214,10 @@ impl<'a> SchemaValidator<'a> {
         // Check for primary key
         let has_id = table.columns.iter().any(|c| c.name == "id");
         if !has_id {
-            result.add_error(format!("Table '{}' missing primary key column 'id'", table.name));
+            result.add_error(format!(
+                "Table '{}' missing primary key column 'id'",
+                table.name
+            ));
         }
     }
 }

@@ -146,11 +146,20 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(ColumnDef::new(TrainingContents::TrainingId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(TrainingContents::TrainingId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(TrainingContents::Title).string().not_null())
                     .col(ColumnDef::new(TrainingContents::Type).string().not_null()) // TEXT, VIDEO, URL
                     .col(ColumnDef::new(TrainingContents::Data).text().not_null())
-                    .col(ColumnDef::new(TrainingContents::SequenceOrder).integer().not_null().default(0))
+                    .col(
+                        ColumnDef::new(TrainingContents::SequenceOrder)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
                     .col(
                         ColumnDef::new(TrainingContents::CreatedAt)
                             .timestamp_with_time_zone()
@@ -166,9 +175,12 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_training_contents_training_id")
-                            .from((Schema::HrPublic, TrainingContents::Table), TrainingContents::TrainingId)
+                            .from(
+                                (Schema::HrPublic, TrainingContents::Table),
+                                TrainingContents::TrainingId,
+                            )
                             .to((Schema::HrPublic, Trainings::Table), Trainings::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -201,19 +213,22 @@ impl MigrationTrait for Migration {
                             .name("fk_assignments_user_id")
                             .from((Schema::HrPublic, Assignments::Table), Assignments::UserId)
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_assignments_training_id")
-                            .from((Schema::HrPublic, Assignments::Table), Assignments::TrainingId)
+                            .from(
+                                (Schema::HrPublic, Assignments::Table),
+                                Assignments::TrainingId,
+                            )
                             .to((Schema::HrPublic, Trainings::Table), Trainings::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
             .await?;
-        
+
         // Index for user assignments
         manager
             .create_index(
@@ -240,7 +255,11 @@ impl MigrationTrait for Migration {
                             .extra("DEFAULT gen_random_uuid()"),
                     )
                     .col(ColumnDef::new(Progress::UserId).uuid().not_null())
-                    .col(ColumnDef::new(Progress::TrainingContentId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(Progress::TrainingContentId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(Progress::Status)
                             .string()
@@ -254,19 +273,25 @@ impl MigrationTrait for Migration {
                             .name("fk_progress_user_id")
                             .from((Schema::HrPublic, Progress::Table), Progress::UserId)
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_progress_training_content_id")
-                            .from((Schema::HrPublic, Progress::Table), Progress::TrainingContentId)
-                            .to((Schema::HrPublic, TrainingContents::Table), TrainingContents::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .from(
+                                (Schema::HrPublic, Progress::Table),
+                                Progress::TrainingContentId,
+                            )
+                            .to(
+                                (Schema::HrPublic, TrainingContents::Table),
+                                TrainingContents::Id,
+                            )
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
             .await?;
-            
+
         // Unique constraint: One progress record per user per content
         manager
             .create_index(
@@ -286,19 +311,35 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Progress::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Progress::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Assignments::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Assignments::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, TrainingContents::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, TrainingContents::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Trainings::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Trainings::Table))
+                    .to_owned(),
+            )
             .await?;
 
         Ok(())

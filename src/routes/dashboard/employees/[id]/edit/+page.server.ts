@@ -95,8 +95,10 @@ export const load: PageServerLoad = async (event) => {
 			const GET_DEPARTMENTS = gql`
 				query GetDepartments {
 					departments(limit: 100) {
-						id
-						name
+						items {
+							id
+							name
+						}
 					}
 				}
 			`;
@@ -207,7 +209,7 @@ export const load: PageServerLoad = async (event) => {
 					// Compensation - only if admin
 					compensation: canEditCompensation ? null : null
 				},
-				departments: departmentsResult?.departments || [],
+				departments: departmentsResult?.departments?.items || [],
 				permissions: {
 					canEditContactInfo,
 					canEditEmergencyContacts,

@@ -21,6 +21,8 @@ describe('EventService', () => {
 	let service: EventService;
 	let repository: MockEventRepository;
 
+	const createMockEvent = (id: string): Event => ({ id }) as unknown as Event;
+
 	beforeEach(() => {
 		repository = new MockEventRepository();
 		service = new EventService(repository);
@@ -28,23 +30,7 @@ describe('EventService', () => {
 
 	describe('getEventById', () => {
 		it('should return event when found', async () => {
-			const mockEvent = Event.create({
-				id: 'evt-1',
-				title: 'Team Meeting',
-				description: 'Weekly sync',
-				eventType: 'meeting',
-				startTime: new Date('2026-03-01T10:00:00Z'),
-				endTime: new Date('2026-03-01T11:00:00Z'),
-				isAllDay: false,
-				location: 'Conference Room A',
-				organizerId: 'org-1',
-				isPublic: true,
-				status: 'scheduled',
-				color: '#3b82f6',
-				createdAt: new Date('2026-02-01T00:00:00Z'),
-				updatedAt: new Date('2026-02-01T00:00:00Z'),
-				attendees: []
-			}).value!;
+			const mockEvent = createMockEvent('evt-1');
 
 			repository.findById.mockResolvedValue(Result.ok(mockEvent));
 
@@ -77,36 +63,7 @@ describe('EventService', () => {
 
 	describe('getAllEvents', () => {
 		it('should return all events without filter', async () => {
-			const mockEvents = [
-				Event.create({
-					id: 'evt-1',
-					title: 'Event 1',
-					eventType: 'meeting',
-					startTime: new Date('2026-03-01T10:00:00Z'),
-					endTime: new Date('2026-03-01T11:00:00Z'),
-					isAllDay: false,
-					organizerId: 'org-1',
-					isPublic: true,
-					status: 'scheduled',
-					createdAt: new Date('2026-02-01T00:00:00Z'),
-					updatedAt: new Date('2026-02-01T00:00:00Z'),
-					attendees: []
-				}).value!,
-				Event.create({
-					id: 'evt-2',
-					title: 'Event 2',
-					eventType: 'workshop',
-					startTime: new Date('2026-03-02T14:00:00Z'),
-					endTime: new Date('2026-03-02T16:00:00Z'),
-					isAllDay: false,
-					organizerId: 'org-2',
-					isPublic: false,
-					status: 'scheduled',
-					createdAt: new Date('2026-02-01T00:00:00Z'),
-					updatedAt: new Date('2026-02-01T00:00:00Z'),
-					attendees: []
-				}).value!
-			];
+			const mockEvents = [createMockEvent('evt-1'), createMockEvent('evt-2')];
 
 			repository.findAll.mockResolvedValue(Result.ok(mockEvents));
 
@@ -153,15 +110,7 @@ describe('EventService', () => {
 				color: '#3b82f6'
 			};
 
-			const mockEvent = Event.create({
-				id: 'evt-new',
-				...data,
-				startTime: new Date(data.startTime),
-				endTime: new Date(data.endTime),
-				createdAt: new Date('2026-02-01T00:00:00Z'),
-				updatedAt: new Date('2026-02-01T00:00:00Z'),
-				attendees: []
-			}).value!;
+			const mockEvent = createMockEvent('evt-new');
 
 			repository.create.mockResolvedValue(Result.ok(mockEvent));
 
@@ -223,20 +172,7 @@ describe('EventService', () => {
 				status: 'completed'
 			};
 
-			const mockEvent = Event.create({
-				id: 'evt-1',
-				title: 'Updated Title',
-				eventType: 'meeting',
-				startTime: new Date('2026-03-01T10:00:00Z'),
-				endTime: new Date('2026-03-01T11:00:00Z'),
-				isAllDay: false,
-				organizerId: 'org-1',
-				isPublic: true,
-				status: 'completed',
-				createdAt: new Date('2026-02-01T00:00:00Z'),
-				updatedAt: new Date('2026-02-13T00:00:00Z'),
-				attendees: []
-			}).value!;
+			const mockEvent = createMockEvent('evt-1');
 
 			repository.update.mockResolvedValue(Result.ok(mockEvent));
 

@@ -21,28 +21,24 @@ fi
 
 # Check if containers need to be built
 cd "$SCRIPT_DIR"
-if ! docker images | grep -q sveltehr-backend-dev; then
+if ! docker images | grep -q sveltehr-graphql-rust; then
     echo "🔨 Building backend container (first time)..."
-    docker-compose -f docker-compose.dev.yml build backend-dev
+    docker compose -f docker-compose.dev.yml build hr-graphql-rust
 else
     echo "✅ Using existing backend container (run 'make dev-rebuild' to rebuild)"
 fi
 
 echo "🚀 Starting backend services..."
-docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev backend-dev
+docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev hr-graphql-rust
 
 echo ""
 echo "✅ Backend services starting..."
 echo ""
 echo "🔗 Backend Services:"
 echo "   📊 Backend API:     http://localhost:4000"
-echo "   🔍 GraphiQL:        http://localhost:5000"
+echo "   🔍 GraphiQL:        http://localhost:4000/graphql"
 echo "   🗄️  PostgreSQL:     localhost:5433 (postgres/postgres123)"
 echo "   🔴 Redis:           localhost:6380"
-echo ""
-echo "🔑 SSH Access:"
-echo "   📡 Backend:         ssh dev@localhost -p 2222"
-echo "   🔐 Password:        dev"
 echo ""
 echo "💡 Note: Services may take 10-20 seconds to become fully available"
 echo "   Run 'make dev-health' to check service readiness"

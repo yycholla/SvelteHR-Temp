@@ -1,14 +1,14 @@
 // Audit log page server-side loader (Feature 024)
 // Server-side data loading for audit logs with session-based authentication (HR/Admin only)
 
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { transaction } from '$lib/server/db';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { url, fetch } = event;
+	const { url } = event;
 
 	// Check authentication and permissions
 	requireAuth(event, {
@@ -18,25 +18,8 @@ export const load: PageServerLoad = async (event) => {
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
 
-	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];
 	const userRoles = locals.roles || [];
-
-	if (false) {
-		// Log access attempt for audit purposes
-		logger.warn('[DOCUMENT AUDIT ACCESS DENIED]', {
-			userId: locals.user.id,
-			userEmail: locals.user.email,
-			userRole: locals.user.role,
-			roles: userRoles,
-			permissions: userPermissions,
-			timestamp: new Date().toISOString()
-		});
-
-		error(403, {
-			message: 'Insufficient permissions. Document audit logs require system administrator access.'
-		});
-	}
 
 	// Log successful access
 	logger.info('[DOCUMENT AUDIT ACCESS GRANTED]', {
@@ -64,7 +47,7 @@ export const load: PageServerLoad = async (event) => {
 		const { accessLogs, totalCount } = await transaction(async (client) => {
 			// Build WHERE clause dynamically
 			const conditions: string[] = [];
-			const params: any[] = [];
+			const params: unknown[] = [];
 			let paramIndex = 1;
 
 			if (documentId) {

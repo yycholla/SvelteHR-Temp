@@ -5,7 +5,7 @@
  * Tests all task utility functions including filtering, sorting, grouping, and formatting.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	calculateTaskCompletionRate,
 	canUserViewTask,

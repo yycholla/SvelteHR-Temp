@@ -258,7 +258,7 @@
 											{formatCellValue(column, row[column.key], row)}
 										</span>
 									{:else if column.type === 'badge'}
-										<Badge variant={getBadgeVariant(column, row[column.key], row)} size="sm">
+										<Badge variant={getBadgeVariant(column, row[column.key], row)}>
 											{formatCellValue(column, row[column.key], row)}
 										</Badge>
 									{:else if column.component}

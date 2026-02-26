@@ -13,7 +13,7 @@
 		ArrowUp,
 		ArrowDown,
 		GitMerge
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	interface Props {
 		/** Sync response from the last sync operation */

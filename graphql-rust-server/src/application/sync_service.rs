@@ -2,8 +2,8 @@
 use std::sync::Arc;
 
 use crate::domain::sync::{
-    ChangeDetector, ConflictResolver, ConflictStrategy, EntityType, SyncDirection,
-    SyncEntity, SyncError, SyncMode, SyncReport,
+    ChangeDetector, ConflictResolver, ConflictStrategy, EntityType, SyncDirection, SyncEntity,
+    SyncError, SyncMode, SyncReport,
 };
 use crate::ports::{HealthPort, QuickBooksPort, SyncRepositoryPort};
 
@@ -44,15 +44,13 @@ where
 
         // 1. Get last sync time for incremental mode
         let since = match mode {
-            SyncMode::Incremental => {
-                match self.repository.get_last_sync_time(entity_type).await {
-                    Ok(time) => time,
-                    Err(e) => {
-                        report.add_error(e);
-                        None
-                    }
+            SyncMode::Incremental => match self.repository.get_last_sync_time(entity_type).await {
+                Ok(time) => time,
+                Err(e) => {
+                    report.add_error(e);
+                    None
                 }
-            }
+            },
             SyncMode::Full => None,
         };
 
@@ -82,18 +80,26 @@ where
 
         // 5. Resolve conflicts if strategy is not Manual
         if strategy != ConflictStrategy::Manual && !conflicts.is_empty() {
-            let resolved = ConflictResolver::resolve_all(&self.build_conflicts(&conflicts), strategy);
+            let resolved =
+                ConflictResolver::resolve_all(&self.build_conflicts(&conflicts), strategy);
             report.conflicts_resolved = resolved.len();
 
             // Apply resolutions
             for (conflict, resolution) in resolved {
-                if let Err(e) = self.apply_resolution(&mut report, conflict, resolution).await {
+                if let Err(e) = self
+                    .apply_resolution(&mut report, conflict, resolution)
+                    .await
+                {
                     report.add_error(e);
                 }
             }
         } else if !conflicts.is_empty() {
             // Save conflicts for manual resolution
-            if let Err(e) = self.repository.save_conflicts(&self.build_conflicts(&conflicts)).await {
+            if let Err(e) = self
+                .repository
+                .save_conflicts(&self.build_conflicts(&conflicts))
+                .await
+            {
                 report.add_error(e);
             }
         }
@@ -125,17 +131,16 @@ where
     }
 
     /// Execute a push-only sync
-    pub async fn sync_push(
-        &self,
-        entity_type: EntityType,
-        mode: SyncMode,
-    ) -> SyncReport {
+    pub async fn sync_push(&self, entity_type: EntityType, mode: SyncMode) -> SyncReport {
         let mut report = SyncReport::new(entity_type, SyncDirection::Push, mode);
 
         let since = match mode {
-            SyncMode::Incremental => {
-                self.repository.get_last_sync_time(entity_type).await.ok().flatten()
-            }
+            SyncMode::Incremental => self
+                .repository
+                .get_last_sync_time(entity_type)
+                .await
+                .ok()
+                .flatten(),
             SyncMode::Full => None,
         };
 
@@ -162,17 +167,16 @@ where
     }
 
     /// Execute a pull-only sync
-    pub async fn sync_pull(
-        &self,
-        entity_type: EntityType,
-        mode: SyncMode,
-    ) -> SyncReport {
+    pub async fn sync_pull(&self, entity_type: EntityType, mode: SyncMode) -> SyncReport {
         let mut report = SyncReport::new(entity_type, SyncDirection::Pull, mode);
 
         let since = match mode {
-            SyncMode::Incremental => {
-                self.repository.get_last_sync_time(entity_type).await.ok().flatten()
-            }
+            SyncMode::Incremental => self
+                .repository
+                .get_last_sync_time(entity_type)
+                .await
+                .ok()
+                .flatten(),
             SyncMode::Full => None,
         };
 
@@ -212,8 +216,10 @@ where
                     .into_iter()
                     .map(|e| {
                         SyncEntity::remote_only(EntityType::Employee, e.id.as_str())
-                            .with_remote_version(crate::domain::sync::EntityVersion::new(e.last_modified)
-                                .with_sync_token(&e.sync_token))
+                            .with_remote_version(
+                                crate::domain::sync::EntityVersion::new(e.last_modified)
+                                    .with_sync_token(&e.sync_token),
+                            )
                     })
                     .collect())
             }
@@ -223,8 +229,10 @@ where
                     .into_iter()
                     .map(|d| {
                         SyncEntity::remote_only(EntityType::Department, d.id.as_str())
-                            .with_remote_version(crate::domain::sync::EntityVersion::new(d.last_modified)
-                                .with_sync_token(&d.sync_token))
+                            .with_remote_version(
+                                crate::domain::sync::EntityVersion::new(d.last_modified)
+                                    .with_sync_token(&d.sync_token),
+                            )
                     })
                     .collect())
             }
@@ -407,9 +415,9 @@ mod tests {
 
     #[tokio::test]
     async fn sync_pull_fetches_remote_changes() {
+        use crate::domain::sync::QuickBooksId;
         use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::quickbooks::RemoteEmployee;
-        use crate::domain::sync::QuickBooksId;
         use chrono::Utc;
 
         let employees = vec![RemoteEmployee {
@@ -429,7 +437,9 @@ mod tests {
         let health = Arc::new(MockHealth);
 
         let service = SyncService::new(qb, repo, health);
-        let report = service.sync_pull(EntityType::Employee, SyncMode::Full).await;
+        let report = service
+            .sync_pull(EntityType::Employee, SyncMode::Full)
+            .await;
 
         assert_eq!(report.pulled.len(), 1);
         assert!(report.is_success());

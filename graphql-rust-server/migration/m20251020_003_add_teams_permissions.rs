@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
                 "INSERT INTO hr_public.permissions (id, resource, action, description) VALUES
                 (gen_random_uuid(), 'teams', 'read', 'View teams and team information'),
                 (gen_random_uuid(), 'teams', 'write', 'Create and manage teams')
-                ON CONFLICT (resource, action) DO NOTHING"
+                ON CONFLICT (resource, action) DO NOTHING",
             )
             .await?;
 
@@ -35,7 +35,7 @@ impl MigrationTrait for Migration {
                     SELECT 1 FROM hr_public.role_permissions rp
                     WHERE rp.role_id = r.id AND rp.permission_id = p.id
                 )
-                ON CONFLICT DO NOTHING"
+                ON CONFLICT DO NOTHING",
             )
             .await?;
 
@@ -49,7 +49,7 @@ impl MigrationTrait for Migration {
             .execute_unprepared(
                 "DELETE FROM hr_public.permissions
                 WHERE resource = 'teams'
-                AND action IN ('read', 'write')"
+                AND action IN ('read', 'write')",
             )
             .await?;
 

@@ -13,15 +13,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251229_004_incremental_sync::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251229_004_incremental_sync::Migration;
 
     /// Setup a test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -55,7 +58,8 @@ mod tests {
                  DROP COLUMN IF EXISTS last_department_sync_at,
                  DROP COLUMN IF EXISTS last_employee_sync_at,
                  DROP COLUMN IF EXISTS department_sync_token,
-                 DROP COLUMN IF EXISTS employee_sync_token".to_string(),
+                 DROP COLUMN IF EXISTS employee_sync_token"
+                    .to_string(),
             ))
             .await;
 
@@ -67,7 +71,8 @@ mod tests {
                  DROP COLUMN IF EXISTS sync_duration_ms,
                  DROP COLUMN IF EXISTS changes_processed,
                  DROP COLUMN IF EXISTS changes_detected,
-                 DROP COLUMN IF EXISTS sync_mode".to_string(),
+                 DROP COLUMN IF EXISTS sync_mode"
+                    .to_string(),
             ))
             .await;
     }
@@ -104,7 +109,10 @@ mod tests {
             ))
             .await;
 
-        assert!(sync_log_columns_result.is_ok(), "Sync log columns should exist");
+        assert!(
+            sync_log_columns_result.is_ok(),
+            "Sync log columns should exist"
+        );
         assert_eq!(
             sync_log_columns_result.unwrap().len(),
             4,
@@ -123,7 +131,10 @@ mod tests {
             ))
             .await;
 
-        assert!(connections_columns_result.is_ok(), "Connections columns should exist");
+        assert!(
+            connections_columns_result.is_ok(),
+            "Connections columns should exist"
+        );
         assert_eq!(
             connections_columns_result.unwrap().len(),
             4,
@@ -141,7 +152,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify sync_mode column properties
         let column_result = db
@@ -151,14 +165,17 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'intuit_sync_log'
-                 AND column_name = 'sync_mode'".to_string(),
+                 AND column_name = 'sync_mode'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok(), "sync_mode column should exist");
         let row = column_result.unwrap().unwrap();
 
-        let is_nullable: String = row.try_get("", "is_nullable").expect("Should get is_nullable");
+        let is_nullable: String = row
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
         assert_eq!(is_nullable, "NO", "sync_mode should be NOT NULL");
 
         let default_value: Option<String> = row.try_get("", "column_default").ok();
@@ -178,7 +195,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify changes_detected column properties
         let column_result = db
@@ -188,14 +208,20 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'intuit_sync_log'
-                 AND column_name = 'changes_detected'".to_string(),
+                 AND column_name = 'changes_detected'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(column_result.is_ok(), "changes_detected column should exist");
+        assert!(
+            column_result.is_ok(),
+            "changes_detected column should exist"
+        );
         let row = column_result.unwrap().unwrap();
 
-        let is_nullable: String = row.try_get("", "is_nullable").expect("Should get is_nullable");
+        let is_nullable: String = row
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
         assert_eq!(is_nullable, "NO", "changes_detected should be NOT NULL");
 
         let default_value: Option<String> = row.try_get("", "column_default").ok();
@@ -215,7 +241,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify sync token columns are nullable
         let columns_result = db
@@ -226,7 +255,8 @@ mod tests {
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'intuit_connections'
                  AND column_name IN ('employee_sync_token', 'department_sync_token')
-                 ORDER BY column_name".to_string(),
+                 ORDER BY column_name"
+                    .to_string(),
             ))
             .await;
 
@@ -235,7 +265,9 @@ mod tests {
 
         assert_eq!(rows.len(), 2, "Should have 2 sync token columns");
         for row in rows {
-            let is_nullable: String = row.try_get("", "is_nullable").expect("Should get is_nullable");
+            let is_nullable: String = row
+                .try_get("", "is_nullable")
+                .expect("Should get is_nullable");
             assert_eq!(is_nullable, "YES", "Sync token columns should be nullable");
         }
 
@@ -250,7 +282,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify users table indexes
         let indexes_result = db
@@ -265,7 +300,8 @@ mod tests {
                      'idx_users_last_synced_at',
                      'idx_users_sync_status'
                  )
-                 ORDER BY indexname".to_string(),
+                 ORDER BY indexname"
+                    .to_string(),
             ))
             .await;
 
@@ -287,7 +323,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify departments table indexes
         let indexes_result = db
@@ -302,7 +341,8 @@ mod tests {
                      'idx_departments_last_synced_at',
                      'idx_departments_sync_status'
                  )
-                 ORDER BY indexname".to_string(),
+                 ORDER BY indexname"
+                    .to_string(),
             ))
             .await;
 
@@ -324,7 +364,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify sync log table indexes
         let indexes_result = db
@@ -338,7 +381,8 @@ mod tests {
                      'idx_intuit_sync_log_created_at',
                      'idx_intuit_sync_log_sync_mode'
                  )
-                 ORDER BY indexname".to_string(),
+                 ORDER BY indexname"
+                    .to_string(),
             ))
             .await;
 
@@ -410,7 +454,8 @@ mod tests {
                  AND indexname IN (
                      'idx_users_last_modified_at',
                      'idx_intuit_sync_log_sync_mode'
-                 )".to_string(),
+                 )"
+                .to_string(),
             ))
             .await;
 
@@ -433,10 +478,16 @@ mod tests {
         let migration = Migration;
 
         // Run up migration
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Run down migration
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         // Verify intuit_sync_log columns were removed
         let sync_log_columns_result = db
@@ -485,10 +536,16 @@ mod tests {
         let migration = Migration;
 
         // Run up migration
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Run down migration
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         // Verify users table indexes were removed
         let users_indexes_result = db
@@ -502,7 +559,8 @@ mod tests {
                      'idx_users_last_modified_at',
                      'idx_users_last_synced_at',
                      'idx_users_sync_status'
-                 )".to_string(),
+                 )"
+                .to_string(),
             ))
             .await;
 
@@ -523,7 +581,8 @@ mod tests {
                  AND indexname IN (
                      'idx_intuit_sync_log_created_at',
                      'idx_intuit_sync_log_sync_mode'
-                 )".to_string(),
+                 )"
+                .to_string(),
             ))
             .await;
 
@@ -546,13 +605,22 @@ mod tests {
         let migration = Migration;
 
         // Run up migration
-        migration.up(&schema_manager).await.expect("First up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("First up should succeed");
 
         // Run down migration
-        migration.down(&schema_manager).await.expect("Down should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Down should succeed");
 
         // Run up migration again
-        migration.up(&schema_manager).await.expect("Second up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Second up should succeed");
 
         // Verify columns exist after full cycle
         let sync_log_columns_result = db
@@ -582,7 +650,8 @@ mod tests {
                      'idx_users_last_modified_at',
                      'idx_departments_last_synced_at',
                      'idx_intuit_sync_log_sync_mode'
-                 )".to_string(),
+                 )"
+                .to_string(),
             ))
             .await;
 
@@ -603,7 +672,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify all 8 indexes were created
         let indexes_result = db
@@ -622,7 +694,8 @@ mod tests {
                      'idx_intuit_sync_log_created_at',
                      'idx_intuit_sync_log_sync_mode'
                  )
-                 ORDER BY indexname".to_string(),
+                 ORDER BY indexname"
+                    .to_string(),
             ))
             .await;
 

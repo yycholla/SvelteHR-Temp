@@ -2,13 +2,13 @@
 
 use async_graphql::{Context, Object, Result};
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::auth::UserContext;
-use crate::services::webhook_processor::WebhookProcessor;
-use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 use crate::models::webhook_events;
+use crate::services::permission_checker::{PermissionChecker, SyncPermission};
+use crate::services::webhook_processor::WebhookProcessor;
 
 #[derive(Default)]
 pub struct WebhookQueries;
@@ -70,9 +70,7 @@ impl WebhookQueries {
             .await?;
 
         let processor = WebhookProcessor::new(Arc::new(db.clone()));
-        let event = processor
-            .get_event(Uuid::parse_str(&event_id)?)
-            .await?;
+        let event = processor.get_event(Uuid::parse_str(&event_id)?).await?;
 
         Ok(event.map(WebhookEvent::from))
     }
@@ -163,11 +161,21 @@ pub struct WebhookStatus {
 
 #[Object]
 impl WebhookStatus {
-    async fn is_active(&self) -> bool { self.is_active }
-    async fn webhook_id(&self) -> Option<&str> { self.webhook_id.as_deref() }
-    async fn entity_names(&self) -> &[String] { &self.entity_names }
-    async fn last_delivered_at(&self) -> Option<DateTime<Utc>> { self.last_delivered_at }
-    async fn failure_count(&self) -> i32 { self.failure_count }
+    async fn is_active(&self) -> bool {
+        self.is_active
+    }
+    async fn webhook_id(&self) -> Option<&str> {
+        self.webhook_id.as_deref()
+    }
+    async fn entity_names(&self) -> &[String] {
+        &self.entity_names
+    }
+    async fn last_delivered_at(&self) -> Option<DateTime<Utc>> {
+        self.last_delivered_at
+    }
+    async fn failure_count(&self) -> i32 {
+        self.failure_count
+    }
 }
 
 /// Webhook event
@@ -188,17 +196,39 @@ pub struct WebhookEvent {
 
 #[Object]
 impl WebhookEvent {
-    async fn id(&self) -> &str { &self.id }
-    async fn event_type(&self) -> &str { &self.event_type }
-    async fn entity_name(&self) -> &str { &self.entity_name }
-    async fn realm_id(&self) -> &str { &self.realm_id }
-    async fn payload(&self) -> &serde_json::Value { &self.payload }
-    async fn status(&self) -> &str { &self.status }
-    async fn processed_at(&self) -> Option<DateTime<Utc>> { self.processed_at }
-    async fn processing_attempts(&self) -> i32 { self.processing_attempts }
-    async fn last_error(&self) -> Option<&str> { self.last_error.as_deref() }
-    async fn received_at(&self) -> DateTime<Utc> { self.received_at }
-    async fn created_at(&self) -> DateTime<Utc> { self.created_at }
+    async fn id(&self) -> &str {
+        &self.id
+    }
+    async fn event_type(&self) -> &str {
+        &self.event_type
+    }
+    async fn entity_name(&self) -> &str {
+        &self.entity_name
+    }
+    async fn realm_id(&self) -> &str {
+        &self.realm_id
+    }
+    async fn payload(&self) -> &serde_json::Value {
+        &self.payload
+    }
+    async fn status(&self) -> &str {
+        &self.status
+    }
+    async fn processed_at(&self) -> Option<DateTime<Utc>> {
+        self.processed_at
+    }
+    async fn processing_attempts(&self) -> i32 {
+        self.processing_attempts
+    }
+    async fn last_error(&self) -> Option<&str> {
+        self.last_error.as_deref()
+    }
+    async fn received_at(&self) -> DateTime<Utc> {
+        self.received_at
+    }
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
 }
 
 impl From<webhook_events::Model> for WebhookEvent {
@@ -232,12 +262,24 @@ pub struct WebhookStatistics {
 
 #[Object]
 impl WebhookStatistics {
-    async fn total_events(&self) -> i32 { self.total_events }
-    async fn pending_events(&self) -> i32 { self.pending_events }
-    async fn processing_events(&self) -> i32 { self.processing_events }
-    async fn completed_events(&self) -> i32 { self.completed_events }
-    async fn failed_events(&self) -> i32 { self.failed_events }
-    async fn avg_processing_time_ms(&self) -> Option<i32> { self.avg_processing_time_ms }
+    async fn total_events(&self) -> i32 {
+        self.total_events
+    }
+    async fn pending_events(&self) -> i32 {
+        self.pending_events
+    }
+    async fn processing_events(&self) -> i32 {
+        self.processing_events
+    }
+    async fn completed_events(&self) -> i32 {
+        self.completed_events
+    }
+    async fn failed_events(&self) -> i32 {
+        self.failed_events
+    }
+    async fn avg_processing_time_ms(&self) -> Option<i32> {
+        self.avg_processing_time_ms
+    }
 }
 
 impl From<crate::services::webhook_processor::WebhookEventStats> for WebhookStatistics {

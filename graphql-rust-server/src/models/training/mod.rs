@@ -1,9 +1,13 @@
-pub mod training;
-pub mod content;
 pub mod assignment;
+pub mod content;
 pub mod progress;
+pub mod training;
 
-pub use training::{Model as Training, CreateTrainingInput, UpdateTrainingInput};
-pub use content::{Model as TrainingContent, CreateTrainingContentInput, UpdateTrainingContentInput, ContentType};
-pub use assignment::{Model as TrainingAssignment, CreateAssignmentInput, TrainingAssignmentWithUser};
-pub use progress::{Model as TrainingProgress, UpdateProgressInput, ProgressStatus};
+pub use assignment::{
+    CreateAssignmentInput, Model as TrainingAssignment, TrainingAssignmentWithUser,
+};
+pub use content::{
+    ContentType, CreateTrainingContentInput, Model as TrainingContent, UpdateTrainingContentInput,
+};
+pub use progress::{Model as TrainingProgress, ProgressStatus, UpdateProgressInput};
+pub use training::{CreateTrainingInput, Model as Training, UpdateTrainingInput};

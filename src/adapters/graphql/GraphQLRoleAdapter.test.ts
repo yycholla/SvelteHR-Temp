@@ -25,8 +25,16 @@ describe('GraphQLRoleAdapter', () => {
 						role: {
 							id: 'role-123',
 							name: 'Manager',
-							hierarchyLevel: 50,
-							permissions: ['employees:read:team', 'tasks:write:team'],
+							level: 50,
+							permissions: [
+								{
+									id: 'p1',
+									resource: 'employees',
+									action: 'read',
+									fullPermission: 'employees:read:team'
+								},
+								{ id: 'p2', resource: 'tasks', action: 'write', fullPermission: 'tasks:write:team' }
+							],
 							description: 'Team manager',
 							createdAt: '2026-02-11T10:00:00Z',
 							updatedAt: '2026-02-11T10:00:00Z'
@@ -80,8 +88,10 @@ describe('GraphQLRoleAdapter', () => {
 						createRole: {
 							id: 'role-new',
 							name: 'Custom Role',
-							hierarchyLevel: 40,
-							permissions: ['tasks:read:team'],
+							level: 40,
+							permissions: [
+								{ id: 'p3', resource: 'tasks', action: 'read', fullPermission: 'tasks:read:team' }
+							],
 							description: 'Custom role',
 							createdAt: '2026-02-11T10:00:00Z',
 							updatedAt: '2026-02-11T10:00:00Z'
@@ -112,8 +122,15 @@ describe('GraphQLRoleAdapter', () => {
 							{
 								id: 'role-123',
 								name: 'Manager',
-								hierarchyLevel: 50,
-								permissions: ['employees:read:team'],
+								level: 50,
+								permissions: [
+									{
+										id: 'p4',
+										resource: 'employees',
+										action: 'read',
+										fullPermission: 'employees:read:team'
+									}
+								],
 								createdAt: '2026-02-11T10:00:00Z',
 								updatedAt: '2026-02-11T10:00:00Z'
 							}

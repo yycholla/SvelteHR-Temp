@@ -30,7 +30,7 @@ impl MigrationTrait for Migration {
         manager
             .get_connection()
             .execute_unprepared(
-                "ALTER TABLE hr_public.users DROP CONSTRAINT IF EXISTS users_email_key"
+                "ALTER TABLE hr_public.users DROP CONSTRAINT IF EXISTS users_email_key",
             )
             .await?;
 
@@ -45,7 +45,7 @@ impl MigrationTrait for Migration {
             .execute_unprepared(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique_when_active
                  ON hr_public.users(email)
-                 WHERE deleted_at IS NULL"
+                 WHERE deleted_at IS NULL",
             )
             .await?;
 
@@ -57,9 +57,7 @@ impl MigrationTrait for Migration {
         // Using raw SQL to match PostgreSQL-specific index naming with schema
         manager
             .get_connection()
-            .execute_unprepared(
-                "DROP INDEX IF EXISTS hr_public.idx_users_email_unique_when_active"
-            )
+            .execute_unprepared("DROP INDEX IF EXISTS hr_public.idx_users_email_unique_when_active")
             .await?;
 
         // Restore the original unique constraint
@@ -69,7 +67,7 @@ impl MigrationTrait for Migration {
         manager
             .get_connection()
             .execute_unprepared(
-                "ALTER TABLE hr_public.users ADD CONSTRAINT users_email_key UNIQUE (email)"
+                "ALTER TABLE hr_public.users ADD CONSTRAINT users_email_key UNIQUE (email)",
             )
             .await?;
 

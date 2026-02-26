@@ -4,9 +4,10 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Switch from '$lib/components/ui/switch';
 	import { Bell, Save } from '@lucide/svelte';
+	import type { NotificationSettingsState } from '../types';
 
 	interface Props {
-		notificationSettings: any;
+		notificationSettings: NotificationSettingsState;
 		isUpdating: boolean;
 		onUpdate: () => void;
 	}

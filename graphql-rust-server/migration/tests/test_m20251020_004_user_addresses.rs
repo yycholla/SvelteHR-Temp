@@ -11,16 +11,19 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251020_004_add_user_addresses::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251020_004_add_user_addresses::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -35,7 +38,10 @@ mod tests {
     }
 
     /// Helper to insert a test user for foreign key constraints
-    async fn insert_test_user(db: &DatabaseConnection, user_id: &str) -> Result<(), sea_orm::DbErr> {
+    async fn insert_test_user(
+        db: &DatabaseConnection,
+        user_id: &str,
+    ) -> Result<(), sea_orm::DbErr> {
         db.execute(Statement::from_string(
             DbBackend::Postgres,
             format!(
@@ -51,7 +57,8 @@ mod tests {
 
     /// Helper to clean up test users
     async fn cleanup_test_users(db: &DatabaseConnection, user_ids: &[&str]) {
-        let ids_str = user_ids.iter()
+        let ids_str = user_ids
+            .iter()
             .map(|id| format!("'{}'::uuid", id))
             .collect::<Vec<_>>()
             .join(", ");
@@ -92,12 +99,16 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'user_addresses'".to_string(),
+                 AND table_name = 'user_addresses'"
+                    .to_string(),
             ))
             .await;
 
         assert!(table_result.is_ok(), "user_addresses table should exist");
-        assert!(table_result.unwrap().is_some(), "Should have table information");
+        assert!(
+            table_result.unwrap().is_some(),
+            "Should have table information"
+        );
 
         // Verify key columns exist
         let columns_result = db
@@ -107,7 +118,8 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'user_addresses'
-                 ORDER BY ordinal_position".to_string(),
+                 ORDER BY ordinal_position"
+                    .to_string(),
             ))
             .await;
 
@@ -121,11 +133,26 @@ mod tests {
             .map(|row| row.try_get("", "column_name").unwrap())
             .collect();
 
-        assert!(column_names.contains(&"id".to_string()), "Should have id column");
-        assert!(column_names.contains(&"user_id".to_string()), "Should have user_id column");
-        assert!(column_names.contains(&"is_primary".to_string()), "Should have is_primary column");
-        assert!(column_names.contains(&"address_type".to_string()), "Should have address_type column");
-        assert!(column_names.contains(&"deleted_at".to_string()), "Should have deleted_at column");
+        assert!(
+            column_names.contains(&"id".to_string()),
+            "Should have id column"
+        );
+        assert!(
+            column_names.contains(&"user_id".to_string()),
+            "Should have user_id column"
+        );
+        assert!(
+            column_names.contains(&"is_primary".to_string()),
+            "Should have is_primary column"
+        );
+        assert!(
+            column_names.contains(&"address_type".to_string()),
+            "Should have address_type column"
+        );
+        assert!(
+            column_names.contains(&"deleted_at".to_string()),
+            "Should have deleted_at column"
+        );
 
         // Verify indexes were created
         let indexes_result = db
@@ -134,7 +161,8 @@ mod tests {
                 "SELECT indexname FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'user_addresses'
-                 ORDER BY indexname".to_string(),
+                 ORDER BY indexname"
+                    .to_string(),
             ))
             .await;
 
@@ -146,10 +174,22 @@ mod tests {
             .map(|row| row.try_get("", "indexname").unwrap())
             .collect();
 
-        assert!(index_names.contains(&"idx_user_addresses_user_id".to_string()), "Should have user_id index");
-        assert!(index_names.contains(&"idx_user_addresses_address_type".to_string()), "Should have address_type index");
-        assert!(index_names.contains(&"idx_user_addresses_primary".to_string()), "Should have primary index");
-        assert!(index_names.contains(&"user_addresses_one_primary_per_user".to_string()), "Should have unique partial index");
+        assert!(
+            index_names.contains(&"idx_user_addresses_user_id".to_string()),
+            "Should have user_id index"
+        );
+        assert!(
+            index_names.contains(&"idx_user_addresses_address_type".to_string()),
+            "Should have address_type index"
+        );
+        assert!(
+            index_names.contains(&"idx_user_addresses_primary".to_string()),
+            "Should have primary index"
+        );
+        assert!(
+            index_names.contains(&"user_addresses_one_primary_per_user".to_string()),
+            "Should have unique partial index"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -178,7 +218,8 @@ mod tests {
                  FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'user_addresses'
-                 AND indexname = 'user_addresses_one_primary_per_user'".to_string(),
+                 AND indexname = 'user_addresses_one_primary_per_user'"
+                    .to_string(),
             ))
             .await;
 
@@ -186,12 +227,24 @@ mod tests {
         let index_info = index_result.unwrap();
         assert!(index_info.is_some(), "Should have index information");
 
-        let indexdef: String = index_info.unwrap().try_get("", "indexdef").expect("Should get indexdef");
+        let indexdef: String = index_info
+            .unwrap()
+            .try_get("", "indexdef")
+            .expect("Should get indexdef");
 
         // Verify the index definition contains the WHERE clause
-        assert!(indexdef.contains("WHERE"), "Index definition should contain WHERE clause");
-        assert!(indexdef.contains("is_primary = true"), "Index should filter on is_primary = true");
-        assert!(indexdef.contains("deleted_at IS NULL"), "Index should filter on deleted_at IS NULL");
+        assert!(
+            indexdef.contains("WHERE"),
+            "Index definition should contain WHERE clause"
+        );
+        assert!(
+            indexdef.contains("is_primary = true"),
+            "Index should filter on is_primary = true"
+        );
+        assert!(
+            indexdef.contains("deleted_at IS NULL"),
+            "Index should filter on deleted_at IS NULL"
+        );
         assert!(indexdef.contains("UNIQUE"), "Index should be UNIQUE");
 
         // Clean up after test
@@ -223,15 +276,22 @@ mod tests {
                  JOIN pg_namespace n ON n.oid = c.relnamespace
                  LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = 0
                  WHERE n.nspname = 'hr_public'
-                 AND c.relname = 'user_addresses'".to_string(),
+                 AND c.relname = 'user_addresses'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(comment_result.is_ok(), "Should be able to query table comment");
+        assert!(
+            comment_result.is_ok(),
+            "Should be able to query table comment"
+        );
         let comment_info = comment_result.unwrap();
         assert!(comment_info.is_some(), "Should have comment information");
 
-        let description: String = comment_info.unwrap().try_get("", "description").expect("Should get description");
+        let description: String = comment_info
+            .unwrap()
+            .try_get("", "description")
+            .expect("Should get description");
         assert_eq!(
             description,
             "User addresses with support for multiple address types and primary designation",
@@ -270,15 +330,22 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'user_addresses'".to_string(),
+                 AND table_name = 'user_addresses'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(table_result.is_ok(), "Should be able to check if table exists");
+        assert!(
+            table_result.is_ok(),
+            "Should be able to check if table exists"
+        );
         let table_info = table_result.unwrap();
         assert!(table_info.is_some(), "Should have table count");
 
-        let count: i64 = table_info.unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = table_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 0, "Table should be dropped");
 
         // Clean up after test
@@ -351,7 +418,9 @@ mod tests {
 
         // Insert test user
         let user_id = "10000000-0000-0000-0000-000000000001";
-        insert_test_user(&db, user_id).await.expect("Should insert test user");
+        insert_test_user(&db, user_id)
+            .await
+            .expect("Should insert test user");
 
         // Run the migration
         let migration = Migration;
@@ -372,7 +441,10 @@ mod tests {
             ))
             .await;
 
-        assert!(first_primary_result.is_ok(), "First primary address should insert successfully");
+        assert!(
+            first_primary_result.is_ok(),
+            "First primary address should insert successfully"
+        );
 
         // Try to insert second primary address - should fail due to unique partial index
         let second_primary_result = db
@@ -386,11 +458,16 @@ mod tests {
             ))
             .await;
 
-        assert!(second_primary_result.is_err(), "Second primary address should fail due to unique constraint");
+        assert!(
+            second_primary_result.is_err(),
+            "Second primary address should fail due to unique constraint"
+        );
         let error_msg = format!("{:?}", second_primary_result.unwrap_err());
         assert!(
-            error_msg.contains("user_addresses_one_primary_per_user") || error_msg.contains("duplicate key"),
-            "Error should mention the unique constraint or duplicate key. Got: {}", error_msg
+            error_msg.contains("user_addresses_one_primary_per_user")
+                || error_msg.contains("duplicate key"),
+            "Error should mention the unique constraint or duplicate key. Got: {}",
+            error_msg
         );
 
         // Clean up test users
@@ -410,7 +487,9 @@ mod tests {
 
         // Insert test user
         let user_id = "10000000-0000-0000-0000-000000000002";
-        insert_test_user(&db, user_id).await.expect("Should insert test user");
+        insert_test_user(&db, user_id)
+            .await
+            .expect("Should insert test user");
 
         // Run the migration
         let migration = Migration;
@@ -431,7 +510,10 @@ mod tests {
             ))
             .await;
 
-        assert!(first_result.is_ok(), "First non-primary address should insert successfully");
+        assert!(
+            first_result.is_ok(),
+            "First non-primary address should insert successfully"
+        );
 
         // Insert second non-primary address - should succeed (no uniqueness constraint on non-primary)
         let second_result = db
@@ -445,7 +527,10 @@ mod tests {
             ))
             .await;
 
-        assert!(second_result.is_ok(), "Second non-primary address should insert successfully");
+        assert!(
+            second_result.is_ok(),
+            "Second non-primary address should insert successfully"
+        );
 
         // Insert third non-primary address - should also succeed
         let third_result = db
@@ -459,7 +544,10 @@ mod tests {
             ))
             .await;
 
-        assert!(third_result.is_ok(), "Third non-primary address should insert successfully");
+        assert!(
+            third_result.is_ok(),
+            "Third non-primary address should insert successfully"
+        );
 
         // Verify all three addresses exist
         let count_result = db
@@ -476,7 +564,10 @@ mod tests {
         let count_info = count_result.unwrap();
         assert!(count_info.is_some(), "Should have count");
 
-        let count: i64 = count_info.unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = count_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 3, "User should have 3 addresses");
 
         // Clean up test users
@@ -496,7 +587,9 @@ mod tests {
 
         // Insert test user
         let user_id = "10000000-0000-0000-0000-000000000003";
-        insert_test_user(&db, user_id).await.expect("Should insert test user");
+        insert_test_user(&db, user_id)
+            .await
+            .expect("Should insert test user");
 
         // Run the migration
         let migration = Migration;
@@ -517,7 +610,10 @@ mod tests {
             ))
             .await;
 
-        assert!(first_result.is_ok(), "First primary address should insert successfully");
+        assert!(
+            first_result.is_ok(),
+            "First primary address should insert successfully"
+        );
 
         // Soft delete the primary address (set deleted_at)
         let delete_result = db
@@ -547,7 +643,10 @@ mod tests {
             ))
             .await;
 
-        assert!(new_primary_result.is_ok(), "New primary address should insert successfully after soft delete");
+        assert!(
+            new_primary_result.is_ok(),
+            "New primary address should insert successfully after soft delete"
+        );
 
         // Verify we have 2 addresses (1 deleted, 1 active)
         let count_result = db
@@ -564,8 +663,14 @@ mod tests {
         let count_info = count_result.unwrap();
         assert!(count_info.is_some(), "Should have count");
 
-        let count: i64 = count_info.unwrap().try_get("", "count").expect("Should get count");
-        assert_eq!(count, 2, "User should have 2 addresses (1 deleted, 1 active)");
+        let count: i64 = count_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
+        assert_eq!(
+            count, 2,
+            "User should have 2 addresses (1 deleted, 1 active)"
+        );
 
         // Verify only 1 active primary
         let active_primary_result = db
@@ -579,12 +684,21 @@ mod tests {
             ))
             .await;
 
-        assert!(active_primary_result.is_ok(), "Should be able to count active primaries");
+        assert!(
+            active_primary_result.is_ok(),
+            "Should be able to count active primaries"
+        );
         let active_primary_info = active_primary_result.unwrap();
         assert!(active_primary_info.is_some(), "Should have count");
 
-        let active_count: i64 = active_primary_info.unwrap().try_get("", "count").expect("Should get count");
-        assert_eq!(active_count, 1, "User should have exactly 1 active primary address");
+        let active_count: i64 = active_primary_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
+        assert_eq!(
+            active_count, 1,
+            "User should have exactly 1 active primary address"
+        );
 
         // Clean up test users
         cleanup_test_users(&db, &[user_id]).await;
@@ -603,7 +717,9 @@ mod tests {
 
         // Insert test user
         let user_id = "10000000-0000-0000-0000-000000000004";
-        insert_test_user(&db, user_id).await.expect("Should insert test user");
+        insert_test_user(&db, user_id)
+            .await
+            .expect("Should insert test user");
 
         // Run the migration
         let migration = Migration;
@@ -641,7 +757,10 @@ mod tests {
             .try_get::<i64>("", "count")
             .unwrap();
 
-        assert_eq!(count_before, 1, "Should have 1 address before user deletion");
+        assert_eq!(
+            count_before, 1,
+            "Should have 1 address before user deletion"
+        );
 
         // Delete the user - should cascade delete the address
         let delete_user_result = db
@@ -664,12 +783,21 @@ mod tests {
             ))
             .await;
 
-        assert!(count_after_result.is_ok(), "Should be able to count addresses after user deletion");
+        assert!(
+            count_after_result.is_ok(),
+            "Should be able to count addresses after user deletion"
+        );
         let count_after_info = count_after_result.unwrap();
         assert!(count_after_info.is_some(), "Should have count");
 
-        let count_after: i64 = count_after_info.unwrap().try_get("", "count").expect("Should get count");
-        assert_eq!(count_after, 0, "Address should be cascade deleted when user is deleted");
+        let count_after: i64 = count_after_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
+        assert_eq!(
+            count_after, 0,
+            "Address should be cascade deleted when user is deleted"
+        );
 
         // Clean up after test (user already deleted, just clean up table)
         cleanup_test_data(&db).await;

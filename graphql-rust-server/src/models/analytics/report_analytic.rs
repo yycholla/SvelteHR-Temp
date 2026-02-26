@@ -73,7 +73,10 @@ impl Model {
     }
 
     /// Department relationship (lazy-loaded)
-    async fn department(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::department::Model> {
+    async fn department(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::department::Model> {
         let db = get_db_from_context(ctx)?;
         let dept = crate::models::department::Entity::find_by_id(self.department_id)
             .one(&db)

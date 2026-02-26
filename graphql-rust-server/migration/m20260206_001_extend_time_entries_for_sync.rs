@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(TimeEntries::LastModifiedAt)
                             .timestamp_with_time_zone()
                             .not_null()
-                            .default(Expr::current_timestamp())
+                            .default(Expr::current_timestamp()),
                     )
                     .to_owned(),
             )
@@ -38,7 +38,7 @@ impl MigrationTrait for Migration {
                     .add_column(
                         ColumnDef::new(TimeEntries::QuickbooksSyncToken)
                             .string()
-                            .null()
+                            .null(),
                     )
                     .to_owned(),
             )
@@ -50,7 +50,8 @@ impl MigrationTrait for Migration {
             manager.get_database_backend(),
             "UPDATE hr_public.time_entries
              SET last_modified_at = updated_at
-             WHERE last_modified_at IS NULL".to_string(),
+             WHERE last_modified_at IS NULL"
+                .to_string(),
         ))
         .await?;
 

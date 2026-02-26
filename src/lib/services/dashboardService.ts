@@ -48,7 +48,7 @@ export class DashboardService {
 				[],
 			departments:
 				(departmentsResult.status === 'fulfilled' &&
-					(departmentsResult.value.data?.departments as DashboardDepartment[])) ||
+					(departmentsResult.value.data?.departments?.items as DashboardDepartment[])) ||
 				[]
 		};
 	}

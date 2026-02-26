@@ -25,7 +25,11 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table((Schema::HrPublic, DocumentAssignments::Table))
-                    .add_column(ColumnDef::new(DocumentAssignments::DepartmentId).uuid().null())
+                    .add_column(
+                        ColumnDef::new(DocumentAssignments::DepartmentId)
+                            .uuid()
+                            .null(),
+                    )
                     .add_foreign_key(
                         TableForeignKey::new()
                             .name("fk_document_assignments_department_id")
@@ -48,7 +52,7 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(DocumentAssignments::AccessLevel)
                             .string()
                             .not_null()
-                            .default("read")
+                            .default("read"),
                     )
                     .to_owned(),
             )
@@ -84,7 +88,11 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table((Schema::HrPublic, DocumentAssignments::Table))
-                    .modify_column(ColumnDef::new(DocumentAssignments::UserId).uuid().not_null())
+                    .modify_column(
+                        ColumnDef::new(DocumentAssignments::UserId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;

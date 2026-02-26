@@ -221,7 +221,11 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
-                    .col(ColumnDef::new(WebhookSubscriptions::DeletedAt).timestamp_with_time_zone().null())
+                    .col(
+                        ColumnDef::new(WebhookSubscriptions::DeletedAt)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -287,16 +291,8 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
-                    .col(
-                        ColumnDef::new(WebhookEvents::LastError)
-                            .text()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(WebhookEvents::Metadata)
-                            .json_binary()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(WebhookEvents::LastError).text().null())
+                    .col(ColumnDef::new(WebhookEvents::Metadata).json_binary().null())
                     .col(
                         ColumnDef::new(WebhookEvents::ReceivedAt)
                             .timestamp_with_time_zone()
@@ -318,8 +314,14 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_webhook_events_subscription")
-                    .from((Schema::HrPublic, WebhookEvents::Table), WebhookEvents::SubscriptionId)
-                    .to((Schema::HrPublic, WebhookSubscriptions::Table), WebhookSubscriptions::Id)
+                    .from(
+                        (Schema::HrPublic, WebhookEvents::Table),
+                        WebhookEvents::SubscriptionId,
+                    )
+                    .to(
+                        (Schema::HrPublic, WebhookSubscriptions::Table),
+                        WebhookSubscriptions::Id,
+                    )
                     .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),
             )
@@ -399,7 +401,7 @@ impl MigrationTrait for Migration {
                 ALTER TABLE hr_public.webhook_events
                 ADD CONSTRAINT check_webhook_event_type
                 CHECK (event_type IN ('create', 'update', 'delete', 'merge', 'void'));
-                "#
+                "#,
             )
             .await?;
 

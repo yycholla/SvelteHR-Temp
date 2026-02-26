@@ -119,10 +119,16 @@ async fn test_admin_can_assign_any_role() {
             }
         }));
 
-        let response = ctx.execute_with_variables_as(ASSIGN_ROLE_MUTATION, variables, admin).await;
+        let response = ctx
+            .execute_with_variables_as(ASSIGN_ROLE_MUTATION, variables, admin)
+            .await;
 
         // Admin should succeed
-        assert!(response.is_ok(), "Admin should be able to assign roles: {:?}", response.errors);
+        assert!(
+            response.is_ok(),
+            "Admin should be able to assign roles: {:?}",
+            response.errors
+        );
     }
 }
 
@@ -144,7 +150,9 @@ async fn test_hr_manager_cannot_assign_admin_role() {
         }
     }));
 
-    let response = ctx.execute_with_variables_as(CREATE_ROLE_MUTATION, variables, hr_manager).await;
+    let response = ctx
+        .execute_with_variables_as(CREATE_ROLE_MUTATION, variables, hr_manager)
+        .await;
 
     // HR Manager should not be able to create high-level roles
     // Current implementation may allow - this test documents expected security behavior
@@ -179,11 +187,16 @@ async fn test_employee_cannot_assign_roles() {
             }
         }));
 
-        let response = ctx.execute_with_variables_as(ASSIGN_ROLE_MUTATION, variables, employee).await;
+        let response = ctx
+            .execute_with_variables_as(ASSIGN_ROLE_MUTATION, variables, employee)
+            .await;
 
         // Employee should not have permission
         // This documents the expected security behavior
-        println!("Employee role assignment response: errors={:?}", response.errors);
+        println!(
+            "Employee role assignment response: errors={:?}",
+            response.errors
+        );
 
         // In a properly secured system, this should return a permission error
         // Current implementation may allow - security gap to be addressed
@@ -208,7 +221,9 @@ async fn test_user_cannot_elevate_own_role() {
     let roles = roles_data["rbac"]["roles"]["nodes"].as_array().unwrap();
 
     // Find an admin-level role
-    let admin_role = roles.iter().find(|r| r["level"].as_i64().unwrap_or(0) >= 100);
+    let admin_role = roles
+        .iter()
+        .find(|r| r["level"].as_i64().unwrap_or(0) >= 100);
 
     if let Some(role) = admin_role {
         let role_id = Uuid::parse_str(role["id"].as_str().unwrap()).unwrap();
@@ -221,7 +236,9 @@ async fn test_user_cannot_elevate_own_role() {
             }
         }));
 
-        let response = ctx.execute_with_variables_as(ASSIGN_ROLE_MUTATION, variables, hr_manager).await;
+        let response = ctx
+            .execute_with_variables_as(ASSIGN_ROLE_MUTATION, variables, hr_manager)
+            .await;
 
         // Should be prevented (future implementation)
         // Current implementation may allow - this test documents expected security behavior
@@ -256,13 +273,23 @@ async fn test_role_assignment_to_nonexistent_user_fails() {
             }
         }));
 
-        let response = ctx.execute_with_variables_as(ASSIGN_ROLE_MUTATION, variables, admin).await;
+        let response = ctx
+            .execute_with_variables_as(ASSIGN_ROLE_MUTATION, variables, admin)
+            .await;
 
         // Should fail with "User not found" error
-        assert!(response.errors.len() > 0, "Assigning role to non-existent user should fail");
-        assert!(response.errors.iter().any(|e|
-            e.message.contains("not found") || e.message.contains("User")
-        ), "Error should mention user not found: {:?}", response.errors);
+        assert!(
+            response.errors.len() > 0,
+            "Assigning role to non-existent user should fail"
+        );
+        assert!(
+            response
+                .errors
+                .iter()
+                .any(|e| e.message.contains("not found") || e.message.contains("User")),
+            "Error should mention user not found: {:?}",
+            response.errors
+        );
     }
 }
 
@@ -284,7 +311,9 @@ async fn test_role_assignment_preserves_permissions() {
         }
     }));
 
-    let response_before = ctx.execute_with_variables_as(UPDATE_USER_MUTATION, vars_before, target_user).await;
+    let response_before = ctx
+        .execute_with_variables_as(UPDATE_USER_MUTATION, vars_before, target_user)
+        .await;
 
     // Now assign a new role
     let roles_response = ctx.execute_query_as(ROLES_QUERY, admin).await;
@@ -303,7 +332,9 @@ async fn test_role_assignment_preserves_permissions() {
             }
         }));
 
-        let response = ctx.execute_with_variables_as(ASSIGN_ROLE_MUTATION, assign_vars, admin).await;
+        let response = ctx
+            .execute_with_variables_as(ASSIGN_ROLE_MUTATION, assign_vars, admin)
+            .await;
 
         // Verify assignment succeeded
         if response.is_ok() {
@@ -315,11 +346,16 @@ async fn test_role_assignment_preserves_permissions() {
                 }
             }));
 
-            let response_after = ctx.execute_with_variables_as(UPDATE_USER_MUTATION, vars_after, target_user).await;
+            let response_after = ctx
+                .execute_with_variables_as(UPDATE_USER_MUTATION, vars_after, target_user)
+                .await;
 
             // Both requests should have similar access patterns
-            println!("Permission preservation test - Before errors: {:?}, After errors: {:?}",
-                response_before.errors.len(), response_after.errors.len());
+            println!(
+                "Permission preservation test - Before errors: {:?}, After errors: {:?}",
+                response_before.errors.len(),
+                response_after.errors.len()
+            );
         }
     }
 }
@@ -345,7 +381,9 @@ async fn test_employee_can_update_own_profile() {
         }
     }));
 
-    let response = ctx.execute_with_variables_as(UPDATE_USER_MUTATION, variables, employee).await;
+    let response = ctx
+        .execute_with_variables_as(UPDATE_USER_MUTATION, variables, employee)
+        .await;
 
     // Should succeed or fail gracefully (depends on current guard implementation)
     println!("Employee self-update: errors={:?}", response.errors);
@@ -369,7 +407,9 @@ async fn test_employee_cannot_update_other_profiles() {
         }
     }));
 
-    let response = ctx.execute_with_variables_as(UPDATE_USER_MUTATION, variables, employee1).await;
+    let response = ctx
+        .execute_with_variables_as(UPDATE_USER_MUTATION, variables, employee1)
+        .await;
 
     // Should fail with permission error (documents expected security behavior)
     println!("Cross-user update attempt: errors={:?}", response.errors);
@@ -393,7 +433,9 @@ async fn test_hr_manager_can_update_all_employees() {
         }
     }));
 
-    let response = ctx.execute_with_variables_as(UPDATE_USER_MUTATION, variables, hr_manager).await;
+    let response = ctx
+        .execute_with_variables_as(UPDATE_USER_MUTATION, variables, hr_manager)
+        .await;
 
     // Should succeed
     println!("HR Manager update employee: errors={:?}", response.errors);
@@ -417,7 +459,9 @@ async fn test_admin_unrestricted_access() {
         }
     }));
 
-    let response = ctx.execute_with_variables_as(UPDATE_USER_MUTATION, variables, admin).await;
+    let response = ctx
+        .execute_with_variables_as(UPDATE_USER_MUTATION, variables, admin)
+        .await;
 
     // Should succeed (admin has full access)
     println!("Admin unrestricted access: errors={:?}", response.errors);
@@ -442,7 +486,9 @@ async fn test_permission_inheritance() {
         }
     }));
 
-    let response = ctx.execute_with_variables_as(UPDATE_USER_MUTATION, vars1, admin).await;
+    let response = ctx
+        .execute_with_variables_as(UPDATE_USER_MUTATION, vars1, admin)
+        .await;
     println!("Admin permission inheritance: errors={:?}", response.errors);
 
     // HR Manager inherits Manager permissions
@@ -455,8 +501,13 @@ async fn test_permission_inheritance() {
         }
     }));
 
-    let response2 = ctx.execute_with_variables_as(UPDATE_USER_MUTATION, vars2, hr_manager).await;
-    println!("HR Manager permission inheritance: errors={:?}", response2.errors);
+    let response2 = ctx
+        .execute_with_variables_as(UPDATE_USER_MUTATION, vars2, hr_manager)
+        .await;
+    println!(
+        "HR Manager permission inheritance: errors={:?}",
+        response2.errors
+    );
 }
 
 /// Test: Resource-based permissions (employees:read)
@@ -500,7 +551,9 @@ async fn test_unauthenticated_requests_denied() {
         }
     }));
 
-    let response = ctx.execute_with_variables(UPDATE_USER_MUTATION, variables).await;
+    let response = ctx
+        .execute_with_variables(UPDATE_USER_MUTATION, variables)
+        .await;
 
     // Should fail with authentication error
     println!("Unauthenticated request: errors={:?}", response.errors);
@@ -524,7 +577,9 @@ async fn test_insufficient_permissions_forbidden() {
         }
     }));
 
-    let response = ctx.execute_with_variables_as(CREATE_ROLE_MUTATION, variables, employee).await;
+    let response = ctx
+        .execute_with_variables_as(CREATE_ROLE_MUTATION, variables, employee)
+        .await;
 
     // Should fail with FORBIDDEN error
     println!("Insufficient permissions: errors={:?}", response.errors);
@@ -562,11 +617,15 @@ async fn test_sql_injection_sanitized() {
             }
         }));
 
-        let response = ctx.execute_with_variables_as(CREATE_ROLE_MUTATION, variables, admin).await;
+        let response = ctx
+            .execute_with_variables_as(CREATE_ROLE_MUTATION, variables, admin)
+            .await;
 
         // Should either fail validation or sanitize the input
-        println!("SQL injection test with name '{}': errors={:?}",
-            malicious_name, response.errors);
+        println!(
+            "SQL injection test with name '{}': errors={:?}",
+            malicious_name, response.errors
+        );
 
         // Verify no actual injection occurred
         if response.is_ok() {

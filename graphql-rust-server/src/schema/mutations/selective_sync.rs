@@ -3,9 +3,9 @@ use sea_orm::*;
 use uuid::Uuid;
 
 use crate::auth::context::UserContext;
+use crate::models::department::{Column as DepartmentColumn, Entity as DepartmentEntity};
+use crate::models::user::{Column as UserColumn, Entity as UserEntity};
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::models::user::{Entity as UserEntity, Column as UserColumn};
-use crate::models::department::{Entity as DepartmentEntity, Column as DepartmentColumn};
 
 #[derive(Default)]
 pub struct SelectiveSyncMutation;
@@ -68,7 +68,9 @@ impl SelectiveSyncMutation {
 
         // Validate sync direction
         if !["Pull", "Push", "Bidirectional"].contains(&input.sync_direction.as_str()) {
-            return Err(Error::new("Invalid sync direction. Must be 'Pull', 'Push', or 'Bidirectional'"));
+            return Err(Error::new(
+                "Invalid sync direction. Must be 'Pull', 'Push', or 'Bidirectional'",
+            ));
         }
 
         // Check permissions based on what's being synced
@@ -140,10 +142,7 @@ impl SelectiveSyncMutation {
     }
 
     /// Get list of available entities for selective sync
-    async fn get_available_entities(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<AvailableEntitiesResponse> {
+    async fn get_available_entities(&self, ctx: &Context<'_>) -> Result<AvailableEntitiesResponse> {
         let db = ctx.data::<DatabaseConnection>()?;
         let user_ctx = ctx.data::<UserContext>()?;
 

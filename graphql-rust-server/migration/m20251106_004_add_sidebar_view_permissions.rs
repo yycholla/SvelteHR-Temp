@@ -51,8 +51,10 @@ impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Add permissions for sidebar menu item visibility
         // Data seeding operation - intentionally raw SQL
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.permissions (resource, action, description) VALUES
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.permissions (resource, action, description) VALUES
             -- Dashboard
             ('dashboard', 'read', 'View dashboard'),
 
@@ -93,8 +95,9 @@ impl MigrationTrait for Migration {
             -- Admin
             ('admin', 'read', 'Access admin sections'),
             ('admin', 'write', 'Manage admin settings')
-            ON CONFLICT (resource, action) DO NOTHING"
-        ).await?;
+            ON CONFLICT (resource, action) DO NOTHING",
+            )
+            .await?;
 
         Ok(())
     }
@@ -102,8 +105,10 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Remove the added permissions
         // Data cleanup operation - intentionally raw SQL
-        manager.get_connection().execute_unprepared(
-            "DELETE FROM hr_public.permissions WHERE (resource, action) IN (
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "DELETE FROM hr_public.permissions WHERE (resource, action) IN (
                 ('dashboard', 'read'),
                 ('events', 'read'),
                 ('events', 'write'),
@@ -125,8 +130,9 @@ impl MigrationTrait for Migration {
                 ('reports', 'analytics'),
                 ('admin', 'read'),
                 ('admin', 'write')
-            )"
-        ).await?;
+            )",
+            )
+            .await?;
 
         Ok(())
     }

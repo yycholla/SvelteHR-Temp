@@ -3,10 +3,9 @@ import { logger } from '$lib/utils/logger';
  * Dashboard Mock Data Generators
  *
  * Helper functions for generating dashboard data structures.
- * Originally located in dashboard-operations.ts.
  */
 
-import type { ActivityItem, DashboardMetric, UpcomingEvent } from './dashboard-operations';
+import type { ActivityItem, DashboardMetric, UpcomingEvent } from './dashboard';
 
 /**
  * Get complete dashboard data based on user roles and permissions

@@ -6,10 +6,10 @@ use axum::{
 use sea_orm::{EntityTrait, QueryOrder};
 
 use crate::{
+    auth::UserContext,
     error::AppError,
     handlers::AppState,
-    auth::UserContext,
-    models::role::{Entity as RoleEntity, Column as RoleColumn},
+    models::role::{Column as RoleColumn, Entity as RoleEntity},
 };
 
 /// Handler to get all roles
@@ -30,7 +30,6 @@ pub async fn get_roles_handler(
     State(state): State<AppState>,
     Extension(_user_context): Extension<UserContext>, // Require authentication
 ) -> Result<impl IntoResponse, AppError> {
-    
     let roles = RoleEntity::find()
         .order_by_asc(RoleColumn::Level)
         .order_by_asc(RoleColumn::Name)

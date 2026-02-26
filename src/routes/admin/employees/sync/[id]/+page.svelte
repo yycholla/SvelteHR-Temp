@@ -55,9 +55,37 @@
 	} from '$lib/graphql/operations/employee-sync';
 	import { browser } from '$app/environment';
 	import { invalidate } from '$app/navigation';
-	import { page } from '$app/stores';
 
-	let { data } = $props();
+	type SyncDirection = 'Pull' | 'Push' | 'Bidirectional';
+
+	interface EmployeeSyncStatus {
+		employeeId: string;
+		employeeName: string;
+		quickbooksId: string | null;
+		lastSyncedAt: string | null;
+		autoSyncEnabled: boolean;
+		syncDirection: string;
+		hasLocalChanges: boolean;
+		excludedFields: string[];
+	}
+
+	interface EmployeeSyncHistoryEntry {
+		syncedAt: string | null;
+		syncType: string;
+		direction: string;
+		status: string;
+		fieldsSynced: string[];
+		errors: string[];
+	}
+
+	interface EmployeeSyncPageData {
+		syncStatus?: EmployeeSyncStatus | null;
+		syncHistory?: EmployeeSyncHistoryEntry[];
+		total?: number;
+		error?: string;
+	}
+
+	let { data }: { data: EmployeeSyncPageData } = $props();
 
 	let syncStatus = $derived(data.syncStatus);
 	let syncHistory = $derived(data.syncHistory || []);
@@ -69,8 +97,8 @@
 
 	// Form states
 	let autoSyncEnabled = $state(true);
-	let syncDirection = $state<string>('Bidirectional');
-	let selectedSyncDirection = $state('Pull');
+	let syncDirection = $state<SyncDirection>('Bidirectional');
+	let selectedSyncDirection = $state<SyncDirection>('Pull');
 
 	// UI states
 	let submitting = $state(false);
@@ -82,12 +110,24 @@
 		{ value: 'Pull', label: 'Pull from QuickBooks', icon: ArrowLeft },
 		{ value: 'Push', label: 'Push to QuickBooks', icon: ArrowRight },
 		{ value: 'Bidirectional', label: 'Bidirectional Sync', icon: ArrowLeftRight }
-	];
+	] as const;
+
+	function parseSyncDirection(value: string | null | undefined): SyncDirection {
+		if (value === 'Pull' || value === 'Push' || value === 'Bidirectional') {
+			return value;
+		}
+		return 'Bidirectional';
+	}
+
+	function getErrorMessage(errorValue: unknown): string {
+		if (errorValue instanceof Error) return errorValue.message;
+		return 'An unexpected error occurred';
+	}
 
 	function openSettingsDialog() {
 		if (syncStatus) {
 			autoSyncEnabled = syncStatus.autoSyncEnabled;
-			syncDirection = syncStatus.syncDirection;
+			syncDirection = parseSyncDirection(syncStatus.syncDirection);
 		}
 		settingsDialogOpen = true;
 	}
@@ -126,8 +166,8 @@
 				settingsDialogOpen = false;
 				await invalidate('app:employee-sync');
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while updating settings';
+		} catch (e: unknown) {
+			error = getErrorMessage(e);
 		} finally {
 			submitting = false;
 		}
@@ -158,8 +198,8 @@
 				syncDialogOpen = false;
 				await invalidate('app:employee-sync');
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while triggering sync';
+		} catch (e: unknown) {
+			error = getErrorMessage(e);
 		} finally {
 			syncing = false;
 		}
@@ -443,9 +483,9 @@
 				<Label for="sync-direction">Default Sync Direction</Label>
 				<Select
 					type="single"
-					value={syncDirection as any}
-					onValueChange={(value: any) => {
-						syncDirection = value;
+					value={syncDirection}
+					onValueChange={(value: string) => {
+						syncDirection = parseSyncDirection(value);
 					}}
 				>
 					<SelectTrigger id="sync-direction">
@@ -497,9 +537,9 @@
 				<Label for="trigger-direction">Sync Direction</Label>
 				<Select
 					type="single"
-					value={selectedSyncDirection as any}
-					onValueChange={(value: any) => {
-						selectedSyncDirection = value;
+					value={selectedSyncDirection}
+					onValueChange={(value: string) => {
+						selectedSyncDirection = parseSyncDirection(value);
 					}}
 				>
 					<SelectTrigger id="trigger-direction">

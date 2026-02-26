@@ -6,13 +6,8 @@
 //!
 //! Row-Level Security (RLS) policies in PostgreSQL control actual data access.
 
-use axum::{
-    extract::Request,
-    http::header::AUTHORIZATION,
-    middleware::Next,
-    response::Response,
-};
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+use axum::{extract::Request, http::header::AUTHORIZATION, middleware::Next, response::Response};
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -40,10 +35,7 @@ struct Claims {
 ///
 /// This matches PostGraphile's behavior where authentication is optional
 /// and PostgreSQL RLS policies control actual data access.
-pub async fn optional_jwt_auth_middleware(
-    mut request: Request,
-    next: Next,
-) -> Response {
+pub async fn optional_jwt_auth_middleware(mut request: Request, next: Next) -> Response {
     // Try to extract Authorization header
     let auth_header = request
         .headers()
@@ -51,14 +43,13 @@ pub async fn optional_jwt_auth_middleware(
         .and_then(|h| h.to_str().ok());
 
     // Extract token if present
-    let token = auth_header
-        .and_then(|header| {
-            if header.starts_with("Bearer ") {
-                Some(header.trim_start_matches("Bearer "))
-            } else {
-                None
-            }
-        });
+    let token = auth_header.and_then(|header| {
+        if header.starts_with("Bearer ") {
+            Some(header.trim_start_matches("Bearer "))
+        } else {
+            None
+        }
+    });
 
     // If token exists, try to validate and extract UserContext
     if let Some(token) = token {
@@ -77,8 +68,7 @@ pub async fn optional_jwt_auth_middleware(
         }
 
         // Not a service key, try JWT validation
-        let secret = std::env::var("JWT_SECRET")
-            .unwrap_or_else(|_| "test-secret-key".to_string());
+        let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "test-secret-key".to_string());
 
         // Attempt to decode token
         if let Ok(token_data) = decode::<Claims>(
@@ -118,14 +108,14 @@ mod tests {
     use super::*;
     use axum::{
         body::Body,
-        http::{Request, StatusCode, header::AUTHORIZATION},
+        http::{header::AUTHORIZATION, Request, StatusCode},
         middleware::from_fn,
         routing::post,
         Router,
     };
+    use chrono::{Duration, Utc};
+    use jsonwebtoken::{encode, EncodingKey, Header};
     use tower::ServiceExt;
-    use jsonwebtoken::{encode, Header, EncodingKey};
-    use chrono::{Utc, Duration};
 
     async fn test_handler(req: Request<Body>) -> (StatusCode, &'static str) {
         // Check if UserContext exists

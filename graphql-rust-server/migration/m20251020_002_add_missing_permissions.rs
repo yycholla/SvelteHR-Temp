@@ -31,7 +31,7 @@ impl MigrationTrait for Migration {
                 (gen_random_uuid(), 'leave', 'approve', 'Approve/deny leave requests'),
                 (gen_random_uuid(), 'reports', 'read', 'View reports'),
                 (gen_random_uuid(), 'reports', 'generate', 'Generate custom reports')
-                ON CONFLICT (resource, action) DO NOTHING"
+                ON CONFLICT (resource, action) DO NOTHING",
             )
             .await?;
 
@@ -48,7 +48,7 @@ impl MigrationTrait for Migration {
                     SELECT 1 FROM hr_public.role_permissions rp
                     WHERE rp.role_id = r.id AND rp.permission_id = p.id
                 )
-                ON CONFLICT DO NOTHING"
+                ON CONFLICT DO NOTHING",
             )
             .await?;
 

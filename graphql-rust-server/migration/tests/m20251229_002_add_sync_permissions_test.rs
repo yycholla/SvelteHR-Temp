@@ -36,7 +36,9 @@ async fn table_exists(db: &DatabaseConnection, schema: &str, table: &str) -> Res
         ))
         .await?;
 
-    Ok(result.map(|row| row.try_get::<bool>("", "exists").unwrap_or(false)).unwrap_or(false))
+    Ok(result
+        .map(|row| row.try_get::<bool>("", "exists").unwrap_or(false))
+        .unwrap_or(false))
 }
 
 /// Helper to check if a column exists in a table
@@ -61,7 +63,9 @@ async fn column_exists(
         ))
         .await?;
 
-    Ok(result.map(|row| row.try_get::<bool>("", "exists").unwrap_or(false)).unwrap_or(false))
+    Ok(result
+        .map(|row| row.try_get::<bool>("", "exists").unwrap_or(false))
+        .unwrap_or(false))
 }
 
 /// Helper to check if an index exists
@@ -79,7 +83,9 @@ async fn index_exists(db: &DatabaseConnection, index_name: &str) -> Result<bool,
         ))
         .await?;
 
-    Ok(result.map(|row| row.try_get::<bool>("", "exists").unwrap_or(false)).unwrap_or(false))
+    Ok(result
+        .map(|row| row.try_get::<bool>("", "exists").unwrap_or(false))
+        .unwrap_or(false))
 }
 
 /// Helper to count permissions by resource
@@ -99,7 +105,9 @@ async fn count_permissions_by_resource(
         ))
         .await?;
 
-    Ok(result.map(|row| row.try_get::<i64>("", "count").unwrap_or(0)).unwrap_or(0))
+    Ok(result
+        .map(|row| row.try_get::<i64>("", "count").unwrap_or(0))
+        .unwrap_or(0))
 }
 
 /// Helper to check if a specific permission exists
@@ -123,7 +131,9 @@ async fn permission_exists(
         ))
         .await?;
 
-    Ok(result.map(|row| row.try_get::<bool>("", "exists").unwrap_or(false)).unwrap_or(false))
+    Ok(result
+        .map(|row| row.try_get::<bool>("", "exists").unwrap_or(false))
+        .unwrap_or(false))
 }
 
 #[tokio::test]
@@ -134,14 +144,18 @@ async fn test_migration_compiles() {
 
 #[tokio::test]
 async fn test_up_migration_creates_table() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Run migration
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify sync_permission_audit table exists
     assert!(
@@ -154,11 +168,16 @@ async fn test_up_migration_creates_table() {
 
 #[tokio::test]
 async fn test_sync_permission_audit_columns() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    Migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify all columns exist
     let columns = vec![
@@ -184,14 +203,18 @@ async fn test_sync_permission_audit_columns() {
 
 #[tokio::test]
 async fn test_indexes_created() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Ensure migration is run
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify all indexes exist
     assert!(
@@ -218,14 +241,18 @@ async fn test_indexes_created() {
 
 #[tokio::test]
 async fn test_sync_permissions_seeded() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Ensure migration is run
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify sync resource permissions (18 permissions)
     let sync_count = count_permissions_by_resource(&db, "sync")
@@ -250,14 +277,18 @@ async fn test_sync_permissions_seeded() {
 
 #[tokio::test]
 async fn test_specific_sync_permissions_exist() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Ensure migration is run
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Test sync operations permissions
     assert!(
@@ -330,14 +361,18 @@ async fn test_specific_sync_permissions_exist() {
 
 #[tokio::test]
 async fn test_idempotent_permission_seeding() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Run migration twice
-    migration.up(&schema_manager).await.expect("Failed to run first up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run first up migration");
 
     // Get initial count
     let initial_sync_count = count_permissions_by_resource(&db, "sync")
@@ -345,7 +380,10 @@ async fn test_idempotent_permission_seeding() {
         .expect("Failed to count sync permissions");
 
     // Run migration again
-    migration.up(&schema_manager).await.expect("Failed to run second up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run second up migration");
 
     // Get count after second run
     let second_sync_count = count_permissions_by_resource(&db, "sync")
@@ -361,14 +399,18 @@ async fn test_idempotent_permission_seeding() {
 
 #[tokio::test]
 async fn test_foreign_key_to_users() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Ensure migration is run
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Create a test user
     db.execute(Statement::from_string(
@@ -433,14 +475,18 @@ async fn test_foreign_key_to_users() {
 
 #[tokio::test]
 async fn test_cascade_delete_audit_records() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Ensure migration is run
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Create a test user
     db.execute(Statement::from_string(
@@ -467,8 +513,7 @@ async fn test_cascade_delete_audit_records() {
     // Delete the user - audit record should be cascaded
     db.execute(Statement::from_string(
         db.get_database_backend(),
-        "DELETE FROM hr_public.users WHERE id = '00000000-0000-0000-0000-000000000030'"
-            .to_string(),
+        "DELETE FROM hr_public.users WHERE id = '00000000-0000-0000-0000-000000000030'".to_string(),
     ))
     .await
     .expect("Failed to delete user");
@@ -494,15 +539,22 @@ async fn test_cascade_delete_audit_records() {
 
 #[tokio::test]
 async fn test_idempotent_up_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Run migration twice
-    migration.up(&schema_manager).await.expect("Failed to run first up migration");
-    migration.up(&schema_manager).await.expect("Failed to run second up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run first up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run second up migration");
 
     // Verify table still exists
     assert!(
@@ -515,14 +567,18 @@ async fn test_idempotent_up_migration() {
 
 #[tokio::test]
 async fn test_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Run up migration first
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify table exists
     assert!(
@@ -533,7 +589,10 @@ async fn test_down_migration() {
     );
 
     // Run down migration
-    migration.down(&schema_manager).await.expect("Failed to run down migration");
+    migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run down migration");
 
     // Verify table is removed
     assert!(
@@ -546,14 +605,18 @@ async fn test_down_migration() {
 
 #[tokio::test]
 async fn test_down_migration_soft_deletes_permissions() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Run up migration first
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Get count before down migration
     let before_count = count_permissions_by_resource(&db, "sync")
@@ -561,7 +624,10 @@ async fn test_down_migration_soft_deletes_permissions() {
         .expect("Failed to count sync permissions");
 
     // Run down migration
-    migration.down(&schema_manager).await.expect("Failed to run down migration");
+    migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run down migration");
 
     // Get count after down migration (should be 0 for non-deleted)
     let after_count = count_permissions_by_resource(&db, "sync")
@@ -576,18 +642,28 @@ async fn test_down_migration_soft_deletes_permissions() {
 
 #[tokio::test]
 async fn test_idempotent_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Run up migration first
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Run down migration twice
-    migration.down(&schema_manager).await.expect("Failed to run first down migration");
-    migration.down(&schema_manager).await.expect("Failed to run second down migration");
+    migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run first down migration");
+    migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run second down migration");
 
     // Verify table remains removed
     assert!(
@@ -600,14 +676,18 @@ async fn test_idempotent_down_migration() {
 
 #[tokio::test]
 async fn test_full_migration_cycle() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
 
-
     // Run up migration
-    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration");
 
     // Verify table exists
     assert!(
@@ -627,7 +707,10 @@ async fn test_full_migration_cycle() {
     );
 
     // Run down migration
-    migration.down(&schema_manager).await.expect("Failed to run down migration");
+    migration
+        .down(&schema_manager)
+        .await
+        .expect("Failed to run down migration");
 
     // Verify table removed
     assert!(
@@ -638,7 +721,10 @@ async fn test_full_migration_cycle() {
     );
 
     // Run up migration again
-    migration.up(&schema_manager).await.expect("Failed to run up migration again");
+    migration
+        .up(&schema_manager)
+        .await
+        .expect("Failed to run up migration again");
 
     // Verify table exists again
     assert!(

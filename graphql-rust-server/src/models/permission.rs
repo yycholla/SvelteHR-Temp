@@ -132,8 +132,8 @@ pub struct UpdatePermissionInput {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::Model as Permission;
+    use super::*;
 
     #[test]
     fn test_permission_model_compiles() {

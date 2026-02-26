@@ -85,11 +85,11 @@ export const load: PageServerLoad = async (event) => {
 				}
 			`;
 
-			const timestampsResult = await client
-				.query(GET_DEPARTMENT_TIMESTAMPS_QUERY, { id: departmentId })
-				.toPromise();
+			const timestampsData = await client.query<{
+				department?: { createdAt: string; updatedAt: string } | null;
+			}>(GET_DEPARTMENT_TIMESTAMPS_QUERY, { id: departmentId });
 
-			const timestamps = timestampsResult.data?.department || {
+			const timestamps = timestampsData?.department || {
 				createdAt: new Date().toISOString(),
 				updatedAt: new Date().toISOString()
 			};
@@ -116,12 +116,12 @@ export const load: PageServerLoad = async (event) => {
 					}
 				`;
 
-				const managerResult = await client
-					.query(GET_USER_QUERY, { id: departmentDTO.managerId })
-					.toPromise();
+				const managerData = await client.query<{ user?: unknown | null }>(GET_USER_QUERY, {
+					id: departmentDTO.managerId
+				});
 
-				if (managerResult.data?.user) {
-					manager = managerResult.data.user;
+				if (managerData?.user) {
+					manager = managerData.user;
 				}
 			}
 
@@ -147,8 +147,8 @@ export const load: PageServerLoad = async (event) => {
 				}
 			`;
 
-			const usersResult = await client.query(GET_USERS_QUERY, {}).toPromise();
-			const allUsers = usersResult.data?.users || [];
+			const usersData = await client.query<{ users?: any[] }>(GET_USERS_QUERY, {});
+			const allUsers = usersData?.users || [];
 			const employees = allUsers.filter((user: any) => user.departmentId === departmentId);
 
 			logger.info('[Department Detail] Department loaded successfully', {

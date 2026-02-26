@@ -10,15 +10,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251222_create_intuit_integration::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251222_create_intuit_integration::Migration;
 
     /// Setup a test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -79,12 +82,19 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'intuit_connections'".to_string(),
+                 AND table_name = 'intuit_connections'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(table_result.is_ok(), "intuit_connections table should exist");
-        assert!(table_result.unwrap().is_some(), "Should find intuit_connections table");
+        assert!(
+            table_result.is_ok(),
+            "intuit_connections table should exist"
+        );
+        assert!(
+            table_result.unwrap().is_some(),
+            "Should find intuit_connections table"
+        );
 
         // Verify intuit_employee_id column was added to users
         let column_result = db
@@ -94,13 +104,19 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'intuit_employee_id'".to_string(),
+                 AND column_name = 'intuit_employee_id'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(column_result.is_ok(), "intuit_employee_id column should exist");
+        assert!(
+            column_result.is_ok(),
+            "intuit_employee_id column should exist"
+        );
         let column = column_result.unwrap().unwrap();
-        let is_nullable: String = column.try_get("", "is_nullable").expect("Should get is_nullable");
+        let is_nullable: String = column
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
         assert_eq!(is_nullable, "YES", "intuit_employee_id should be nullable");
 
         // Verify intuit_sync_log table was created
@@ -109,12 +125,19 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'intuit_sync_log'".to_string(),
+                 AND table_name = 'intuit_sync_log'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(sync_log_result.is_ok(), "intuit_sync_log table should exist");
-        assert!(sync_log_result.unwrap().is_some(), "Should find intuit_sync_log table");
+        assert!(
+            sync_log_result.is_ok(),
+            "intuit_sync_log table should exist"
+        );
+        assert!(
+            sync_log_result.unwrap().is_some(),
+            "Should find intuit_sync_log table"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -127,7 +150,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify all required columns exist
         let columns_result = db
@@ -137,7 +163,8 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'intuit_connections'
-                 ORDER BY ordinal_position".to_string(),
+                 ORDER BY ordinal_position"
+                    .to_string(),
             ))
             .await;
 
@@ -182,7 +209,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify foreign key exists
         let fk_result = db
@@ -194,7 +224,8 @@ mod tests {
                    ON rc.constraint_name = tc.constraint_name
                  WHERE tc.table_schema = 'hr_public'
                  AND tc.table_name = 'intuit_sync_log'
-                 AND tc.constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND tc.constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
@@ -202,8 +233,14 @@ mod tests {
         let fk = fk_result.unwrap();
         assert!(fk.is_some(), "Should find foreign key constraint");
 
-        let delete_rule: String = fk.unwrap().try_get("", "delete_rule").expect("Should get delete_rule");
-        assert_eq!(delete_rule, "SET NULL", "Foreign key should use SET NULL on delete");
+        let delete_rule: String = fk
+            .unwrap()
+            .try_get("", "delete_rule")
+            .expect("Should get delete_rule");
+        assert_eq!(
+            delete_rule, "SET NULL",
+            "Foreign key should use SET NULL on delete"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -216,7 +253,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify idx_users_intuit_employee_id
         let user_index_result = db
@@ -225,12 +265,16 @@ mod tests {
                 "SELECT indexname FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'users'
-                 AND indexname = 'idx_users_intuit_employee_id'".to_string(),
+                 AND indexname = 'idx_users_intuit_employee_id'"
+                    .to_string(),
             ))
             .await;
 
         assert!(user_index_result.is_ok(), "User index should exist");
-        assert!(user_index_result.unwrap().is_some(), "Should find idx_users_intuit_employee_id");
+        assert!(
+            user_index_result.unwrap().is_some(),
+            "Should find idx_users_intuit_employee_id"
+        );
 
         // Verify idx_intuit_sync_log_user_id
         let log_user_index_result = db
@@ -239,12 +283,16 @@ mod tests {
                 "SELECT indexname FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'intuit_sync_log'
-                 AND indexname = 'idx_intuit_sync_log_user_id'".to_string(),
+                 AND indexname = 'idx_intuit_sync_log_user_id'"
+                    .to_string(),
             ))
             .await;
 
         assert!(log_user_index_result.is_ok(), "Log user index should exist");
-        assert!(log_user_index_result.unwrap().is_some(), "Should find idx_intuit_sync_log_user_id");
+        assert!(
+            log_user_index_result.unwrap().is_some(),
+            "Should find idx_intuit_sync_log_user_id"
+        );
 
         // Verify idx_intuit_sync_log_created_at
         let log_time_index_result = db
@@ -253,12 +301,16 @@ mod tests {
                 "SELECT indexname FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'intuit_sync_log'
-                 AND indexname = 'idx_intuit_sync_log_created_at'".to_string(),
+                 AND indexname = 'idx_intuit_sync_log_created_at'"
+                    .to_string(),
             ))
             .await;
 
         assert!(log_time_index_result.is_ok(), "Log time index should exist");
-        assert!(log_time_index_result.unwrap().is_some(), "Should find idx_intuit_sync_log_created_at");
+        assert!(
+            log_time_index_result.unwrap().is_some(),
+            "Should find idx_intuit_sync_log_created_at"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -290,13 +342,18 @@ mod tests {
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
                  AND table_name IN ('intuit_connections', 'intuit_sync_log')
-                 ORDER BY table_name".to_string(),
+                 ORDER BY table_name"
+                    .to_string(),
             ))
             .await;
 
         assert!(tables_result.is_ok(), "Tables should still exist");
         let tables = tables_result.unwrap();
-        assert_eq!(tables.len(), 2, "Both tables should exist after idempotent run");
+        assert_eq!(
+            tables.len(),
+            2,
+            "Both tables should exist after idempotent run"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -311,8 +368,14 @@ mod tests {
         let migration = Migration;
 
         // Run up then down
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         // Verify intuit_connections table was dropped
         let connections_result = db
@@ -320,7 +383,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'intuit_connections'".to_string(),
+                 AND table_name = 'intuit_connections'"
+                    .to_string(),
             ))
             .await;
 
@@ -335,7 +399,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'intuit_sync_log'".to_string(),
+                 AND table_name = 'intuit_sync_log'"
+                    .to_string(),
             ))
             .await;
 
@@ -351,7 +416,8 @@ mod tests {
                 "SELECT column_name FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'users'
-                 AND column_name = 'intuit_employee_id'".to_string(),
+                 AND column_name = 'intuit_employee_id'"
+                    .to_string(),
             ))
             .await;
 
@@ -373,8 +439,14 @@ mod tests {
         let migration = Migration;
 
         // Run up, then down twice
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("First migration down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("First migration down should succeed");
         migration
             .down(&schema_manager)
             .await
@@ -393,9 +465,18 @@ mod tests {
         let migration = Migration;
 
         // Run complete up/down/up cycle
-        migration.up(&schema_manager).await.expect("First up should succeed");
-        migration.down(&schema_manager).await.expect("Down should succeed");
-        migration.up(&schema_manager).await.expect("Second up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("First up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Second up should succeed");
 
         // Verify tables exist after full cycle
         let tables_result = db
@@ -403,11 +484,15 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name IN ('intuit_connections', 'intuit_sync_log')".to_string(),
+                 AND table_name IN ('intuit_connections', 'intuit_sync_log')"
+                    .to_string(),
             ))
             .await;
 
-        assert!(tables_result.is_ok(), "Tables should exist after full cycle");
+        assert!(
+            tables_result.is_ok(),
+            "Tables should exist after full cycle"
+        );
         assert_eq!(tables_result.unwrap().len(), 2, "Both tables should exist");
 
         cleanup_test_data(&db).await;
@@ -421,7 +506,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify payload column is JSONB type
         let column_result = db
@@ -431,7 +519,8 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'intuit_sync_log'
-                 AND column_name = 'payload'".to_string(),
+                 AND column_name = 'payload'"
+                    .to_string(),
             ))
             .await;
 
@@ -451,7 +540,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify is_active has default true
         let is_active_result = db
@@ -461,7 +553,8 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'intuit_connections'
-                 AND column_name = 'is_active'".to_string(),
+                 AND column_name = 'is_active'"
+                    .to_string(),
             ))
             .await;
 

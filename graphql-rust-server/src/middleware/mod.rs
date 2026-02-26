@@ -10,19 +10,20 @@ pub mod request_limits;
 pub mod security_headers;
 
 pub use audit::AuditExtension;
-pub use error_logging::ErrorLoggingExtension;
 pub use auth::jwt_auth_middleware as legacy_jwt_auth_middleware; // Legacy, will be removed
-pub use csrf::{csrf_protection_middleware, CsrfTokenStore, CsrfConfig};
+pub use csrf::{csrf_protection_middleware, CsrfConfig, CsrfTokenStore};
+pub use error_logging::ErrorLoggingExtension;
+pub use guards::{
+    And, RequireAnyRole, RequireMinRoleLevel, RequireOwnership, RequirePermission, RequireRole,
+};
 pub use jwt_auth::{
-    jwt_auth_middleware,
+    admin_jwt_auth_middleware, jwt_auth_middleware,
     optional_jwt_auth_middleware as optional_jwt_middleware,
-    admin_jwt_auth_middleware,
 };
 pub use optional_auth::optional_jwt_auth_middleware as legacy_optional_jwt_auth_middleware; // Legacy
-pub use rate_limiting::{rate_limiting_middleware, RateLimiter, RateLimitConfig};
-pub use request_limits::{request_limits_middleware, RequestLimitsConfig, sanitize_string_input, validate_email_format, validate_phone_format};
-pub use security_headers::security_headers_middleware;
-pub use guards::{
-    RequireRole, RequirePermission, RequireAnyRole,
-    RequireMinRoleLevel, RequireOwnership, And,
+pub use rate_limiting::{rate_limiting_middleware, RateLimitConfig, RateLimiter};
+pub use request_limits::{
+    request_limits_middleware, sanitize_string_input, validate_email_format, validate_phone_format,
+    RequestLimitsConfig,
 };
+pub use security_headers::security_headers_middleware;

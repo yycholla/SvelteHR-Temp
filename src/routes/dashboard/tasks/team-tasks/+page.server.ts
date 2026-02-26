@@ -64,9 +64,11 @@ export const load: PageServerLoad = async (event) => {
 				`
 					query GetDepartments($limit: Int) {
 						departments(limit: $limit) {
-							id
-							name
-							description
+							items {
+								id
+								name
+								description
+							}
 						}
 					}
 				`,
@@ -75,7 +77,7 @@ export const load: PageServerLoad = async (event) => {
 				}
 			);
 
-			const departments = departmentsResponse?.departments || [];
+			const departments = departmentsResponse?.departments?.items || [];
 
 			// Load team tasks
 			// NOTE: Rust GraphQL schema doesn't support complex filters

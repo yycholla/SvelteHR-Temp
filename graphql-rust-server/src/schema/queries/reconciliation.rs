@@ -4,9 +4,11 @@ use async_graphql::{Context, Enum, Object, Result};
 use chrono::{DateTime, Utc};
 
 use crate::auth::UserContext;
-use crate::services::reconciliation::{ReconciliationService, DiscrepancyStats as ServiceDiscrepancyStats};
+use crate::models::{reconciliation_discrepancies, reconciliation_reports};
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::models::{reconciliation_reports, reconciliation_discrepancies};
+use crate::services::reconciliation::{
+    DiscrepancyStats as ServiceDiscrepancyStats, ReconciliationService,
+};
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -33,9 +35,7 @@ impl ReconciliationQueries {
             .await?;
 
         let service = ReconciliationService::new(Arc::new(db.clone()));
-        let report = service
-            .get_report(Uuid::parse_str(&report_id)?)
-            .await?;
+        let report = service.get_report(Uuid::parse_str(&report_id)?).await?;
 
         Ok(report.map(ReconciliationReport::from))
     }
@@ -64,7 +64,10 @@ impl ReconciliationQueries {
             )
             .await?;
 
-        Ok(reports.into_iter().map(ReconciliationReport::from).collect())
+        Ok(reports
+            .into_iter()
+            .map(ReconciliationReport::from)
+            .collect())
     }
 
     /// Get discrepancies for a report
@@ -91,7 +94,10 @@ impl ReconciliationQueries {
             )
             .await?;
 
-        Ok(discrepancies.into_iter().map(ReconciliationDiscrepancy::from).collect())
+        Ok(discrepancies
+            .into_iter()
+            .map(ReconciliationDiscrepancy::from)
+            .collect())
     }
 
     /// Get discrepancy statistics for a report
@@ -164,24 +170,60 @@ pub struct ReconciliationReport {
 
 #[Object]
 impl ReconciliationReport {
-    async fn id(&self) -> &str { &self.id }
-    async fn entity_type(&self) -> &str { &self.entity_type }
-    async fn status(&self) -> &str { &self.status }
-    async fn total_local(&self) -> i32 { self.total_local }
-    async fn total_remote(&self) -> i32 { self.total_remote }
-    async fn total_matched(&self) -> i32 { self.total_matched }
-    async fn total_discrepancies(&self) -> i32 { self.total_discrepancies }
-    async fn missing_in_local(&self) -> i32 { self.missing_in_local }
-    async fn missing_in_remote(&self) -> i32 { self.missing_in_remote }
-    async fn data_mismatches(&self) -> i32 { self.data_mismatches }
-    async fn triggered_by(&self) -> Option<&str> { self.triggered_by.as_deref() }
-    async fn triggered_by_email(&self) -> Option<&str> { self.triggered_by_email.as_deref() }
-    async fn duration_ms(&self) -> Option<i32> { self.duration_ms }
-    async fn error_message(&self) -> Option<&str> { self.error_message.as_deref() }
-    async fn summary(&self) -> Option<&serde_json::Value> { self.summary.as_ref() }
-    async fn started_at(&self) -> DateTime<Utc> { self.started_at }
-    async fn completed_at(&self) -> Option<DateTime<Utc>> { self.completed_at }
-    async fn created_at(&self) -> DateTime<Utc> { self.created_at }
+    async fn id(&self) -> &str {
+        &self.id
+    }
+    async fn entity_type(&self) -> &str {
+        &self.entity_type
+    }
+    async fn status(&self) -> &str {
+        &self.status
+    }
+    async fn total_local(&self) -> i32 {
+        self.total_local
+    }
+    async fn total_remote(&self) -> i32 {
+        self.total_remote
+    }
+    async fn total_matched(&self) -> i32 {
+        self.total_matched
+    }
+    async fn total_discrepancies(&self) -> i32 {
+        self.total_discrepancies
+    }
+    async fn missing_in_local(&self) -> i32 {
+        self.missing_in_local
+    }
+    async fn missing_in_remote(&self) -> i32 {
+        self.missing_in_remote
+    }
+    async fn data_mismatches(&self) -> i32 {
+        self.data_mismatches
+    }
+    async fn triggered_by(&self) -> Option<&str> {
+        self.triggered_by.as_deref()
+    }
+    async fn triggered_by_email(&self) -> Option<&str> {
+        self.triggered_by_email.as_deref()
+    }
+    async fn duration_ms(&self) -> Option<i32> {
+        self.duration_ms
+    }
+    async fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+    async fn summary(&self) -> Option<&serde_json::Value> {
+        self.summary.as_ref()
+    }
+    async fn started_at(&self) -> DateTime<Utc> {
+        self.started_at
+    }
+    async fn completed_at(&self) -> Option<DateTime<Utc>> {
+        self.completed_at
+    }
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
 }
 
 impl From<reconciliation_reports::Model> for ReconciliationReport {
@@ -232,22 +274,54 @@ pub struct ReconciliationDiscrepancy {
 
 #[Object]
 impl ReconciliationDiscrepancy {
-    async fn id(&self) -> &str { &self.id }
-    async fn report_id(&self) -> &str { &self.report_id }
-    async fn entity_type(&self) -> &str { &self.entity_type }
-    async fn entity_id(&self) -> &str { &self.entity_id }
-    async fn discrepancy_type(&self) -> &str { &self.discrepancy_type }
-    async fn severity(&self) -> &str { &self.severity }
-    async fn field_name(&self) -> Option<&str> { self.field_name.as_deref() }
-    async fn local_value(&self) -> Option<&str> { self.local_value.as_deref() }
-    async fn remote_value(&self) -> Option<&str> { self.remote_value.as_deref() }
-    async fn description(&self) -> &str { &self.description }
-    async fn suggested_action(&self) -> Option<&str> { self.suggested_action.as_deref() }
-    async fn is_resolved(&self) -> bool { self.is_resolved }
-    async fn resolved_at(&self) -> Option<DateTime<Utc>> { self.resolved_at }
-    async fn resolved_by(&self) -> Option<&str> { self.resolved_by.as_deref() }
-    async fn resolution_notes(&self) -> Option<&str> { self.resolution_notes.as_deref() }
-    async fn created_at(&self) -> DateTime<Utc> { self.created_at }
+    async fn id(&self) -> &str {
+        &self.id
+    }
+    async fn report_id(&self) -> &str {
+        &self.report_id
+    }
+    async fn entity_type(&self) -> &str {
+        &self.entity_type
+    }
+    async fn entity_id(&self) -> &str {
+        &self.entity_id
+    }
+    async fn discrepancy_type(&self) -> &str {
+        &self.discrepancy_type
+    }
+    async fn severity(&self) -> &str {
+        &self.severity
+    }
+    async fn field_name(&self) -> Option<&str> {
+        self.field_name.as_deref()
+    }
+    async fn local_value(&self) -> Option<&str> {
+        self.local_value.as_deref()
+    }
+    async fn remote_value(&self) -> Option<&str> {
+        self.remote_value.as_deref()
+    }
+    async fn description(&self) -> &str {
+        &self.description
+    }
+    async fn suggested_action(&self) -> Option<&str> {
+        self.suggested_action.as_deref()
+    }
+    async fn is_resolved(&self) -> bool {
+        self.is_resolved
+    }
+    async fn resolved_at(&self) -> Option<DateTime<Utc>> {
+        self.resolved_at
+    }
+    async fn resolved_by(&self) -> Option<&str> {
+        self.resolved_by.as_deref()
+    }
+    async fn resolution_notes(&self) -> Option<&str> {
+        self.resolution_notes.as_deref()
+    }
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
 }
 
 impl From<reconciliation_discrepancies::Model> for ReconciliationDiscrepancy {
@@ -285,20 +359,32 @@ pub struct DiscrepancyStats {
 
 #[Object]
 impl DiscrepancyStats {
-    async fn total(&self) -> i32 { self.total }
-    async fn resolved(&self) -> i32 { self.resolved }
-    async fn unresolved(&self) -> i32 { self.unresolved }
+    async fn total(&self) -> i32 {
+        self.total
+    }
+    async fn resolved(&self) -> i32 {
+        self.resolved
+    }
+    async fn unresolved(&self) -> i32 {
+        self.unresolved
+    }
     async fn by_type(&self) -> Vec<TypeCount> {
-        self.by_type.iter().map(|(k, v)| TypeCount {
-            type_name: k.clone(),
-            count: *v,
-        }).collect()
+        self.by_type
+            .iter()
+            .map(|(k, v)| TypeCount {
+                type_name: k.clone(),
+                count: *v,
+            })
+            .collect()
     }
     async fn by_severity(&self) -> Vec<SeverityCount> {
-        self.by_severity.iter().map(|(k, v)| SeverityCount {
-            severity: k.clone(),
-            count: *v,
-        }).collect()
+        self.by_severity
+            .iter()
+            .map(|(k, v)| SeverityCount {
+                severity: k.clone(),
+                count: *v,
+            })
+            .collect()
     }
 }
 
@@ -310,8 +396,12 @@ pub struct TypeCount {
 
 #[Object]
 impl TypeCount {
-    async fn type_name(&self) -> &str { &self.type_name }
-    async fn count(&self) -> i32 { self.count }
+    async fn type_name(&self) -> &str {
+        &self.type_name
+    }
+    async fn count(&self) -> i32 {
+        self.count
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -322,8 +412,12 @@ pub struct SeverityCount {
 
 #[Object]
 impl SeverityCount {
-    async fn severity(&self) -> &str { &self.severity }
-    async fn count(&self) -> i32 { self.count }
+    async fn severity(&self) -> &str {
+        &self.severity
+    }
+    async fn count(&self) -> i32 {
+        self.count
+    }
 }
 
 impl From<ServiceDiscrepancyStats> for DiscrepancyStats {

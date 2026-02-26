@@ -1,11 +1,11 @@
 use async_graphql::*;
+use chrono::Utc;
 use sea_orm::*;
 use uuid::Uuid;
-use chrono::Utc;
 
 use crate::auth::context::UserContext;
+use crate::models::user::{Column as UserColumn, Entity as UserEntity};
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::models::user::{Entity as UserEntity, Column as UserColumn};
 
 #[derive(Default)]
 pub struct EmployeeSyncMutation;
@@ -84,8 +84,8 @@ impl EmployeeSyncMutation {
         }
 
         // Parse employee ID
-        let employee_uuid = Uuid::parse_str(&input.employee_id)
-            .map_err(|_| Error::new("Invalid employee ID"))?;
+        let employee_uuid =
+            Uuid::parse_str(&input.employee_id).map_err(|_| Error::new("Invalid employee ID"))?;
 
         // Fetch employee
         let employee = UserEntity::find_by_id(employee_uuid)
@@ -103,8 +103,10 @@ impl EmployeeSyncMutation {
 
         Ok(EmployeeSyncSettingsResponse {
             success: true,
-            message: format!("Sync settings updated for {}",
-                format!("{} {}", employee.first_name, employee.last_name)),
+            message: format!(
+                "Sync settings updated for {}",
+                format!("{} {}", employee.first_name, employee.last_name)
+            ),
         })
     }
 
@@ -126,12 +128,14 @@ impl EmployeeSyncMutation {
 
         // Validate sync direction
         if !["Pull", "Push", "Bidirectional"].contains(&direction.as_str()) {
-            return Err(Error::new("Invalid sync direction. Must be 'Pull', 'Push', or 'Bidirectional'"));
+            return Err(Error::new(
+                "Invalid sync direction. Must be 'Pull', 'Push', or 'Bidirectional'",
+            ));
         }
 
         // Parse employee ID
-        let employee_uuid = Uuid::parse_str(&employee_id)
-            .map_err(|_| Error::new("Invalid employee ID"))?;
+        let employee_uuid =
+            Uuid::parse_str(&employee_id).map_err(|_| Error::new("Invalid employee ID"))?;
 
         // Fetch employee
         let employee = UserEntity::find_by_id(employee_uuid)
@@ -149,8 +153,10 @@ impl EmployeeSyncMutation {
 
         Ok(EmployeeSyncSettingsResponse {
             success: true,
-            message: format!("Sync triggered for {}",
-                format!("{} {}", employee.first_name, employee.last_name)),
+            message: format!(
+                "Sync triggered for {}",
+                format!("{} {}", employee.first_name, employee.last_name)
+            ),
         })
     }
 
@@ -170,8 +176,8 @@ impl EmployeeSyncMutation {
             .await?;
 
         // Parse employee ID
-        let employee_uuid = Uuid::parse_str(&employee_id)
-            .map_err(|_| Error::new("Invalid employee ID"))?;
+        let employee_uuid =
+            Uuid::parse_str(&employee_id).map_err(|_| Error::new("Invalid employee ID"))?;
 
         // Fetch employee
         let employee = UserEntity::find_by_id(employee_uuid)
@@ -212,8 +218,8 @@ impl EmployeeSyncMutation {
             .await?;
 
         // Parse employee ID
-        let employee_uuid = Uuid::parse_str(&employee_id)
-            .map_err(|_| Error::new("Invalid employee ID"))?;
+        let employee_uuid =
+            Uuid::parse_str(&employee_id).map_err(|_| Error::new("Invalid employee ID"))?;
 
         // Fetch employee
         let employee = UserEntity::find_by_id(employee_uuid)
@@ -233,7 +239,11 @@ impl EmployeeSyncMutation {
                 direction: "Pull".to_string(),
                 status: "Success".to_string(),
                 synced_at: Utc::now().to_rfc3339(),
-                fields_synced: vec!["first_name".to_string(), "last_name".to_string(), "email".to_string()],
+                fields_synced: vec![
+                    "first_name".to_string(),
+                    "last_name".to_string(),
+                    "email".to_string(),
+                ],
                 errors: vec![],
             },
             EmployeeSyncHistory {

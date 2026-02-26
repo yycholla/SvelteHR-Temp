@@ -28,8 +28,8 @@ impl SyncRollbackQueries {
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let operation_id = Uuid::parse_str(&operation_id)
-            .map_err(|_| "Invalid operation ID format")?;
+        let operation_id =
+            Uuid::parse_str(&operation_id).map_err(|_| "Invalid operation ID format")?;
 
         let service = RollbackService::new(std::sync::Arc::new(db.clone()));
         let operation = service.get_rollback_operation(operation_id).await?;
@@ -69,8 +69,8 @@ impl SyncRollbackQueries {
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let sync_log_id = Uuid::parse_str(&sync_log_id)
-            .map_err(|_| "Invalid sync log ID format")?;
+        let sync_log_id =
+            Uuid::parse_str(&sync_log_id).map_err(|_| "Invalid sync log ID format")?;
 
         let service = RollbackService::new(std::sync::Arc::new(db.clone()));
         let operations = service.get_rollback_history(sync_log_id, limit).await?;
@@ -114,8 +114,7 @@ impl SyncRollbackQueries {
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let entity_id = Uuid::parse_str(&entity_id)
-            .map_err(|_| "Invalid entity ID format")?;
+        let entity_id = Uuid::parse_str(&entity_id).map_err(|_| "Invalid entity ID format")?;
 
         let service = RollbackService::new(std::sync::Arc::new(db.clone()));
         let snapshots = service
@@ -152,7 +151,9 @@ impl SyncRollbackQueries {
             .await?;
 
         let service = RollbackService::new(std::sync::Arc::new(db.clone()));
-        let stats = service.get_rollback_statistics().await
+        let stats = service
+            .get_rollback_statistics()
+            .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to get statistics: {}", e)))?;
 
         Ok(RollbackStatsGraphQL {
@@ -179,11 +180,13 @@ impl SyncRollbackQueries {
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let snapshot_id = Uuid::parse_str(&snapshot_id)
-            .map_err(|_| "Invalid snapshot ID format")?;
+        let snapshot_id =
+            Uuid::parse_str(&snapshot_id).map_err(|_| "Invalid snapshot ID format")?;
 
         let service = RollbackService::new(std::sync::Arc::new(db.clone()));
-        let validation = service.validate_rollback(snapshot_id).await
+        let validation = service
+            .validate_rollback(snapshot_id)
+            .await
             .map_err(|e| async_graphql::Error::new(format!("Validation failed: {}", e)))?;
 
         Ok(RollbackValidationResult {

@@ -28,17 +28,17 @@
  * ```
  */
 
-import type { Client, TypedDocumentNode } from '@urql/core';
-import type { DocumentNode } from 'graphql';
+import type { AnyVariables, Client, DocumentInput } from '@urql/core';
 import { BaseOperations } from '../base-operations';
 
 /**
  * Configuration for CRUD operations factory
  */
 export interface CRUDOperationsConfig<
-	TEntity = any,
+	TEntity = unknown,
 	TCreateInput = Partial<TEntity>,
-	TUpdateInput = Partial<TEntity>
+	TUpdateInput = Partial<TEntity>,
+	TGetAllVariables extends AnyVariables = AnyVariables
 > {
 	/**
 	 * urql GraphQL client instance
@@ -58,12 +58,12 @@ export interface CRUDOperationsConfig<
 		/**
 		 * Query to get all entities (with optional filters/pagination)
 		 */
-		getAll: TypedDocumentNode<any, any> | DocumentNode | string;
+		getAll: DocumentInput<unknown, TGetAllVariables>;
 
 		/**
 		 * Query to get single entity by ID
 		 */
-		getById: TypedDocumentNode<any, any> | DocumentNode | string;
+		getById: DocumentInput<unknown, { id: string }>;
 	};
 
 	/**
@@ -73,17 +73,17 @@ export interface CRUDOperationsConfig<
 		/**
 		 * Mutation to create new entity
 		 */
-		create: TypedDocumentNode<any, any> | DocumentNode | string;
+		create: DocumentInput<unknown, { input: TCreateInput }>;
 
 		/**
 		 * Mutation to update existing entity
 		 */
-		update: TypedDocumentNode<any, any> | DocumentNode | string;
+		update: DocumentInput<unknown, { id: string; input: TUpdateInput }>;
 
 		/**
 		 * Mutation to delete entity
 		 */
-		delete: TypedDocumentNode<any, any> | DocumentNode | string;
+		delete: DocumentInput<unknown, { id: string }>;
 	};
 
 	/**
@@ -102,14 +102,15 @@ export interface CRUDOperationsConfig<
  * Standard CRUD operations interface
  */
 export interface CRUDOperations<
-	TEntity = any,
+	TEntity = unknown,
 	TCreateInput = Partial<TEntity>,
-	TUpdateInput = Partial<TEntity>
+	TUpdateInput = Partial<TEntity>,
+	TGetAllVariables extends AnyVariables = AnyVariables
 > {
 	/**
 	 * Get all entities with optional filters and pagination
 	 */
-	getAll(variables?: any): Promise<TEntity[]>;
+	getAll(variables?: TGetAllVariables): Promise<TEntity[]>;
 
 	/**
 	 * Get entity by ID
@@ -169,19 +170,20 @@ export interface CRUDOperations<
  * ```
  */
 export function createCRUDOperations<
-	TEntity = any,
+	TEntity = unknown,
 	TCreateInput = Partial<TEntity>,
-	TUpdateInput = Partial<TEntity>
+	TUpdateInput = Partial<TEntity>,
+	TGetAllVariables extends AnyVariables = AnyVariables
 >(
-	config: CRUDOperationsConfig<TEntity, TCreateInput, TUpdateInput>
-): CRUDOperations<TEntity, TCreateInput, TUpdateInput> {
+	config: CRUDOperationsConfig<TEntity, TCreateInput, TUpdateInput, TGetAllVariables>
+): CRUDOperations<TEntity, TCreateInput, TUpdateInput, TGetAllVariables> {
 	const { client, entityName, queries, mutations, dataPaths } = config;
 
 	// Create an instance of BaseOperations to access executeQuery/executeMutation
 	const baseOps = new (class extends BaseOperations {
 		// Expose protected methods publicly for this factory
-		public async query<TData = any, TVariables = any>(
-			query: TypedDocumentNode<TData, TVariables> | DocumentNode | string,
+		public async query<TData = unknown, TVariables extends AnyVariables = AnyVariables>(
+			query: DocumentInput<TData, TVariables>,
 			variables?: TVariables,
 			options?: {
 				operationName?: string;
@@ -192,8 +194,8 @@ export function createCRUDOperations<
 			return this.executeQuery(query, variables, options);
 		}
 
-		public async mutate<TData = any, TVariables = any>(
-			mutation: TypedDocumentNode<TData, TVariables> | DocumentNode | string,
+		public async mutate<TData = unknown, TVariables extends AnyVariables = AnyVariables>(
+			mutation: DocumentInput<TData, TVariables>,
 			variables?: TVariables,
 			options?: {
 				operationName?: string;
@@ -216,8 +218,8 @@ export function createCRUDOperations<
 		 * @param variables - Query variables (filters, pagination, sorting)
 		 * @returns Array of entities
 		 */
-		async getAll(variables?: any): Promise<TEntity[]> {
-			return baseOps.query<TEntity[]>(queries.getAll, variables, {
+		async getAll(variables?: TGetAllVariables): Promise<TEntity[]> {
+			return baseOps.query<TEntity[], TGetAllVariables>(queries.getAll, variables, {
 				operationName: `GetAll${entityName}s`,
 				errorMessage: `Failed to load ${entityPlural}. Please try again.`,
 				dataPath: dataPaths?.getAll
@@ -232,7 +234,7 @@ export function createCRUDOperations<
 		 * @throws Error if entity not found
 		 */
 		async getById(id: string): Promise<TEntity> {
-			return baseOps.query<TEntity>(
+			return baseOps.query<TEntity, { id: string }>(
 				queries.getById,
 				{ id },
 				{
@@ -250,7 +252,7 @@ export function createCRUDOperations<
 		 * @returns Created entity
 		 */
 		async create(input: TCreateInput): Promise<TEntity> {
-			return baseOps.mutate<TEntity>(
+			return baseOps.mutate<TEntity, { input: TCreateInput }>(
 				mutations.create,
 				{ input },
 				{
@@ -269,7 +271,7 @@ export function createCRUDOperations<
 		 * @returns Updated entity
 		 */
 		async update(id: string, input: TUpdateInput): Promise<TEntity> {
-			return baseOps.mutate<TEntity>(
+			return baseOps.mutate<TEntity, { id: string; input: TUpdateInput }>(
 				mutations.update,
 				{ id, input },
 				{
@@ -287,7 +289,7 @@ export function createCRUDOperations<
 		 * @returns Success boolean
 		 */
 		async delete(id: string): Promise<boolean> {
-			const result = await baseOps.mutate<any>(
+			const result = await baseOps.mutate<unknown, { id: string }>(
 				mutations.delete,
 				{ id },
 				{
@@ -333,11 +335,12 @@ export function createCRUDOperations<
  * ```
  */
 export function createCRUDOperationsWithCustomNames<
-	TEntity = any,
+	TEntity = unknown,
 	TCreateInput = Partial<TEntity>,
-	TUpdateInput = Partial<TEntity>
+	TUpdateInput = Partial<TEntity>,
+	TGetAllVariables extends AnyVariables = AnyVariables
 >(
-	config: CRUDOperationsConfig<TEntity, TCreateInput, TUpdateInput>,
+	config: CRUDOperationsConfig<TEntity, TCreateInput, TUpdateInput, TGetAllVariables>,
 	methodNames: {
 		getAll?: string;
 		getById?: string;
@@ -345,14 +348,16 @@ export function createCRUDOperationsWithCustomNames<
 		update?: string;
 		delete?: string;
 	}
-): any {
+): Record<string, (...args: unknown[]) => Promise<unknown>> {
 	const ops = createCRUDOperations(config);
 
 	return {
-		[methodNames.getAll || 'getAll']: ops.getAll,
-		[methodNames.getById || 'getById']: ops.getById,
-		[methodNames.create || 'create']: ops.create,
-		[methodNames.update || 'update']: ops.update,
-		[methodNames.delete || 'delete']: ops.delete
+		[methodNames.getAll || 'getAll']: (variables?: unknown) =>
+			ops.getAll(variables as TGetAllVariables),
+		[methodNames.getById || 'getById']: (id: unknown) => ops.getById(String(id)),
+		[methodNames.create || 'create']: (input: unknown) => ops.create(input as TCreateInput),
+		[methodNames.update || 'update']: (id: unknown, input: unknown) =>
+			ops.update(String(id), input as TUpdateInput),
+		[methodNames.delete || 'delete']: (id: unknown) => ops.delete(String(id))
 	};
 }

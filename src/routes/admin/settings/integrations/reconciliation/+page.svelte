@@ -12,26 +12,23 @@
 	} from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
 	import {
-		AlertCircle,
-		CheckCircle2,
-		RefreshCw,
+		AlertTriangle,
 		ArrowLeft,
-		FileText,
-		XCircle,
-		Play,
-		Eye,
-		TrendingUp,
+		CheckCircle2,
 		Database,
-		AlertTriangle
+		Eye,
+		FileText,
+		Play,
+		RefreshCw,
+		TrendingUp
 	} from '@lucide/svelte';
-	import { invalidate, goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { createUrqlClient } from '$lib/graphql/client';
 
 	let { data } = $props();
 	let reports = $derived(data.reports);
 	let selectedReport = $derived(data.selectedReport);
 	let discrepancies = $derived(data.discrepancies);
-	let stats = $derived(data.stats);
 
 	interface Discrepancy {
 		id: string;
@@ -52,7 +49,6 @@
 
 	let refreshing = $state(false);
 	let runningReconciliation = $state(false);
-	let selectedEntityType = $state<'EMPLOYEE' | 'DEPARTMENT' | 'ALL'>('EMPLOYEE');
 	let selectedDiscrepancies = $state<Set<string>>(new Set());
 	let showDetailModal = $state(false);
 	let detailDiscrepancy = $state<Discrepancy | null>(null);
@@ -265,16 +261,6 @@
 	function formatDate(dateStr: string): string {
 		const date = new Date(dateStr);
 		return date.toLocaleString();
-	}
-
-	function formatDuration(ms: number | null): string {
-		if (!ms) return 'N/A';
-		if (ms < 1000) return `${ms}ms`;
-		const seconds = Math.floor(ms / 1000);
-		if (seconds < 60) return `${seconds}s`;
-		const minutes = Math.floor(seconds / 60);
-		const remainingSeconds = seconds % 60;
-		return `${minutes}m ${remainingSeconds}s`;
 	}
 
 	function calculateConsistencyScore(report: {

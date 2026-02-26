@@ -24,6 +24,7 @@ describe('Container', () => {
 		it('should allow overriding specific ports', () => {
 			const mockGraphQL: GraphQLPort = {
 				query: vi.fn(),
+				mutation: vi.fn(),
 				mutate: vi.fn()
 			};
 

@@ -3,7 +3,7 @@
 //! Provides dry-run preview of sync operations showing exactly what will change
 //! before executing the actual sync. Helps users understand and verify changes.
 
-use crate::integrations::intuit::{IntuitClient, EmployeeExtended};
+use crate::integrations::intuit::{EmployeeExtended, IntuitClient};
 use crate::models::user;
 use chrono::Utc;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
@@ -82,8 +82,8 @@ pub struct PreviewSummary {
 /// Sync direction for preview
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PreviewDirection {
-    Pull,        // QB → Local
-    Push,        // Local → QB
+    Pull,          // QB → Local
+    Push,          // Local → QB
     Bidirectional, // Both directions
 }
 
@@ -180,7 +180,9 @@ impl SyncPreviewService {
                             if let Some(qb_id) = &local_emp.intuit_employee_id {
                                 if let Some(qb_emp) = qb_map.get(qb_id) {
                                     // Update case
-                                    if let Some(preview) = self.compare_employees_push(&local_emp, qb_emp) {
+                                    if let Some(preview) =
+                                        self.compare_employees_push(&local_emp, qb_emp)
+                                    {
                                         if !preview.field_changes.is_empty() {
                                             updates.push(preview);
                                         }
@@ -210,7 +212,9 @@ impl SyncPreviewService {
                                 // Check if both have recent modifications
                                 if let Some(conflict) = self.detect_conflict(local_emp, qb_emp) {
                                     conflicts.push(conflict);
-                                } else if let Some(preview) = self.compare_employees(local_emp, qb_emp) {
+                                } else if let Some(preview) =
+                                    self.compare_employees(local_emp, qb_emp)
+                                {
                                     if !preview.field_changes.is_empty() {
                                         updates.push(preview);
                                     }
@@ -269,7 +273,10 @@ impl SyncPreviewService {
         let entity_name = if let Some(l) = local {
             format!("{} {}", l.first_name, l.last_name)
         } else if let Some(r) = remote {
-            r.base.display_name.clone().unwrap_or_else(|| "Unknown".to_string())
+            r.base
+                .display_name
+                .clone()
+                .unwrap_or_else(|| "Unknown".to_string())
         } else {
             "Unknown".to_string()
         };
@@ -277,7 +284,10 @@ impl SyncPreviewService {
         let entity_id = if let Some(l) = local {
             l.id.to_string()
         } else if let Some(r) = remote {
-            r.base.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string())
+            r.base
+                .id
+                .clone()
+                .unwrap_or_else(|| Uuid::new_v4().to_string())
         } else {
             Uuid::new_v4().to_string()
         };

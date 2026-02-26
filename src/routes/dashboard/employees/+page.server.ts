@@ -157,13 +157,15 @@ export const load: PageServerLoad = async (event) => {
 			const GET_DEPARTMENTS_QUERY = `
 				query GetDepartments($limit: Int, $offset: Int) {
 					departments(limit: $limit, offset: $offset) {
-						id
-						name
-						description
-						parentDepartmentId
-						managerId
-						createdAt
-						updatedAt
+						items {
+							id
+							name
+							description
+							parentDepartmentId
+							managerId
+							createdAt
+							updatedAt
+						}
 					}
 				}
 			`;
@@ -177,7 +179,7 @@ export const load: PageServerLoad = async (event) => {
 						{
 							operationName: 'GetDepartments',
 							errorMessage: 'Failed to load departments',
-							dataPath: 'departments'
+							dataPath: 'departments.items'
 						}
 					)
 					.catch((err) => {

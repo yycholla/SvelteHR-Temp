@@ -4,10 +4,9 @@
 
 	interface Props {
 		trainingId: string;
-		title: string;
 	}
 
-	const { trainingId, title }: Props = $props();
+	const { trainingId }: Props = $props();
 </script>
 
 <div class="mb-8 flex items-center justify-between">

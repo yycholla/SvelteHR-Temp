@@ -83,20 +83,10 @@ impl MigrationTrait for Migration {
                             .null(),
                     )
                     .add_column_if_not_exists(
-                        ColumnDef::new(AuditLogs::PreviousAuditId)
-                            .string()
-                            .null(),
+                        ColumnDef::new(AuditLogs::PreviousAuditId).string().null(),
                     )
-                    .add_column_if_not_exists(
-                        ColumnDef::new(AuditLogs::AuditHash)
-                            .string()
-                            .null(),
-                    )
-                    .add_column_if_not_exists(
-                        ColumnDef::new(AuditLogs::EntityName)
-                            .string()
-                            .null(),
-                    )
+                    .add_column_if_not_exists(ColumnDef::new(AuditLogs::AuditHash).string().null())
+                    .add_column_if_not_exists(ColumnDef::new(AuditLogs::EntityName).string().null())
                     .to_owned(),
             )
             .await?;
@@ -140,16 +130,40 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(SyncSessions::StartedAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(SyncSessions::CompletedAt).timestamp_with_time_zone().null())
+                    .col(
+                        ColumnDef::new(SyncSessions::StartedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(SyncSessions::CompletedAt)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
                     .col(ColumnDef::new(SyncSessions::UserId).uuid().null())
                     .col(ColumnDef::new(SyncSessions::SyncDirection).string().null())
                     .col(ColumnDef::new(SyncSessions::EntityType).string().null())
                     .col(ColumnDef::new(SyncSessions::Status).string().not_null())
-                    .col(ColumnDef::new(SyncSessions::TotalRecords).integer().default(0))
-                    .col(ColumnDef::new(SyncSessions::SuccessfulRecords).integer().default(0))
-                    .col(ColumnDef::new(SyncSessions::FailedRecords).integer().default(0))
-                    .col(ColumnDef::new(SyncSessions::ConflictsDetected).integer().default(0))
+                    .col(
+                        ColumnDef::new(SyncSessions::TotalRecords)
+                            .integer()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(SyncSessions::SuccessfulRecords)
+                            .integer()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(SyncSessions::FailedRecords)
+                            .integer()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(SyncSessions::ConflictsDetected)
+                            .integer()
+                            .default(0),
+                    )
                     .col(ColumnDef::new(SyncSessions::DurationMs).integer().null())
                     .col(ColumnDef::new(SyncSessions::ErrorMessage).text().null())
                     .col(ColumnDef::new(SyncSessions::Metadata).json_binary().null())
@@ -190,7 +204,12 @@ impl MigrationTrait for Migration {
         // ====================
         // Drop sync_sessions table
         manager
-            .drop_table(Table::drop().if_exists().table((Schema::HrPublic, SyncSessions::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .if_exists()
+                    .table((Schema::HrPublic, SyncSessions::Table))
+                    .to_owned(),
+            )
             .await?;
 
         // Drop indexes from audit_logs

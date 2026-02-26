@@ -30,11 +30,11 @@ pub struct RequestLimitsConfig {
 impl Default for RequestLimitsConfig {
     fn default() -> Self {
         Self {
-            max_body_size: 10 * 1024 * 1024,     // 10MB
-            max_fields: 100,                     // 100 fields
-            max_field_size: 1024 * 1024,         // 1MB per field
-            max_files: 10,                       // 10 files
-            max_file_size: 50 * 1024 * 1024,     // 50MB per file
+            max_body_size: 10 * 1024 * 1024, // 10MB
+            max_fields: 100,                 // 100 fields
+            max_field_size: 1024 * 1024,     // 1MB per field
+            max_files: 10,                   // 10 files
+            max_file_size: 50 * 1024 * 1024, // 50MB per file
         }
     }
 }
@@ -59,11 +59,9 @@ pub async fn request_limits_middleware(
     if let Some(content_length) = req.headers().get(header::CONTENT_LENGTH) {
         if let Ok(length) = content_length.to_str().unwrap_or("0").parse::<usize>() {
             if length > config.max_body_size {
-                return Ok((
-                    StatusCode::PAYLOAD_TOO_LARGE,
-                    "Request body too large",
-                )
-                    .into_response());
+                return Ok(
+                    (StatusCode::PAYLOAD_TOO_LARGE, "Request body too large").into_response()
+                );
             }
         }
     }
@@ -72,7 +70,11 @@ pub async fn request_limits_middleware(
     if req.uri().path().contains("/graphql") {
         let content_type = req.headers().get(header::CONTENT_TYPE);
         if let Some(content_type) = content_type {
-            if content_type.to_str().unwrap_or("").contains("application/json") {
+            if content_type
+                .to_str()
+                .unwrap_or("")
+                .contains("application/json")
+            {
                 // For GraphQL requests, we check the content length from headers
                 // In a production implementation, you might want to buffer and inspect the body
                 // But for now, we'll rely on header-based size checking which is already done above
@@ -84,13 +86,14 @@ pub async fn request_limits_middleware(
     Ok(next.run(req).await)
 }
 
-
-
 /// Sanitize string input by removing potentially dangerous characters
 pub fn sanitize_string_input(input: &str) -> String {
     // Remove null bytes and other control characters
-    input.chars()
-        .filter(|&c| c.is_alphanumeric() || c.is_whitespace() || "!@#$%^&*()_+-=[]{}|;:,.<>?".contains(c))
+    input
+        .chars()
+        .filter(|&c| {
+            c.is_alphanumeric() || c.is_whitespace() || "!@#$%^&*()_+-=[]{}|;:,.<>?".contains(c)
+        })
         .collect()
 }
 

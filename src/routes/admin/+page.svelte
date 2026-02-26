@@ -1,20 +1,15 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { auth } from '$lib/stores/auth.svelte';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
 	import {
 		Activity,
-		AlertTriangle,
+		ArrowRight,
 		BarChart3,
 		Building2,
 		Database,
 		Lock,
 		Settings,
 		Shield,
-		TrendingUp,
-		Users,
-		ArrowRight
+		Users
 	} from '@lucide/svelte';
 
 	// Admin dashboard metrics
@@ -102,7 +97,7 @@
 			<h1 class="text-sm font-semibold tracking-tight text-foreground">Overview</h1>
 			<div class="h-4 w-px bg-border"></div>
 			<div class="flex items-center gap-6 text-sm">
-				{#each adminMetrics as metric}
+				{#each adminMetrics as metric (metric.href)}
 					{@const Icon = metric.icon}
 					<div class="flex items-center gap-2">
 						<Icon class="h-4 w-4 text-muted-foreground" />
@@ -133,7 +128,7 @@
 			</div>
 			<div class="flex-1 overflow-auto p-4">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					{#each adminActions as action}
+					{#each adminActions as action (action.href)}
 						{@const Icon = action.icon}
 						<a
 							href={action.href}

@@ -4,12 +4,12 @@
 	import { goto, replaceState } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
-	import { get } from 'svelte/store';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { jwtAuth } from '$lib/stores/jwt-auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import AuthLayout from '$lib/components/auth/AuthLayout.svelte';
 	import LoginForm from '$lib/components/auth/LoginForm.svelte';
+	import ClientOnly from '$lib/components/client-only.svelte';
 
 	/**
 	 * Login Page
@@ -63,8 +63,7 @@
 	});
 
 	// Handle successful login
-	const handleLoginSuccess = async (event: CustomEvent) => {
-		console.error('[Login] handleLoginSuccess called!');
+	const handleLoginSuccess = async (_event: CustomEvent) => {
 		// Clear all session storage flags on successful login
 		if (browser) {
 			sessionStorage.removeItem(LOGIN_REDIRECT_KEY);
@@ -73,12 +72,8 @@
 		}
 
 		try {
-			console.error('[Login] About to sync JWT user to auth store');
 			// Synchronize JWT auth user to regular auth store
 			if (jwtAuth.user) {
-				const userEmail = jwtAuth.user.email;
-				const userRoles = JSON.stringify(jwtAuth.user.roles);
-				console.error(`[Login] JWT user email: ${userEmail}, roles: ${userRoles}`);
 				await auth.setUser({
 					id: jwtAuth.user.id,
 					email: jwtAuth.user.email,
@@ -164,6 +159,8 @@
 
 <!-- Use AuthLayout for consistent branding -->
 <AuthLayout title="MountainHR" subtitle="Human Resources Management System">
-	<!-- Use shadcn-style LoginForm -->
-	<LoginForm on:success={handleLoginSuccess} on:error={handleLoginError} />
+	<!-- Avoid input autofill hydration mismatches by mounting the interactive form only on client -->
+	<ClientOnly>
+		<LoginForm on:success={handleLoginSuccess} on:error={handleLoginError} />
+	</ClientOnly>
 </AuthLayout>

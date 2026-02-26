@@ -160,7 +160,10 @@ mod tests {
 
         // Ensure migration is applied
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Check if column is nullable
         let result = db
@@ -194,7 +197,10 @@ mod tests {
 
         // Ensure migration is applied
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Check column data type
         let result = db
@@ -225,7 +231,10 @@ mod tests {
 
         // Ensure migration is applied
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify foreign key exists
         assert!(
@@ -242,7 +251,10 @@ mod tests {
 
         // Ensure migration is applied
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Check foreign key references
         let result = db
@@ -282,7 +294,10 @@ mod tests {
 
         // Ensure migration is applied
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Verify index exists
         assert!(
@@ -321,7 +336,10 @@ mod tests {
 
         // Ensure migration is applied
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         // Get category description
         let result = db
@@ -394,7 +412,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         // Ensure migration is applied
-        Migration.up(&manager).await.expect("UP migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("UP migration should succeed");
         assert!(
             document_id_column_exists(&db).await,
             "Column should exist before rollback"
@@ -420,8 +441,14 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         // Ensure migration is applied
-        Migration.up(&manager).await.expect("UP migration should succeed");
-        assert!(index_exists(&db).await, "Index should exist before rollback");
+        Migration
+            .up(&manager)
+            .await
+            .expect("UP migration should succeed");
+        assert!(
+            index_exists(&db).await,
+            "Index should exist before rollback"
+        );
 
         // Run DOWN migration
         Migration
@@ -443,7 +470,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         // Ensure migration is applied
-        Migration.up(&manager).await.expect("UP migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("UP migration should succeed");
         assert!(
             foreign_key_exists(&db).await,
             "Foreign key should exist before rollback"
@@ -469,7 +499,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         // Ensure migration is applied
-        Migration.up(&manager).await.expect("UP migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("UP migration should succeed");
         assert!(
             category_exists(&db).await,
             "Category should exist before rollback"
@@ -495,7 +528,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         // Ensure migration is applied
-        Migration.up(&manager).await.expect("UP migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("UP migration should succeed");
 
         // Run DOWN migration twice
         Migration
@@ -551,7 +587,10 @@ mod tests {
         assert!(!category_exists(&db).await);
 
         // UP migration again
-        Migration.up(&manager).await.expect("Second UP should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Second UP should succeed");
         assert!(document_id_column_exists(&db).await);
         assert!(foreign_key_exists(&db).await);
         assert!(index_exists(&db).await);

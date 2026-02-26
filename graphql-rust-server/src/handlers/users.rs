@@ -3,14 +3,14 @@ use axum::{
     response::{IntoResponse, Json},
     Extension,
 };
-use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde::Deserialize;
 
 use crate::{
+    auth::UserContext,
     error::AppError,
     handlers::AppState,
-    auth::UserContext,
-    models::user::{Entity as UserEntity, Column as UserColumn},
+    models::user::{Column as UserColumn, Entity as UserEntity},
     schema::apply_user_rls_filter,
 };
 
@@ -56,13 +56,11 @@ pub async fn get_users_handler(
     Extension(user_context): Extension<UserContext>, // Require authentication
     Query(params): Query<GetUsersQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-
     let limit = params.limit.clamp(1, 1000);
     let offset = params.offset.max(0);
 
     // Build query with RLS filter
-    let mut query = UserEntity::find()
-        .filter(UserColumn::DeletedAt.is_null());
+    let mut query = UserEntity::find().filter(UserColumn::DeletedAt.is_null());
 
     // Apply RLS filter based on user context
     query = apply_user_rls_filter(query, &user_context);

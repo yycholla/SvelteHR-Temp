@@ -62,19 +62,14 @@ impl DigestScheduler {
     }
 
     /// Check for pending digests and send them
-    async fn check_and_send_digests(
-        service: &DigestService,
-    ) -> Result<()> {
+    async fn check_and_send_digests(service: &DigestService) -> Result<()> {
         let pending_digests = service.get_pending_digests().await?;
 
         if pending_digests.is_empty() {
             return Ok(());
         }
 
-        tracing::info!(
-            "Found {} pending digest(s) to send",
-            pending_digests.len()
-        );
+        tracing::info!("Found {} pending digest(s) to send", pending_digests.len());
 
         for digest in pending_digests {
             tracing::info!(
@@ -87,33 +82,39 @@ impl DigestScheduler {
             // Calculate time period for the digest
             let period_end = Utc::now();
             let period_start = match digest.schedule_cron.as_str() {
-                "0 9 * * *" => period_end - Duration::days(1),      // Daily: last 24 hours
-                "0 9 * * 1" => period_end - Duration::days(7),      // Weekly: last 7 days
-                "0 9 1 * *" => period_end - Duration::days(30),     // Monthly: last 30 days
-                _ => period_end - Duration::days(7),                // Default: last 7 days
+                "0 9 * * *" => period_end - Duration::days(1), // Daily: last 24 hours
+                "0 9 * * 1" => period_end - Duration::days(7), // Weekly: last 7 days
+                "0 9 1 * *" => period_end - Duration::days(30), // Monthly: last 30 days
+                _ => period_end - Duration::days(7),           // Default: last 7 days
             };
 
             // Generate digest content
-            match service.generate_digest_content(
-                period_start,
-                period_end,
-                digest.include_sync_summary,
-                digest.include_conflicts,
-                digest.include_health_metrics,
-                digest.include_new_employees,
-            ).await {
+            match service
+                .generate_digest_content(
+                    period_start,
+                    period_end,
+                    digest.include_sync_summary,
+                    digest.include_conflicts,
+                    digest.include_health_metrics,
+                    digest.include_new_employees,
+                )
+                .await
+            {
                 Ok(content) => {
                     // Send the digest
-                    match service.send_digest(
-                        digest.id,
-                        digest.name.clone(),
-                        digest.recipients.clone(),
-                        content,
-                        digest.include_sync_summary,
-                        digest.include_conflicts,
-                        digest.include_health_metrics,
-                        digest.include_new_employees,
-                    ).await {
+                    match service
+                        .send_digest(
+                            digest.id,
+                            digest.name.clone(),
+                            digest.recipients.clone(),
+                            content,
+                            digest.include_sync_summary,
+                            digest.include_conflicts,
+                            digest.include_health_metrics,
+                            digest.include_new_employees,
+                        )
+                        .await
+                    {
                         Ok(result) => {
                             if result.success {
                                 tracing::info!(
@@ -123,7 +124,9 @@ impl DigestScheduler {
                                 );
 
                                 // Update next_send_at for this digest
-                                if let Some(next_send) = service.calculate_next_send_time(&digest.schedule_cron, Utc::now()) {
+                                if let Some(next_send) = service
+                                    .calculate_next_send_time(&digest.schedule_cron, Utc::now())
+                                {
                                     // Update the digest's next_send_at in the database
                                     // This is handled by the send_digest method
                                     tracing::debug!(
@@ -136,16 +139,14 @@ impl DigestScheduler {
                                 tracing::error!(
                                     "Failed to send digest '{}': {}",
                                     digest.name,
-                                    result.error_message.unwrap_or_else(|| "Unknown error".to_string())
+                                    result
+                                        .error_message
+                                        .unwrap_or_else(|| "Unknown error".to_string())
                                 );
                             }
                         }
                         Err(e) => {
-                            tracing::error!(
-                                "Error sending digest '{}': {}",
-                                digest.name,
-                                e
-                            );
+                            tracing::error!("Error sending digest '{}': {}", digest.name, e);
                         }
                     }
                 }

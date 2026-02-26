@@ -4,7 +4,6 @@ import {
 	GET_SYNC_SCHEDULES,
 	GET_SYNC_SCHEDULE_HISTORY
 } from '$lib/graphql/operations/sync-schedule';
-import { error as svelteKitError } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ fetch, cookies, url }) => {
 	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));

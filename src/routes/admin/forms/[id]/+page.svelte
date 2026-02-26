@@ -20,6 +20,15 @@
 	import FormPreview from '$lib/components/forms/builder/FormPreview.svelte';
 	import BlockDialog from '$lib/components/forms/builder/BlockDialog.svelte';
 
+	interface BlockFormData {
+		type: string;
+		title: string;
+		textContent?: string;
+		documentUrl?: string;
+		formTemplateId?: string;
+		checkboxItemsString: string;
+	}
+
 	const { data } = $props();
 
 	// State
@@ -52,7 +61,7 @@
 	}
 
 	// Save block (create or update)
-	async function saveBlock(blockData: any) {
+	async function saveBlock(blockData: BlockFormData) {
 		const formData = new FormData();
 		const isEditing = !!editingBlock;
 

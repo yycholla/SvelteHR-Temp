@@ -13,12 +13,32 @@
 		Users
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 
-	const { data } = $props();
+	interface AssignmentPreview {
+		user?: {
+			displayName?: string | null;
+		} | null;
+	}
+
+	interface OnboardingModuleSummary {
+		id: string;
+		title: string;
+		description?: string | null;
+		category?: string | null;
+		isActive: boolean;
+		assignmentCount?: number;
+		assignments?: AssignmentPreview[];
+		createdAt: string | null;
+	}
+
+	interface OnboardingListPageData {
+		modules?: OnboardingModuleSummary[];
+	}
+
+	const { data }: { data: OnboardingListPageData } = $props();
 
 	let searchQuery = $state('');
 	let moduleToDelete = $state<{ id: string; title: string } | null>(null);
@@ -27,18 +47,18 @@
 	// Derived state for filtering
 	const filteredModules = $derived(
 		(data.modules || []).filter(
-			(m: any) =>
-				m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				m.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				m.category?.toLowerCase().includes(searchQuery.toLowerCase())
+			(module) =>
+				module.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				module.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				module.category?.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
 
 	// Statistics
 	const totalModules = $derived(data.modules?.length || 0);
-	const activeModules = $derived(data.modules?.filter((m: any) => m.isActive).length || 0);
+	const activeModules = $derived(data.modules?.filter((module) => module.isActive).length || 0);
 	const totalAssignments = $derived(
-		data.modules?.reduce((sum: number, m: any) => sum + (m.assignmentCount || 0), 0) || 0
+		data.modules?.reduce((sum: number, module) => sum + (module.assignmentCount || 0), 0) || 0
 	);
 
 	function formatDate(dateStr: string | null) {
@@ -206,7 +226,9 @@
 									</Badge>
 									{#if module.assignments && module.assignments.length > 0}
 										<span class="text-xs text-muted-foreground truncate max-w-[200px]">
-											{module.assignments.map((a: any) => a.user?.displayName).join(', ')}
+											{module.assignments
+												.map((assignment) => assignment.user?.displayName)
+												.join(', ')}
 										</span>
 									{/if}
 								</div>
@@ -285,7 +307,7 @@
 					action="?/delete"
 					use:enhance={() => {
 						isDeleting = true;
-						return async ({ result, update }) => {
+						return async ({ update }) => {
 							await update();
 							isDeleting = false;
 							moduleToDelete = null;

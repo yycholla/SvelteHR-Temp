@@ -39,6 +39,7 @@ declare global {
 			};
 			permissions?: string[];
 			roles?: string[];
+			accessToken?: string;
 			requestId?: string;
 		}
 		// interface PageData {}

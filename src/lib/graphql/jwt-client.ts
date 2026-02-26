@@ -12,19 +12,28 @@
  */
 
 import { Client, cacheExchange, fetchExchange, type Exchange } from '@urql/core';
-import { authExchange, type AuthConfig } from '@urql/exchange-auth';
+import { authExchange } from '@urql/exchange-auth';
 import { browser } from '$app/environment';
 import { jwtAuth } from '$lib/stores/jwt-auth.svelte';
+
+function getDefaultGraphQLEndpoint(isBrowser: boolean): string {
+	if (isBrowser) {
+		// Route browser GraphQL traffic through SvelteKit proxy for consistent auth/cookie handling.
+		return '/api/graphql';
+	}
+
+	return (
+		process.env.GRAPHQL_URL ||
+		(process.env.PUBLIC_API_URL ? `${process.env.PUBLIC_API_URL}/graphql` : '') ||
+		'http://localhost:4000/graphql'
+	);
+}
 
 // ============================================================================
 // Auth Exchange Configuration
 // ============================================================================
 
-interface AuthState {
-	token: string | null;
-}
-
-const jwtAuthExchange: Exchange = authExchange<AuthState>(async (utils) => {
+const jwtAuthExchange: Exchange = authExchange(async (utils) => {
 	return {
 		/**
 		 * Add JWT token to Authorization header
@@ -59,7 +68,7 @@ const jwtAuthExchange: Exchange = authExchange<AuthState>(async (utils) => {
 
 			// Check for network errors with 401 status
 			if (error.networkError) {
-				const statusCode = (error.networkError as any)?.statusCode;
+				const statusCode = (error.networkError as { statusCode?: number })?.statusCode;
 				return statusCode === 401;
 			}
 
@@ -81,7 +90,7 @@ const jwtAuthExchange: Exchange = authExchange<AuthState>(async (utils) => {
 		 */
 		async refreshAuth() {
 			if (!browser) {
-				return { token: null };
+				return;
 			}
 
 			console.log('[JWT Client] Attempting token refresh due to auth error');
@@ -90,12 +99,11 @@ const jwtAuthExchange: Exchange = authExchange<AuthState>(async (utils) => {
 
 			if (success && jwtAuth.accessToken) {
 				console.log('[JWT Client] Token refresh successful');
-				return { token: jwtAuth.accessToken };
+				return;
 			}
 
 			console.error('[JWT Client] Token refresh failed, clearing auth');
 			await jwtAuth.logout();
-			return { token: null };
 		}
 	};
 });
@@ -113,6 +121,8 @@ const jwtAuthExchange: Exchange = authExchange<AuthState>(async (utils) => {
 export function createJwtGraphQLClient(graphqlEndpoint: string): Client {
 	const client = new Client({
 		url: graphqlEndpoint,
+		// Backend serves GraphiQL HTML on GET /graphql; force POST for all operations.
+		preferGetMethod: false,
 		exchanges: [
 			cacheExchange,
 			jwtAuthExchange, // Handles JWT injection and refresh
@@ -121,7 +131,10 @@ export function createJwtGraphQLClient(graphqlEndpoint: string): Client {
 		// Include credentials for cookie-based refresh tokens
 		fetchOptions: () => ({
 			credentials: 'include',
-			method: 'POST' // Force POST for all operations (backend returns GraphiQL HTML for GET)
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			}
 		})
 	});
 
@@ -139,7 +152,7 @@ export function createJwtGraphQLClient(graphqlEndpoint: string): Client {
  * Default JWT-authenticated GraphQL client for browser
  */
 export const jwtGraphQLClient = browser
-	? createJwtGraphQLClient('http://localhost:4000/graphql')
+	? createJwtGraphQLClient(getDefaultGraphQLEndpoint(true))
 	: ({} as Client); // Placeholder for SSR
 
 // ============================================================================
@@ -160,17 +173,24 @@ export function createServerJwtClient(
 	fetch: typeof globalThis.fetch,
 	accessToken?: string
 ): Client {
+	const endpoint = getDefaultGraphQLEndpoint(false);
+
 	return new Client({
-		url: 'http://localhost:4000/graphql',
+		url: endpoint,
+		preferGetMethod: false,
 		exchanges: [cacheExchange, fetchExchange],
 		fetch,
 		fetchOptions: {
+			method: 'POST',
 			credentials: 'include',
 			headers: accessToken
 				? {
-						Authorization: `Bearer ${accessToken}`
+						Authorization: `Bearer ${accessToken}`,
+						'Content-Type': 'application/json'
 					}
-				: {}
+				: {
+						'Content-Type': 'application/json'
+					}
 		}
 	});
 }

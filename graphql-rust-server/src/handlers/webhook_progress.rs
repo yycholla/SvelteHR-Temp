@@ -6,7 +6,7 @@ use axum::{
     extract::{Path, State},
     response::sse::{Event, Sse},
 };
-use futures::stream::{Stream, unfold};
+use futures::stream::{unfold, Stream};
 use std::convert::Infallible;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -50,22 +50,29 @@ pub async fn webhook_progress_stream(
 
         match client_manager.get_client().await {
             Ok(intuit_client) => {
-                tracing::info!("IntuitClient created successfully for batch {}", task_batch_id);
+                tracing::info!(
+                    "IntuitClient created successfully for batch {}",
+                    task_batch_id
+                );
 
                 // Process batch with progress updates
                 match processor
-                    .process_batch_with_progress(task_batch_id.clone(), 50, &intuit_client, tx.clone())
+                    .process_batch_with_progress(
+                        task_batch_id.clone(),
+                        50,
+                        &intuit_client,
+                        tx.clone(),
+                    )
                     .await
                 {
                     Ok(_) => {
-                        tracing::info!("Batch processing completed successfully for {}", task_batch_id);
+                        tracing::info!(
+                            "Batch processing completed successfully for {}",
+                            task_batch_id
+                        );
                     }
                     Err(e) => {
-                        tracing::error!(
-                            "Error processing batch {}: {}",
-                            task_batch_id,
-                            e
-                        );
+                        tracing::error!("Error processing batch {}: {}", task_batch_id, e);
                     }
                 }
             }

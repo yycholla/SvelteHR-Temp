@@ -108,8 +108,8 @@ impl ErrorRecoveryMutations {
         }
 
         // Reset retry status to pending with immediate next retry time
-        use sea_orm::{ActiveModelTrait, Set};
         use crate::models::failed_operations;
+        use sea_orm::{ActiveModelTrait, Set};
 
         let mut active_op: failed_operations::ActiveModel = operation.into();
         active_op.status = Set("pending".to_string());
@@ -150,7 +150,9 @@ impl ErrorRecoveryMutations {
         service
             .resolve_operation(operation_id, user_ctx.user_id, input.resolution_notes)
             .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to resolve operation: {}", e)))?;
+            .map_err(|e| {
+                async_graphql::Error::new(format!("Failed to resolve operation: {}", e))
+            })?;
 
         Ok(OperationSuccess {
             success: true,

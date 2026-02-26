@@ -1,5 +1,5 @@
 import type { Client, CombinedError } from '@urql/core';
-import type { GraphQLPort } from '$services/ports/GraphQLPort';
+import type { GraphQLOperation, GraphQLPort } from '$services/ports/GraphQLPort';
 import { GraphQLError } from './errors/GraphQLError';
 import { logger } from '$lib/utils/logger';
 
@@ -15,9 +15,12 @@ const MAX_OPERATION_LOG_LENGTH = 100;
 export class GraphQLAdapter implements GraphQLPort {
 	constructor(private readonly client: Client) {}
 
-	async query<T = unknown>(operation: string, variables?: Record<string, unknown>): Promise<T> {
+	async query<T = unknown>(operation: GraphQLOperation, variables?: object): Promise<T> {
 		logger.debug('[GraphQL] Executing query', {
-			operation: operation.substring(0, MAX_OPERATION_LOG_LENGTH),
+			operation:
+				typeof operation === 'string'
+					? operation.substring(0, MAX_OPERATION_LOG_LENGTH)
+					: '<document>',
 			variables
 		});
 
@@ -34,10 +37,13 @@ export class GraphQLAdapter implements GraphQLPort {
 		return result.data as T;
 	}
 
-	async mutation<T = unknown>(operation: string, variables?: Record<string, unknown>): Promise<T> {
+	async mutation<T = unknown>(operation: GraphQLOperation, variables?: object): Promise<T> {
 		// SECURITY: Do NOT log variables (may contain passwords)
 		logger.debug('[GraphQL] Executing mutation', {
-			operation: operation.substring(0, MAX_OPERATION_LOG_LENGTH)
+			operation:
+				typeof operation === 'string'
+					? operation.substring(0, MAX_OPERATION_LOG_LENGTH)
+					: '<document>'
 		});
 
 		const result = await this.client.mutation(operation, variables ?? {}).toPromise();
@@ -53,6 +59,10 @@ export class GraphQLAdapter implements GraphQLPort {
 		return result.data as T;
 	}
 
+	async mutate<T = unknown>(operation: GraphQLOperation, variables?: object): Promise<T> {
+		return this.mutation<T>(operation, variables);
+	}
+
 	private handleError(error: CombinedError, operation: 'query' | 'mutation'): GraphQLError {
 		logger.error(`[GraphQL] ${operation} failed`, error);
 
@@ -63,6 +73,10 @@ export class GraphQLAdapter implements GraphQLPort {
 		}
 
 		if (message.includes('unauthorized') || message.includes('401')) {
+			return new GraphQLError('UNAUTHORIZED', error.message);
+		}
+
+		if (message.includes('authentication required') || message.includes('unauthenticated')) {
 			return new GraphQLError('UNAUTHORIZED', error.message);
 		}
 

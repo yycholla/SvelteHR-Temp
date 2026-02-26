@@ -29,7 +29,19 @@ impl UserStatus {
 }
 
 /// Compensation type enumeration for payroll
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum, utoipa::ToSchema)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    Enum,
+    utoipa::ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "compensation_type")]
 pub enum CompensationType {
     #[sea_orm(string_value = "SALARY")]
@@ -54,7 +66,19 @@ impl CompensationType {
 }
 
 /// Pay schedule enumeration for payroll
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum, utoipa::ToSchema)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    EnumIter,
+    DeriveActiveEnum,
+    Serialize,
+    Deserialize,
+    Enum,
+    utoipa::ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "pay_schedule")]
 pub enum PaySchedule {
     #[sea_orm(string_value = "WEEKLY")]
@@ -140,7 +164,9 @@ impl async_graphql::ScalarType for UserStatus {
                 "active" => Ok(UserStatus::Active),
                 "inactive" => Ok(UserStatus::Inactive),
                 "terminated" => Ok(UserStatus::Terminated),
-                _ => Err(async_graphql::InputValueError::custom("Invalid user status")),
+                _ => Err(async_graphql::InputValueError::custom(
+                    "Invalid user status",
+                )),
             }
         } else {
             Err(async_graphql::InputValueError::custom(
@@ -162,11 +188,11 @@ pub struct Model {
     pub id: Uuid,
     pub email: String,
     #[serde(skip_serializing)]
-    #[schema(value_type = String)]  // Present in schema but never serialized
+    #[schema(value_type = String)] // Present in schema but never serialized
     pub password_hash: String,
     pub first_name: String,
     pub last_name: String,
-    pub display_name: String,  // Computed column
+    pub display_name: String, // Computed column
     pub full_name: String,    // Computed column
     pub phone_number: Option<String>,
     pub alternate_phone: Option<String>,
@@ -194,12 +220,12 @@ pub struct Model {
     pub sync_status: String,
     // Payroll/Compensation fields
     pub compensation_type: Option<CompensationType>,
-    #[schema(value_type = Option<String>)]  // Represented as string in OpenAPI
+    #[schema(value_type = Option<String>)] // Represented as string in OpenAPI
     pub annual_salary: Option<rust_decimal::Decimal>,
-    #[schema(value_type = Option<String>)]  // Represented as string in OpenAPI
+    #[schema(value_type = Option<String>)] // Represented as string in OpenAPI
     pub hourly_rate: Option<rust_decimal::Decimal>,
     pub pay_schedule: Option<PaySchedule>,
-    #[schema(value_type = Option<String>)]  // Represented as string in OpenAPI
+    #[schema(value_type = Option<String>)] // Represented as string in OpenAPI
     pub commission_rate: Option<rust_decimal::Decimal>,
     pub bonus_eligible: bool,
     pub quickbooks_payroll_item_id: Option<String>,
@@ -217,11 +243,7 @@ pub enum Relation {
         to = "super::department::Column::Id"
     )]
     Department,
-    #[sea_orm(
-        belongs_to = "Entity",
-        from = "Column::ManagerId",
-        to = "Column::Id"
-    )]
+    #[sea_orm(belongs_to = "Entity", from = "Column::ManagerId", to = "Column::Id")]
     Manager,
     #[sea_orm(has_many = "crate::models::task::Entity")]
     Tasks,
@@ -294,10 +316,7 @@ impl Model {
             .await?;
 
         // Load the actual role records
-        let role_ids: Vec<Uuid> = role_assignments
-            .iter()
-            .map(|ra| ra.role_id)
-            .collect();
+        let role_ids: Vec<Uuid> = role_assignments.iter().map(|ra| ra.role_id).collect();
 
         let roles = super::role::Entity::find()
             .filter(super::role::Column::Id.is_in(role_ids))
@@ -406,7 +425,9 @@ impl Model {
     async fn department(&self, ctx: &Context<'_>) -> GqlResult<Option<super::department::Model>> {
         if let Some(dept_id) = self.department_id {
             let db = get_db_from_context(ctx)?;
-            let dept = super::department::Entity::find_by_id(dept_id).one(&db).await?;
+            let dept = super::department::Entity::find_by_id(dept_id)
+                .one(&db)
+                .await?;
             Ok(dept)
         } else {
             Ok(None)
@@ -438,7 +459,10 @@ impl Model {
     }
 
     /// User addresses (lazy-loaded)
-    async fn addresses(&self, ctx: &Context<'_>) -> GqlResult<Vec<crate::models::employee::user_address::Model>> {
+    async fn addresses(
+        &self,
+        ctx: &Context<'_>,
+    ) -> GqlResult<Vec<crate::models::employee::user_address::Model>> {
         let db = get_db_from_context(ctx)?;
         let addresses = crate::models::employee::user_address::Entity::find()
             .filter(crate::models::employee::user_address::Column::UserId.eq(self.id))
@@ -450,7 +474,10 @@ impl Model {
     }
 
     /// Primary address (lazy-loaded)
-    async fn primary_address(&self, ctx: &Context<'_>) -> GqlResult<Option<crate::models::employee::user_address::Model>> {
+    async fn primary_address(
+        &self,
+        ctx: &Context<'_>,
+    ) -> GqlResult<Option<crate::models::employee::user_address::Model>> {
         let db = get_db_from_context(ctx)?;
         let address = crate::models::employee::user_address::Entity::find()
             .filter(crate::models::employee::user_address::Column::UserId.eq(self.id))
@@ -461,7 +488,6 @@ impl Model {
 
         Ok(address)
     }
-
 }
 
 /// User condition for filtering queries (PostGraphile-style)

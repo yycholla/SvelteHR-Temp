@@ -2,8 +2,8 @@
  * GraphQL operation utilities
  * AST traversal helpers, fragment resolution, variable extraction
  */
-import type { DocumentNode, FragmentDefinitionNode, SelectionSetNode, FieldNode } from 'graphql';
-import type { GraphQLOperation, FieldReference } from '../types/models.js';
+import type { DocumentNode, FieldNode, FragmentDefinitionNode, SelectionSetNode } from 'graphql';
+import type { FieldReference, GraphQLOperation } from '../types/models.js';
 /**
  * Fragment registry for resolving fragment spreads
  */

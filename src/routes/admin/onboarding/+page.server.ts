@@ -9,6 +9,14 @@ import {
 	GET_ONBOARDING_MODULES_QUERY
 } from '$lib/graphql/onboarding-operations';
 
+interface OnboardingModuleRecord {
+	id: string;
+}
+
+interface OnboardingAssignmentRecord {
+	onboardingModuleId: string;
+}
+
 export const load: PageServerLoad = async (event) => {
 	requireAuth(event, { requiredRoles: ['Admin', 'HR Manager'] });
 
@@ -20,12 +28,15 @@ export const load: PageServerLoad = async (event) => {
 	// Fetch all assignments to count them per module
 	const assignmentsResponse = await client.query(GET_ALL_ONBOARDING_ASSIGNMENTS_QUERY);
 
-	const modules = modulesResponse.data?.onboardingModules || [];
-	const allAssignments = assignmentsResponse.data?.allOnboardingAssignments || [];
+	const modules: OnboardingModuleRecord[] = modulesResponse.data?.onboardingModules || [];
+	const allAssignments: OnboardingAssignmentRecord[] =
+		assignmentsResponse.data?.allOnboardingAssignments || [];
 
 	// Group assignments by module ID and add count to each module
-	const modulesWithAssignments = modules.map((module: any) => {
-		const assignments = allAssignments.filter((a: any) => a.onboardingModuleId === module.id);
+	const modulesWithAssignments = modules.map((module) => {
+		const assignments = allAssignments.filter(
+			(assignment) => assignment.onboardingModuleId === module.id
+		);
 		return {
 			...module,
 			assignmentCount: assignments.length,

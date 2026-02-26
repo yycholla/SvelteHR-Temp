@@ -14,21 +14,7 @@ export const FORM_BLOCK_FRAGMENT = gql`
 		textContent
 		documentUrl
 		formTemplateId
-		inlineFormFields {
-			name
-			label
-			type
-			required
-			placeholder
-			validation {
-				minLength
-				maxLength
-				min
-				max
-				pattern
-				options
-			}
-		}
+		inlineFormElements
 		fileUploadRequirements
 		signatureRequirements
 		checkboxItems
@@ -311,8 +297,7 @@ export interface OnboardingFormBlock {
 	textContent: string | null;
 	documentUrl: string | null;
 	formTemplateId: string | null;
-	inlineFormFields: FormFieldDefinition[] | null; // DEPRECATED: Use inlineFormElements instead
-	inlineFormElements: FormElement[] | null; // NEW: Inline form elements (fields + text blocks)
+	inlineFormElements: FormElement[] | null;
 	fileUploadRequirements: Record<string, unknown> | null;
 	signatureRequirements: Record<string, unknown> | null;
 	checkboxItems: string[] | null;
@@ -366,8 +351,7 @@ export interface CreateFormBlockInput {
 	textContent?: string | null;
 	documentUrl?: string | null;
 	formTemplateId?: string | null;
-	inlineFormFields?: FormFieldDefinition[] | null; // DEPRECATED: Use inlineFormElements
-	inlineFormElements?: FormElement[] | null; // NEW: Inline form elements (fields + text blocks)
+	inlineFormElements?: FormElement[] | null;
 	fileUploadRequirements?: Record<string, unknown> | null;
 	signatureRequirements?: Record<string, unknown> | null;
 	checkboxItems?: string[] | null;
@@ -379,8 +363,7 @@ export interface UpdateFormBlockInput {
 	textContent?: string | null;
 	documentUrl?: string | null;
 	formTemplateId?: string | null;
-	inlineFormFields?: FormFieldDefinition[] | null; // DEPRECATED: Use inlineFormElements
-	inlineFormElements?: FormElement[] | null; // NEW: Inline form elements (fields + text blocks)
+	inlineFormElements?: FormElement[] | null;
 	fileUploadRequirements?: Record<string, unknown> | null;
 	signatureRequirements?: Record<string, unknown> | null;
 	checkboxItems?: string[] | null;

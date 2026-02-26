@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use super::{
-    ChangeType, ConflictWinner, EntityId, EntityType, EntityVersion,
-    QuickBooksId, SyncDirection, SyncError, SyncMode, SyncStatus,
+    ChangeType, ConflictWinner, EntityId, EntityType, EntityVersion, QuickBooksId, SyncDirection,
+    SyncError, SyncMode, SyncStatus,
 };
 
 /// Unique identifier for a sync operation
@@ -213,7 +213,11 @@ impl ConflictResolution {
         self
     }
 
-    pub fn with_field_selection(mut self, field: impl Into<String>, winner: ConflictWinner) -> Self {
+    pub fn with_field_selection(
+        mut self,
+        field: impl Into<String>,
+        winner: ConflictWinner,
+    ) -> Self {
         self.field_selections.insert(field.into(), winner);
         self
     }
@@ -308,7 +312,10 @@ impl SyncReport {
     }
 
     pub fn is_success(&self) -> bool {
-        matches!(self.status, SyncStatus::Completed | SyncStatus::CompletedWithErrors)
+        matches!(
+            self.status,
+            SyncStatus::Completed | SyncStatus::CompletedWithErrors
+        )
     }
 }
 
@@ -418,18 +425,16 @@ impl Hours {
                 )],
             ));
         }
-        Ok(Hours(
-            Decimal::from_f64_retain(value).ok_or_else(|| {
-                SyncError::validation(
-                    "time_entry",
-                    vec![crate::domain::sync::Violation::new(
-                        "hours",
-                        "Invalid decimal value",
-                        "INVALID_DECIMAL",
-                    )],
-                )
-            })?,
-        ))
+        Ok(Hours(Decimal::from_f64_retain(value).ok_or_else(|| {
+            SyncError::validation(
+                "time_entry",
+                vec![crate::domain::sync::Violation::new(
+                    "hours",
+                    "Invalid decimal value",
+                    "INVALID_DECIMAL",
+                )],
+            )
+        })?))
     }
 
     pub fn as_decimal(&self) -> Decimal {
@@ -445,10 +450,10 @@ impl Hours {
 /// Time entry approval workflow states
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ApprovalStatus {
-    Draft,      // Can be edited, cannot be synced
-    Submitted,  // Pending approval, cannot be edited
-    Approved,   // Can be synced to QuickBooks
-    Rejected,   // Cannot be synced
+    Draft,     // Can be edited, cannot be synced
+    Submitted, // Pending approval, cannot be edited
+    Approved,  // Can be synced to QuickBooks
+    Rejected,  // Cannot be synced
 }
 
 impl ApprovalStatus {
@@ -541,7 +546,10 @@ mod time_entry_tests {
     #[test]
     fn approval_status_string_conversion() {
         assert_eq!(ApprovalStatus::Approved.as_str(), "approved");
-        assert_eq!(ApprovalStatus::from_str("approved"), ApprovalStatus::Approved);
+        assert_eq!(
+            ApprovalStatus::from_str("approved"),
+            ApprovalStatus::Approved
+        );
     }
 
     #[test]

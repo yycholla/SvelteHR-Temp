@@ -64,6 +64,14 @@ pub struct CloudEvent {
     #[serde(rename = "type")]
     pub event_type: String,
     pub data: serde_json::Value,
+    #[serde(rename = "intuitEntityId")]
+    pub intuit_entity_id: Option<String>,
+    #[serde(rename = "intuitAccountId")]
+    pub intuit_account_id: Option<String>,
+    #[serde(rename = "intuitObjectType")]
+    pub intuit_object_type: Option<String>,
+    #[serde(rename = "intuitEventType")]
+    pub intuit_event_type: Option<String>,
 }
 
 /// Webhook adapter for processing QuickBooks webhooks
@@ -110,8 +118,8 @@ where
     pub fn parse_payload(&self, payload: &str) -> Result<Vec<WebhookEvent>, SyncError> {
         // Try CloudEvents format first (array)
         if payload.trim_start().starts_with('[') {
-            let cloud_events: Vec<CloudEvent> = serde_json::from_str(payload)
-                .map_err(|e| SyncError::WebhookParseError {
+            let cloud_events: Vec<CloudEvent> =
+                serde_json::from_str(payload).map_err(|e| SyncError::WebhookParseError {
                     message: e.to_string(),
                 })?;
 
@@ -121,8 +129,8 @@ where
                 .collect())
         } else {
             // Legacy format (object)
-            let legacy: LegacyWebhookPayload = serde_json::from_str(payload)
-                .map_err(|e| SyncError::WebhookParseError {
+            let legacy: LegacyWebhookPayload =
+                serde_json::from_str(payload).map_err(|e| SyncError::WebhookParseError {
                     message: e.to_string(),
                 })?;
 
@@ -142,29 +150,52 @@ where
 
     /// Parse a CloudEvent into a WebhookEvent
     fn parse_cloud_event(&self, event: CloudEvent) -> Option<WebhookEvent> {
-        // Parse entity type from event type (e.g., "com.intuit.quickbooks.employee.updated")
-        let entity_type = if event.event_type.contains("employee") {
+        // Parse entity type from Intuit CloudEvents fields first, then event type fallback.
+        let event_type_lc = event.event_type.to_lowercase();
+        let object_type_lc = event
+            .intuit_object_type
+            .as_deref()
+            .unwrap_or_default()
+            .to_lowercase();
+        let entity_type = if object_type_lc == "employee" || event_type_lc.contains("employee") {
             EntityType::Employee
-        } else if event.event_type.contains("department") {
+        } else if object_type_lc == "department" || event_type_lc.contains("department") {
             EntityType::Department
         } else {
             return None; // Unsupported entity type
         };
 
         // Parse operation
-        let operation = if event.event_type.ends_with(".created") {
+        let operation_hint = event
+            .intuit_event_type
+            .as_deref()
+            .unwrap_or(event.event_type.as_str())
+            .to_lowercase();
+        let operation = if operation_hint.contains("created") || operation_hint.contains("create") {
             WebhookOperation::Create
-        } else if event.event_type.ends_with(".updated") {
+        } else if operation_hint.contains("updated") || operation_hint.contains("update") {
             WebhookOperation::Update
-        } else if event.event_type.ends_with(".deleted") {
+        } else if operation_hint.contains("deleted") || operation_hint.contains("delete") {
             WebhookOperation::Delete
+        } else if operation_hint.contains("merge") {
+            WebhookOperation::Merge
         } else {
             WebhookOperation::Update // Default
         };
 
-        // Extract entity ID and realm ID from data
-        let entity_id = event.data.get("id")?.as_str()?;
-        let realm_id = event.data.get("realmId")?.as_str()?.to_string();
+        // Extract entity ID and realm ID from top-level Intuit fields with data fallbacks
+        let entity_id = event
+            .intuit_entity_id
+            .as_deref()
+            .or_else(|| event.data.get("intuitEntityId").and_then(|v| v.as_str()))
+            .or_else(|| event.data.get("id").and_then(|v| v.as_str()))
+            .or_else(|| event.data.get("entityId").and_then(|v| v.as_str()))?;
+        let realm_id = event
+            .intuit_account_id
+            .as_deref()
+            .or_else(|| event.data.get("intuitAccountId").and_then(|v| v.as_str()))
+            .or_else(|| event.data.get("realmId").and_then(|v| v.as_str()))?
+            .to_string();
 
         Some(WebhookEvent {
             entity_type,
@@ -201,9 +232,7 @@ where
     /// Process webhook events by triggering sync for affected entity types
     pub async fn process_events(&self, events: Vec<WebhookEvent>) -> Result<(), SyncError> {
         // Group events by entity type
-        let has_employees = events
-            .iter()
-            .any(|e| e.entity_type == EntityType::Employee);
+        let has_employees = events.iter().any(|e| e.entity_type == EntityType::Employee);
         let has_departments = events
             .iter()
             .any(|e| e.entity_type == EntityType::Department);
@@ -280,14 +309,14 @@ mod tests {
         let legacy: LegacyWebhookPayload = serde_json::from_str(payload).unwrap();
         assert_eq!(legacy.event_notifications.len(), 1);
         assert_eq!(
-            legacy.event_notifications[0].data_change_event.entities.len(),
+            legacy.event_notifications[0]
+                .data_change_event
+                .entities
+                .len(),
             1
         );
         assert_eq!(
-            legacy.event_notifications[0]
-                .data_change_event
-                .entities[0]
-                .name,
+            legacy.event_notifications[0].data_change_event.entities[0].name,
             "Employee"
         );
     }
@@ -305,13 +334,16 @@ mod tests {
 
         let cloud_events: Vec<CloudEvent> = serde_json::from_str(payload).unwrap();
         assert_eq!(cloud_events.len(), 1);
-        assert_eq!(cloud_events[0].event_type, "com.intuit.quickbooks.employee.updated");
+        assert_eq!(
+            cloud_events[0].event_type,
+            "com.intuit.quickbooks.employee.updated"
+        );
     }
 
     #[test]
     fn parse_entity_change_creates_webhook_event() {
-        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::health::mock::MockHealthPort;
+        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::sync_repository::mock::MockSyncRepositoryPort;
 
         let qb = Arc::new(MockQuickBooksPort::new());
@@ -338,8 +370,8 @@ mod tests {
 
     #[test]
     fn parse_entity_change_ignores_unsupported_types() {
-        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::health::mock::MockHealthPort;
+        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::sync_repository::mock::MockSyncRepositoryPort;
 
         let qb = Arc::new(MockQuickBooksPort::new());
@@ -361,8 +393,8 @@ mod tests {
 
     #[tokio::test]
     async fn parse_payload_with_legacy_format() {
-        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::health::mock::MockHealthPort;
+        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::sync_repository::mock::MockSyncRepositoryPort;
 
         let qb = Arc::new(MockQuickBooksPort::new());
@@ -399,8 +431,8 @@ mod tests {
 
     #[tokio::test]
     async fn verify_signature_with_valid_token() {
-        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::health::mock::MockHealthPort;
+        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::sync_repository::mock::MockSyncRepositoryPort;
 
         let qb = Arc::new(MockQuickBooksPort::new());
@@ -425,8 +457,8 @@ mod tests {
 
     #[tokio::test]
     async fn verify_signature_with_invalid_signature() {
-        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::health::mock::MockHealthPort;
+        use crate::ports::quickbooks::mock::MockQuickBooksPort;
         use crate::ports::sync_repository::mock::MockSyncRepositoryPort;
 
         let qb = Arc::new(MockQuickBooksPort::new());

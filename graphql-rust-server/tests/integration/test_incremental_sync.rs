@@ -369,12 +369,16 @@ async fn test_sync_result_includes_metrics() {
             error
         );
         assert!(
-            !error.message.contains("Cannot query field \"changesDetected\""),
+            !error
+                .message
+                .contains("Cannot query field \"changesDetected\""),
             "changesDetected field should exist in schema: {:?}",
             error
         );
         assert!(
-            !error.message.contains("Cannot query field \"changesProcessed\""),
+            !error
+                .message
+                .contains("Cannot query field \"changesProcessed\""),
             "changesProcessed field should exist in schema: {:?}",
             error
         );
@@ -476,7 +480,10 @@ async fn test_sync_log_records_mode() {
         .await
         .expect("Failed to insert sync log");
 
-    assert!(result.is_some(), "Should successfully insert sync log with sync_mode");
+    assert!(
+        result.is_some(),
+        "Should successfully insert sync log with sync_mode"
+    );
 
     // Query it back
     let id: Uuid = result.unwrap().try_get("", "id").unwrap();
@@ -563,7 +570,10 @@ async fn test_sync_log_default_values() {
 
     assert_eq!(sync_mode, "full", "sync_mode should default to 'full'");
     assert_eq!(changes_detected, 0, "changes_detected should default to 0");
-    assert_eq!(changes_processed, 0, "changes_processed should default to 0");
+    assert_eq!(
+        changes_processed, 0,
+        "changes_processed should default to 0"
+    );
 }
 
 // ============================================================================

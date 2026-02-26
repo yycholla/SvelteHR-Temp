@@ -2,7 +2,7 @@
 //!
 //! Comprehensive audit trail for all system activities
 
-use crate::models::{audit_logs, audit_log_retention};
+use crate::models::{audit_log_retention, audit_logs};
 use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
@@ -113,11 +113,7 @@ impl AuditLogBuilder {
         self
     }
 
-    pub fn sync_context(
-        mut self,
-        direction: Option<String>,
-        job_id: Option<Uuid>,
-    ) -> Self {
+    pub fn sync_context(mut self, direction: Option<String>, job_id: Option<Uuid>) -> Self {
         self.sync_direction = direction;
         self.sync_job_id = job_id;
         self
@@ -183,13 +179,17 @@ impl AuditLogger {
     }
 
     /// Create a new audit log builder
-    pub fn log(&self, event_type: impl Into<String>, event_category: impl Into<String>) -> AuditLogBuilder {
+    pub fn log(
+        &self,
+        event_type: impl Into<String>,
+        event_category: impl Into<String>,
+    ) -> AuditLogBuilder {
         AuditLogBuilder::new(event_type, event_category)
     }
 
     /// Record an audit log entry with tamper detection
     pub async fn record(&self, mut log: audit_logs::ActiveModel) -> Result<Uuid, sea_orm::DbErr> {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
 
         // Generate unique audit ID
         let audit_id = format!("AUD-{}", Uuid::new_v4());
@@ -427,7 +427,7 @@ impl AuditLogger {
         from: chrono::DateTime<Utc>,
         to: chrono::DateTime<Utc>,
     ) -> Result<AuditVerification, sea_orm::DbErr> {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
 
         let entries = audit_logs::Entity::find()
             .filter(audit_logs::Column::CreatedAt.gte(from))
@@ -522,18 +522,12 @@ impl AuditLogger {
         let total_actions = logs.len() as i32;
 
         // Count failed operations
-        let failed_operations = logs
-            .iter()
-            .filter(|log| log.status == "failed")
-            .count() as i32;
+        let failed_operations = logs.iter().filter(|log| log.status == "failed").count() as i32;
 
         // Count data modifications
         let data_modifications = logs
             .iter()
-            .filter(|log| {
-                log.event_category == "data_change" ||
-                log.event_category == "sync"
-            })
+            .filter(|log| log.event_category == "data_change" || log.event_category == "sync")
             .count() as i32;
 
         // Group by user for user activity
@@ -542,14 +536,15 @@ impl AuditLogger {
 
         for log in &logs {
             if let Some(user_email) = &log.user_email {
-                let stats = user_activity_map
-                    .entry(user_email.clone())
-                    .or_insert(UserActivityStats {
-                        user_email: user_email.clone(),
-                        total_actions: 0,
-                        failed_actions: 0,
-                        data_changes: 0,
-                    });
+                let stats =
+                    user_activity_map
+                        .entry(user_email.clone())
+                        .or_insert(UserActivityStats {
+                            user_email: user_email.clone(),
+                            total_actions: 0,
+                            failed_actions: 0,
+                            data_changes: 0,
+                        });
 
                 stats.total_actions += 1;
                 if log.status == "failed" {

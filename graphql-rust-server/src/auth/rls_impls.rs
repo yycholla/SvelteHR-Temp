@@ -1,12 +1,12 @@
-use sea_orm::{QueryFilter, ColumnTrait, Select};
 use crate::auth::{RlsFilterable, UserContext};
 use crate::models::{
-    task::{Entity as TaskEntity, Column as TaskColumn},
-    user::Entity as UserEntity,
     department::Entity as DepartmentEntity,
-    leave_request::{Entity as LeaveRequestEntity, Column as LeaveRequestColumn},
-    performance_review::{Entity as PerformanceReviewEntity, Column as PerformanceReviewColumn},
+    leave_request::{Column as LeaveRequestColumn, Entity as LeaveRequestEntity},
+    performance_review::{Column as PerformanceReviewColumn, Entity as PerformanceReviewEntity},
+    task::{Column as TaskColumn, Entity as TaskEntity},
+    user::Entity as UserEntity,
 };
+use sea_orm::{ColumnTrait, QueryFilter, Select};
 
 // Implement RlsFilterable for TaskEntity
 impl RlsFilterable for TaskEntity {
@@ -61,9 +61,9 @@ impl RlsFilterable for LeaveRequestEntity {
             // or we need a JOIN to filter by user department.
             // Keeping consistent with original logic:
             if let Some(_dept_id) = user.department_id {
-                 // Requires JOIN, simplified here to return query (access control handled by resolver logic/permissions usually)
-                 // But RLS is strict. Let's return query for HR Manager for now as a policy decision.
-                 query
+                // Requires JOIN, simplified here to return query (access control handled by resolver logic/permissions usually)
+                // But RLS is strict. Let's return query for HR Manager for now as a policy decision.
+                query
             } else {
                 query.filter(LeaveRequestColumn::Id.is_null())
             }

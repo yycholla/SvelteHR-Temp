@@ -6,15 +6,14 @@
 use super::client::IntuitClient;
 use super::oauth::refresh_access_token;
 use crate::models::intuit_connection::{
-    ActiveModel as IntuitConnectionActiveModel,
-    Column as IntuitConnectionColumn,
+    ActiveModel as IntuitConnectionActiveModel, Column as IntuitConnectionColumn,
     Entity as IntuitConnectionEntity,
 };
 use anyhow::{Context, Result};
 use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    Set,
+    QueryOrder, Set,
 };
 
 /// Manager for QuickBooks API clients with automatic token refresh
@@ -47,6 +46,8 @@ impl IntuitClientManager {
         let connection = IntuitConnectionEntity::find()
             .filter(IntuitConnectionColumn::IsActive.eq(true))
             .filter(IntuitConnectionColumn::DeletedAt.is_null())
+            .order_by_desc(IntuitConnectionColumn::UpdatedAt)
+            .order_by_desc(IntuitConnectionColumn::CreatedAt)
             .one(&self.db)
             .await
             .context("Failed to query Intuit connection")?
@@ -62,6 +63,12 @@ impl IntuitClientManager {
                 expires_at = %connection.token_expires_at,
                 "QuickBooks access token expired or expiring soon, refreshing..."
             );
+
+            if connection.refresh_token.trim().is_empty() {
+                return Err(anyhow::anyhow!(
+                    "QuickBooks refresh token is missing; reconnect integration to continue"
+                ));
+            }
 
             // Refresh the token
             let new_tokens = refresh_access_token(connection.refresh_token.clone())
@@ -108,6 +115,8 @@ impl IntuitClientManager {
         let connection = IntuitConnectionEntity::find()
             .filter(IntuitConnectionColumn::IsActive.eq(true))
             .filter(IntuitConnectionColumn::DeletedAt.is_null())
+            .order_by_desc(IntuitConnectionColumn::UpdatedAt)
+            .order_by_desc(IntuitConnectionColumn::CreatedAt)
             .one(&self.db)
             .await
             .context("Failed to query Intuit connection")?
@@ -133,6 +142,8 @@ impl IntuitClientManager {
         let connection = IntuitConnectionEntity::find()
             .filter(IntuitConnectionColumn::IsActive.eq(true))
             .filter(IntuitConnectionColumn::DeletedAt.is_null())
+            .order_by_desc(IntuitConnectionColumn::UpdatedAt)
+            .order_by_desc(IntuitConnectionColumn::CreatedAt)
             .one(&self.db)
             .await
             .context("Failed to query Intuit connection")?

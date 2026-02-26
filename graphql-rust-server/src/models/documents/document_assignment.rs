@@ -161,7 +161,10 @@ impl Model {
     }
 
     /// User relationship (lazy-loaded)
-    async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
+    async fn user(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<Option<crate::models::User>> {
         if let Some(user_id) = self.user_id {
             let db = get_db_from_context(ctx)?;
             let user = crate::models::user::Entity::find_by_id(user_id)

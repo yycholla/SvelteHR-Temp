@@ -14,54 +14,79 @@
 		Save,
 		Trash2,
 		Type,
-		Video,
-		X
+		Video
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Alert from '$lib/components/ui/alert';
 
-	const { data, form } = $props();
+	type TrainingContentType = 'TEXT' | 'VIDEO' | 'IMAGE' | 'DOCUMENT' | 'URL';
+
+	interface TrainingContentItem {
+		id: string;
+		title: string;
+		type: TrainingContentType;
+		data: string;
+		sequenceOrder: number;
+	}
+
+	interface TrainingSummary {
+		id: string;
+		title: string;
+	}
+
+	interface TrainingContentPageData {
+		contents: TrainingContentItem[];
+		training: TrainingSummary;
+	}
+
+	interface TrainingContentPageForm {
+		error?: string;
+	}
+
+	const { data, form }: { data: TrainingContentPageData; form?: TrainingContentPageForm } =
+		$props();
 
 	// State
-	let items = $state(data.contents.sort((a: any, b: any) => a.sequenceOrder - b.sequenceOrder));
-	let activeTab = $state('TEXT');
+	let items = $state<TrainingContentItem[]>(
+		data.contents.sort((a, b) => a.sequenceOrder - b.sequenceOrder)
+	);
+	let activeTab = $state<TrainingContentType>('TEXT');
 	let editingId = $state<string | null>(null);
 
 	// Form state
 	let title = $state('');
 	let contentData = $state('');
-	let type = $state('TEXT');
+	let type = $state<TrainingContentType>('TEXT');
 
 	// Derived
 	const isEditing = $derived(!!editingId);
 
 	$effect(() => {
-		items = data.contents.sort((a: any, b: any) => a.sequenceOrder - b.sequenceOrder);
+		items = data.contents.sort((a, b) => a.sequenceOrder - b.sequenceOrder);
 	});
 
-	function handleDndConsider(e: CustomEvent<DndEvent>) {
+	function handleDndConsider(e: CustomEvent<DndEvent<TrainingContentItem>>) {
 		items = e.detail.items;
 	}
 
-	function handleDndFinalize(e: CustomEvent<DndEvent>) {
+	function handleDndFinalize(e: CustomEvent<DndEvent<TrainingContentItem>>) {
 		items = e.detail.items;
 		updateSequence();
 	}
 
 	async function updateSequence() {
-		const updates = items.map((item: any, index: number) => ({
+		const updates = items.map((item, index) => ({
 			id: item.id,
 			sequenceOrder: index
 		}));
 		logger.info(`Reordering: ${updates}`);
 	}
 
-	function selectType(newType: string) {
+	function selectType(newType: TrainingContentType) {
 		if (isEditing) return;
 		activeTab = newType;
 		type = newType;
@@ -69,7 +94,7 @@
 		contentData = '';
 	}
 
-	function editItem(item: any) {
+	function editItem(item: TrainingContentItem) {
 		editingId = item.id;
 		title = item.title;
 		contentData = item.data;

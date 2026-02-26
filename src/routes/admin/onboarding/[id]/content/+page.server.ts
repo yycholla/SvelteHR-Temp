@@ -112,7 +112,7 @@ export const actions: Actions = {
 		if (inlineFormElementsStr && inlineFormElementsStr !== '[]') {
 			try {
 				inlineFormElements = JSON.parse(inlineFormElementsStr);
-			} catch (err) {
+			} catch {
 				return fail(400, { error: 'Invalid inline form elements' });
 			}
 		}
@@ -151,7 +151,7 @@ export const actions: Actions = {
 
 			const createdBlock = response.data?.onboarding?.createContentBlock;
 			return { success: true, block: createdBlock };
-		} catch (err) {
+		} catch {
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
@@ -177,7 +177,7 @@ export const actions: Actions = {
 		if (inlineFormElementsStr && inlineFormElementsStr !== '[]') {
 			try {
 				inlineFormElements = JSON.parse(inlineFormElementsStr);
-			} catch (err) {
+			} catch {
 				return fail(400, { error: 'Invalid inline form elements' });
 			}
 		}
@@ -203,7 +203,7 @@ export const actions: Actions = {
 			if (response.errors) {
 				return fail(500, { error: 'Failed to update content block' });
 			}
-		} catch (err) {
+		} catch {
 			return fail(500, { error: 'Internal server error' });
 		}
 
@@ -220,7 +220,7 @@ export const actions: Actions = {
 
 		try {
 			await client.mutation(DELETE_CONTENT_BLOCK_MUTATION, { id });
-		} catch (err) {
+		} catch {
 			return fail(500, { error: 'Failed to delete content block' });
 		}
 

@@ -4,9 +4,9 @@ use async_graphql::{Context, Enum, Object, Result};
 use chrono::{DateTime, Utc};
 
 use crate::auth::UserContext;
+use crate::models::{compliance_reports, report_schedules};
 use crate::services::compliance_reports::ComplianceReportService;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::models::{compliance_reports, report_schedules};
 
 use std::sync::Arc;
 use uuid::Uuid;
@@ -32,9 +32,7 @@ impl ComplianceQueries {
             .await?;
 
         let service = ComplianceReportService::new(Arc::new(db.clone()));
-        let report = service
-            .get_report(Uuid::parse_str(&report_id)?)
-            .await?;
+        let report = service.get_report(Uuid::parse_str(&report_id)?).await?;
 
         Ok(report.map(ComplianceReport::from))
     }
@@ -67,10 +65,7 @@ impl ComplianceQueries {
     }
 
     /// Get active report schedules
-    async fn report_schedules(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<Vec<ReportSchedule>> {
+    async fn report_schedules(&self, ctx: &Context<'_>) -> Result<Vec<ReportSchedule>> {
         let user_ctx = ctx.data::<UserContext>()?;
         let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
@@ -138,20 +133,48 @@ pub struct ComplianceReport {
 
 #[Object]
 impl ComplianceReport {
-    async fn id(&self) -> &str { &self.id }
-    async fn report_type(&self) -> &str { &self.report_type }
-    async fn period_start(&self) -> DateTime<Utc> { self.period_start }
-    async fn period_end(&self) -> DateTime<Utc> { self.period_end }
-    async fn generated_at(&self) -> DateTime<Utc> { self.generated_at }
-    async fn generated_by(&self) -> &str { &self.generated_by }
-    async fn report_data(&self) -> Option<&serde_json::Value> { self.report_data.as_ref() }
-    async fn pdf_path(&self) -> Option<&str> { self.pdf_path.as_deref() }
-    async fn csv_path(&self) -> Option<&str> { self.csv_path.as_deref() }
-    async fn status(&self) -> &str { &self.status }
-    async fn findings(&self) -> Option<&serde_json::Value> { self.findings.as_ref() }
-    async fn error_message(&self) -> Option<&str> { self.error_message.as_deref() }
-    async fn created_at(&self) -> DateTime<Utc> { self.created_at }
-    async fn updated_at(&self) -> DateTime<Utc> { self.updated_at }
+    async fn id(&self) -> &str {
+        &self.id
+    }
+    async fn report_type(&self) -> &str {
+        &self.report_type
+    }
+    async fn period_start(&self) -> DateTime<Utc> {
+        self.period_start
+    }
+    async fn period_end(&self) -> DateTime<Utc> {
+        self.period_end
+    }
+    async fn generated_at(&self) -> DateTime<Utc> {
+        self.generated_at
+    }
+    async fn generated_by(&self) -> &str {
+        &self.generated_by
+    }
+    async fn report_data(&self) -> Option<&serde_json::Value> {
+        self.report_data.as_ref()
+    }
+    async fn pdf_path(&self) -> Option<&str> {
+        self.pdf_path.as_deref()
+    }
+    async fn csv_path(&self) -> Option<&str> {
+        self.csv_path.as_deref()
+    }
+    async fn status(&self) -> &str {
+        &self.status
+    }
+    async fn findings(&self) -> Option<&serde_json::Value> {
+        self.findings.as_ref()
+    }
+    async fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+    async fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 impl From<compliance_reports::Model> for ComplianceReport {
@@ -192,16 +215,36 @@ pub struct ReportSchedule {
 
 #[Object]
 impl ReportSchedule {
-    async fn id(&self) -> &str { &self.id }
-    async fn report_type(&self) -> &str { &self.report_type }
-    async fn schedule_cron(&self) -> &str { &self.schedule_cron }
-    async fn recipients(&self) -> &Vec<String> { &self.recipients }
-    async fn enabled(&self) -> bool { self.enabled }
-    async fn last_run_at(&self) -> Option<DateTime<Utc>> { self.last_run_at }
-    async fn next_run_at(&self) -> Option<DateTime<Utc>> { self.next_run_at }
-    async fn created_by(&self) -> &str { &self.created_by }
-    async fn created_at(&self) -> DateTime<Utc> { self.created_at }
-    async fn updated_at(&self) -> DateTime<Utc> { self.updated_at }
+    async fn id(&self) -> &str {
+        &self.id
+    }
+    async fn report_type(&self) -> &str {
+        &self.report_type
+    }
+    async fn schedule_cron(&self) -> &str {
+        &self.schedule_cron
+    }
+    async fn recipients(&self) -> &Vec<String> {
+        &self.recipients
+    }
+    async fn enabled(&self) -> bool {
+        self.enabled
+    }
+    async fn last_run_at(&self) -> Option<DateTime<Utc>> {
+        self.last_run_at
+    }
+    async fn next_run_at(&self) -> Option<DateTime<Utc>> {
+        self.next_run_at
+    }
+    async fn created_by(&self) -> &str {
+        &self.created_by
+    }
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+    async fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 impl From<report_schedules::Model> for ReportSchedule {

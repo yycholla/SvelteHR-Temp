@@ -1,60 +1,123 @@
-import { logger } from '$lib/utils/logger';
-// Authentication endpoint - Verify session with Rust GraphQL API
-import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
-import { getApiBaseUrl } from '$lib/server/api-url.js';
+import { json, type Cookies } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { verifyAccessTokenWithBackend, refreshWithBackend } from '$lib/server/auth/jwt-backend.js';
 
-export const GET: RequestHandler = async ({ request }) => {
-	try {
-		// Call Rust GraphQL API me endpoint to verify session
-		const apiBaseUrl = getApiBaseUrl();
-		const verifyUrl = `${apiBaseUrl}/auth/me`;
+function getCookieSecurity(url: URL): { secure: boolean; sameSite: 'lax' } {
+	return {
+		secure: url.protocol === 'https:',
+		sameSite: 'lax'
+	};
+}
 
-		const verifyResponse = await fetch(verifyUrl, {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-				cookie: request.headers.get('cookie') || ''
-			}
+function clearAuthCookies(cookies: Cookies, url: URL): void {
+	const cookieSecurity = getCookieSecurity(url);
+	for (const name of ['access_token', 'refresh_token', 'refresh_token_plaintext']) {
+		cookies.set(name, '', {
+			path: '/',
+			maxAge: 0,
+			httpOnly: true,
+			secure: cookieSecurity.secure,
+			sameSite: cookieSecurity.sameSite
 		});
+	}
+}
 
-		if (!verifyResponse.ok) {
-			// Only log on failure
-			logger.error('[Verify] === SESSION VERIFICATION FAILED ===');
-			logger.error('[Verify] API response status', new Error('Verification failed'), {
-				status: verifyResponse.status
-			});
-			logger.error('[Verify] Verify URL', new Error('Verification failed'), { verifyUrl });
+function setAuthCookies(
+	cookies: Cookies,
+	url: URL,
+	refreshToken: string,
+	refreshTokenPlaintext: string,
+	_expiresIn: number
+): void {
+	const cookieSecurity = getCookieSecurity(url);
+	const refreshMaxAge = 7 * 24 * 60 * 60;
+
+	cookies.set('refresh_token', refreshToken, {
+		path: '/',
+		maxAge: refreshMaxAge,
+		httpOnly: true,
+		secure: cookieSecurity.secure,
+		sameSite: cookieSecurity.sameSite
+	});
+
+	cookies.set('refresh_token_plaintext', refreshTokenPlaintext, {
+		path: '/',
+		maxAge: refreshMaxAge,
+		httpOnly: true,
+		secure: cookieSecurity.secure,
+		sameSite: cookieSecurity.sameSite
+	});
+}
+
+export const GET: RequestHandler = async ({ cookies, url, request, getClientAddress }) => {
+	try {
+		const accessToken = cookies.get('access_token');
+
+		if (accessToken) {
+			const verifyResult = await verifyAccessTokenWithBackend(accessToken);
+			if (verifyResult.valid && verifyResult.user) {
+				return json({
+					success: true,
+					user: verifyResult.user
+				});
+			}
+		}
+
+		const refreshToken = cookies.get('refresh_token');
+		const refreshTokenPlaintext = cookies.get('refresh_token_plaintext');
+		if (!refreshToken || !refreshTokenPlaintext) {
+			clearAuthCookies(cookies, url);
 			return json(
 				{
 					success: false,
 					error: 'Session verification failed'
 				},
-				{ status: verifyResponse.status }
+				{ status: 401 }
 			);
 		}
 
-		const userData = await verifyResponse.json();
+		const refreshResult = await refreshWithBackend({
+			refreshToken,
+			refreshTokenPlaintext,
+			deviceInfo: request.headers.get('user-agent') || undefined,
+			ipAddress: getClientAddress()
+		});
 
-		// Return user data (no logging on success)
+		if (!refreshResult.success) {
+			clearAuthCookies(cookies, url);
+			return json(
+				{
+					success: false,
+					error: 'Session verification failed'
+				},
+				{ status: 401 }
+			);
+		}
+
+		setAuthCookies(
+			cookies,
+			url,
+			refreshResult.tokens.refreshToken,
+			refreshResult.tokens.refreshTokenPlaintext,
+			refreshResult.tokens.expiresIn
+		);
+
 		return json({
 			success: true,
-			user: userData
+			user: {
+				id: refreshResult.user.id,
+				email: refreshResult.user.email,
+				displayName: refreshResult.user.displayName
+			}
 		});
-	} catch (error) {
-		// Only log on error
-		logger.error('[Verify] === SESSION VERIFICATION FAILED ===');
-		logger.error('[Verify] FATAL ERROR', error as Error);
-		logger.error('[Verify] Verify URL', new Error('Verification failed'), {
-			verifyUrl: `${getApiBaseUrl()}/auth/me`
-		});
+	} catch {
+		clearAuthCookies(cookies, url);
 		return json(
 			{
 				success: false,
-				error: 'Session verification failed',
-				message: error instanceof Error ? error.message : 'Unknown error'
+				error: 'Session verification failed'
 			},
-			{ status: 500 }
+			{ status: 401 }
 		);
 	}
 };

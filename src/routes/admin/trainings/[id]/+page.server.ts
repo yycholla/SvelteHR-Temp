@@ -81,7 +81,7 @@ export const load: PageServerLoad = async (event) => {
 	return {
 		training: trainingResponse.data.training,
 		allUsers,
-		departments: departmentsResponse.data?.departments || [],
+		departments: departmentsResponse.data?.departments?.items || [],
 		assignments
 	};
 };

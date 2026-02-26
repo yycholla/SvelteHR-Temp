@@ -10,15 +10,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20260113_001_password_reset_tokens::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20260113_001_password_reset_tokens::Migration;
 
     /// Setup a test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -56,11 +59,15 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'password_reset_tokens'".to_string(),
+                 AND table_name = 'password_reset_tokens'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(table_result.is_ok(), "password_reset_tokens table should exist");
+        assert!(
+            table_result.is_ok(),
+            "password_reset_tokens table should exist"
+        );
         assert!(table_result.unwrap().is_some());
 
         cleanup_test_data(&db).await;
@@ -74,7 +81,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         let columns = vec![
             "id",
@@ -115,7 +125,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Verify token column has unique constraint
         let constraint_result = db
@@ -127,11 +140,15 @@ mod tests {
                  WHERE tc.table_schema = 'hr_public'
                  AND tc.table_name = 'password_reset_tokens'
                  AND ccu.column_name = 'token'
-                 AND tc.constraint_type = 'UNIQUE'".to_string(),
+                 AND tc.constraint_type = 'UNIQUE'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(constraint_result.is_ok(), "token column should have UNIQUE constraint");
+        assert!(
+            constraint_result.is_ok(),
+            "token column should have UNIQUE constraint"
+        );
         assert!(constraint_result.unwrap().is_some());
 
         cleanup_test_data(&db).await;
@@ -145,7 +162,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Verify foreign key to users table
         let fk_result = db
@@ -155,7 +175,8 @@ mod tests {
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'password_reset_tokens'
                  AND constraint_name = 'fk_password_reset_tokens_user_id'
-                 AND constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
@@ -173,7 +194,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         let indexes = vec![
             "idx_password_reset_tokens_token",
@@ -210,7 +234,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Verify token column properties
         let column_result = db
@@ -220,14 +247,17 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'password_reset_tokens'
-                 AND column_name = 'token'".to_string(),
+                 AND column_name = 'token'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok());
         let column = column_result.unwrap().unwrap();
         let max_length: Option<i32> = column.try_get("", "character_maximum_length").ok();
-        let is_nullable: String = column.try_get("", "is_nullable").expect("Should get is_nullable");
+        let is_nullable: String = column
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
 
         assert_eq!(max_length, Some(64), "token should be VARCHAR(64)");
         assert_eq!(is_nullable, "NO", "token should be NOT NULL");
@@ -240,13 +270,22 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'password_reset_tokens'
-                 AND column_name = 'ip_address'".to_string(),
+                 AND column_name = 'ip_address'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok());
-        let max_length: Option<i32> = column_result.unwrap().unwrap().try_get("", "character_maximum_length").ok();
-        assert_eq!(max_length, Some(45), "ip_address should be VARCHAR(45) for IPv6 support");
+        let max_length: Option<i32> = column_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "character_maximum_length")
+            .ok();
+        assert_eq!(
+            max_length,
+            Some(45),
+            "ip_address should be VARCHAR(45) for IPv6 support"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -259,20 +298,31 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         let table_result = db
             .query_one(Statement::from_string(
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'password_reset_tokens'".to_string(),
+                 AND table_name = 'password_reset_tokens'"
+                    .to_string(),
             ))
             .await;
 
         assert!(table_result.is_ok());
-        let count: i64 = table_result.unwrap().unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = table_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 0, "Table should be dropped");
 
         cleanup_test_data(&db).await;
@@ -286,8 +336,14 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("First migration up should succeed");
-        migration.up(&schema_manager).await.expect("Second migration up should succeed (idempotent)");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("First migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Second migration up should succeed (idempotent)");
 
         cleanup_test_data(&db).await;
     }
@@ -300,9 +356,18 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("First migration down should succeed");
-        migration.down(&schema_manager).await.expect("Second migration down should succeed (idempotent)");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("First migration down should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Second migration down should succeed (idempotent)");
 
         cleanup_test_data(&db).await;
     }
@@ -315,29 +380,44 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         let table_check = db
             .query_one(Statement::from_string(
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'password_reset_tokens'".to_string(),
+                 AND table_name = 'password_reset_tokens'"
+                    .to_string(),
             ))
             .await;
-        assert!(table_check.is_ok() && table_check.unwrap().is_some(), "Table should exist after up");
+        assert!(
+            table_check.is_ok() && table_check.unwrap().is_some(),
+            "Table should exist after up"
+        );
 
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         let table_check = db
             .query_one(Statement::from_string(
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'password_reset_tokens'".to_string(),
+                 AND table_name = 'password_reset_tokens'"
+                    .to_string(),
             ))
             .await;
-        let count: i64 = table_check.unwrap().unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = table_check
+            .unwrap()
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 0, "Table should be dropped after down");
 
         cleanup_test_data(&db).await;
@@ -351,7 +431,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Verify column comments are set (important for documentation)
         let comment_result = db
@@ -361,17 +444,24 @@ mod tests {
                  (SELECT ordinal_position FROM information_schema.columns
                   WHERE table_schema = 'hr_public'
                   AND table_name = 'password_reset_tokens'
-                  AND column_name = 'token')) as comment".to_string(),
+                  AND column_name = 'token')) as comment"
+                    .to_string(),
             ))
             .await;
 
-        assert!(comment_result.is_ok(), "Should be able to query column comments");
+        assert!(
+            comment_result.is_ok(),
+            "Should be able to query column comments"
+        );
         let comment_info = comment_result.unwrap();
         assert!(comment_info.is_some(), "Should have comment information");
 
         let comment: Option<String> = comment_info.unwrap().try_get("", "comment").ok();
         assert!(comment.is_some(), "token should have a comment");
-        assert!(comment.unwrap().contains("token"), "Comment should describe the column");
+        assert!(
+            comment.unwrap().contains("token"),
+            "Comment should describe the column"
+        );
 
         cleanup_test_data(&db).await;
     }
@@ -384,7 +474,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Verify used_at is nullable (for one-time use tracking)
         let column_result = db
@@ -393,12 +486,17 @@ mod tests {
                 "SELECT is_nullable FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'password_reset_tokens'
-                 AND column_name = 'used_at'".to_string(),
+                 AND column_name = 'used_at'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok());
-        let is_nullable: String = column_result.unwrap().unwrap().try_get("", "is_nullable").expect("Should get is_nullable");
+        let is_nullable: String = column_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
         assert_eq!(is_nullable, "YES", "used_at should be nullable");
 
         // Verify ip_address is nullable
@@ -408,12 +506,17 @@ mod tests {
                 "SELECT is_nullable FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'password_reset_tokens'
-                 AND column_name = 'ip_address'".to_string(),
+                 AND column_name = 'ip_address'"
+                    .to_string(),
             ))
             .await;
 
         assert!(column_result.is_ok());
-        let is_nullable: String = column_result.unwrap().unwrap().try_get("", "is_nullable").expect("Should get is_nullable");
+        let is_nullable: String = column_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
         assert_eq!(is_nullable, "YES", "ip_address should be nullable");
 
         cleanup_test_data(&db).await;

@@ -7,10 +7,10 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::auth::UserContext;
-use crate::services::compliance_reports::ComplianceReportService;
-use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 use crate::models::compliance_reports;
 use crate::schema::queries::compliance::ComplianceReportType;
+use crate::services::compliance_reports::ComplianceReportService;
+use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 
 #[derive(Default)]
 pub struct ComplianceMutations;
@@ -45,7 +45,7 @@ impl ComplianceMutations {
         // Validate date range
         if input.period_start >= input.period_end {
             return Err(async_graphql::Error::new(
-                "period_start must be before period_end"
+                "period_start must be before period_end",
             ));
         }
 
@@ -54,66 +54,38 @@ impl ComplianceMutations {
 
         // Generate report based on type
         let result = match input.report_type {
-            ComplianceReportType::Sox => {
-                service
-                    .generate_sox_report(
-                        input.period_start,
-                        input.period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            ComplianceReportType::Gdpr => {
-                service
-                    .generate_gdpr_report(
-                        input.period_start,
-                        input.period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            ComplianceReportType::Soc2 => {
-                service
-                    .generate_soc2_report(
-                        input.period_start,
-                        input.period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            ComplianceReportType::DataChanges => {
-                service
-                    .generate_data_changes_report(
-                        input.period_start,
-                        input.period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            ComplianceReportType::UserActivity => {
-                service
-                    .generate_user_activity_report(
-                        input.period_start,
-                        input.period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            ComplianceReportType::AccessLog => {
-                service
-                    .generate_access_log_report(
-                        input.period_start,
-                        input.period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
+            ComplianceReportType::Sox => service
+                .generate_sox_report(input.period_start, input.period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            ComplianceReportType::Gdpr => service
+                .generate_gdpr_report(input.period_start, input.period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            ComplianceReportType::Soc2 => service
+                .generate_soc2_report(input.period_start, input.period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            ComplianceReportType::DataChanges => service
+                .generate_data_changes_report(
+                    input.period_start,
+                    input.period_end,
+                    user_ctx.user_id,
+                )
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            ComplianceReportType::UserActivity => service
+                .generate_user_activity_report(
+                    input.period_start,
+                    input.period_end,
+                    user_ctx.user_id,
+                )
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            ComplianceReportType::AccessLog => service
+                .generate_access_log_report(input.period_start, input.period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
         };
 
         // TODO: Generate PDF and CSV if requested
@@ -126,7 +98,9 @@ impl ComplianceMutations {
             .get_report(result.report_id)
             .await
             .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            .ok_or_else(|| async_graphql::Error::new("Report was generated but could not be retrieved"))?;
+            .ok_or_else(|| {
+                async_graphql::Error::new("Report was generated but could not be retrieved")
+            })?;
 
         Ok(ComplianceReportResult::from(report))
     }
@@ -193,7 +167,7 @@ impl ComplianceMutations {
         // Only allow regeneration of failed reports
         if report.status != "failed" {
             return Err(async_graphql::Error::new(
-                "Only failed reports can be regenerated"
+                "Only failed reports can be regenerated",
             ));
         }
 
@@ -210,66 +184,30 @@ impl ComplianceMutations {
         let period_end = report.period_end.with_timezone(&Utc);
 
         let result = match report.report_type.as_str() {
-            "sox" => {
-                service
-                    .generate_sox_report(
-                        period_start,
-                        period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            "gdpr" => {
-                service
-                    .generate_gdpr_report(
-                        period_start,
-                        period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            "soc2" => {
-                service
-                    .generate_soc2_report(
-                        period_start,
-                        period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            "data_changes" => {
-                service
-                    .generate_data_changes_report(
-                        period_start,
-                        period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            "user_activity" => {
-                service
-                    .generate_user_activity_report(
-                        period_start,
-                        period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
-            "access_log" => {
-                service
-                    .generate_access_log_report(
-                        period_start,
-                        period_end,
-                        user_ctx.user_id,
-                    )
-                    .await
-                    .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            }
+            "sox" => service
+                .generate_sox_report(period_start, period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            "gdpr" => service
+                .generate_gdpr_report(period_start, period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            "soc2" => service
+                .generate_soc2_report(period_start, period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            "data_changes" => service
+                .generate_data_changes_report(period_start, period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            "user_activity" => service
+                .generate_user_activity_report(period_start, period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
+            "access_log" => service
+                .generate_access_log_report(period_start, period_end, user_ctx.user_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?,
             _ => {
                 return Err(async_graphql::Error::new(format!(
                     "Unknown report type: {}",
@@ -283,7 +221,9 @@ impl ComplianceMutations {
             .get_report(result.report_id)
             .await
             .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            .ok_or_else(|| async_graphql::Error::new("Report was generated but could not be retrieved"))?;
+            .ok_or_else(|| {
+                async_graphql::Error::new("Report was generated but could not be retrieved")
+            })?;
 
         Ok(ComplianceReportResult::from(new_report))
     }
@@ -356,7 +296,8 @@ impl From<compliance_reports::Model> for ComplianceReportResult {
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0) as i32;
 
-            let findings = model.findings
+            let findings = model
+                .findings
                 .as_ref()
                 .and_then(|f| f.as_array())
                 .map(|arr| arr.len() as i32)

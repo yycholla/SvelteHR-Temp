@@ -1,4 +1,4 @@
-use async_graphql::{SimpleObject, InputObject};
+use async_graphql::{InputObject, SimpleObject};
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};

@@ -7,9 +7,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::auth::UserContext;
+use crate::models::email_digests;
 use crate::services::digest_service::DigestService;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::models::email_digests;
 
 #[derive(Default)]
 pub struct DigestMutations;
@@ -217,16 +217,18 @@ impl DigestMutations {
             .map_err(|e| async_graphql::Error::new(format!("Failed to generate digest: {}", e)))?;
 
         // Send digest
-        let result = service.send_digest(
-            uuid,
-            digest.name.clone(),
-            digest.recipients.clone(),
-            content,
-            digest.include_sync_summary,
-            digest.include_conflicts,
-            digest.include_health_metrics,
-            digest.include_new_employees,
-        ).await
+        let result = service
+            .send_digest(
+                uuid,
+                digest.name.clone(),
+                digest.recipients.clone(),
+                content,
+                digest.include_sync_summary,
+                digest.include_conflicts,
+                digest.include_health_metrics,
+                digest.include_new_employees,
+            )
+            .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to send digest: {}", e)))?;
 
         Ok(SendEmailDigestResult {

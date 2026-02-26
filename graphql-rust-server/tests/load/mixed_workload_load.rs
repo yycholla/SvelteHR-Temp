@@ -9,7 +9,7 @@
 //! ```
 
 use hr_graphql_server::testing::load_testing::{
-    LoadTestConfig, LoadTestOperation, RoleDistribution, run_load_test,
+    run_load_test, LoadTestConfig, LoadTestOperation, RoleDistribution,
 };
 use std::time::Duration;
 
@@ -223,20 +223,15 @@ async fn test_employee_heavy_workload() {
         .with_duration(Duration::from_secs(90))
         .with_think_time(Duration::from_millis(500))
         .with_ramp_up(Duration::from_secs(15))
-        .with_role_distribution(
-            RoleDistribution::new(
-                0.90, // 90% employees
-                0.05, // 5% HR managers
-                0.03, // 3% admins
-                0.02, // 2% system admins
-            ),
-        )
+        .with_role_distribution(RoleDistribution::new(
+            0.90, // 90% employees
+            0.05, // 5% HR managers
+            0.03, // 3% admins
+            0.02, // 2% system admins
+        ))
         .add_operation(
-            LoadTestOperation::new(
-                "view_own_profile",
-                "query { me { id email } }",
-            )
-            .with_weight(0.60),
+            LoadTestOperation::new("view_own_profile", "query { me { id email } }")
+                .with_weight(0.60),
         )
         .add_operation(
             LoadTestOperation::new(

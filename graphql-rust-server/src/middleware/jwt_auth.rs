@@ -91,9 +91,10 @@ pub async fn jwt_auth_middleware(
     };
 
     // Parse department_id from claims (optional)
-    let department_id = claims.department_id.as_ref().and_then(|id_str| {
-        uuid::Uuid::parse_str(id_str).ok()
-    });
+    let department_id = claims
+        .department_id
+        .as_ref()
+        .and_then(|id_str| uuid::Uuid::parse_str(id_str).ok());
 
     // Create user context from JWT claims
     let user_context = UserContext {
@@ -135,9 +136,10 @@ pub async fn optional_jwt_auth_middleware(
             // Extract user_id
             if let Ok(user_id) = claims.user_id() {
                 // Parse department_id
-                let department_id = claims.department_id.as_ref().and_then(|id_str| {
-                    uuid::Uuid::parse_str(id_str).ok()
-                });
+                let department_id = claims
+                    .department_id
+                    .as_ref()
+                    .and_then(|id_str| uuid::Uuid::parse_str(id_str).ok());
 
                 // Create user context
                 let user_context = UserContext {
@@ -203,9 +205,10 @@ pub async fn admin_jwt_auth_middleware(
     };
 
     // Parse department_id
-    let department_id = claims.department_id.as_ref().and_then(|id_str| {
-        uuid::Uuid::parse_str(id_str).ok()
-    });
+    let department_id = claims
+        .department_id
+        .as_ref()
+        .and_then(|id_str| uuid::Uuid::parse_str(id_str).ok());
 
     // Create user context
     let user_context = UserContext {

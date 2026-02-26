@@ -1,10 +1,10 @@
 //! GraphQL queries for validation system
 
 use async_graphql::{Context, Object, Result as GqlResult};
-use sea_orm::{EntityTrait, QueryFilter, ColumnTrait, QueryOrder, PaginatorTrait};
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 
 use crate::database::get_db_from_context;
-use crate::models::{validation_rule, validation_failure};
+use crate::models::{validation_failure, validation_rule};
 
 /// GraphQL object for ValidationRule
 #[derive(Debug, Clone, async_graphql::SimpleObject)]
@@ -144,7 +144,10 @@ impl ValidationQuery {
             query.paginate(&db, 100).fetch_page(0).await?
         };
 
-        Ok(failures.into_iter().map(ValidationFailureGraphQL::from).collect())
+        Ok(failures
+            .into_iter()
+            .map(ValidationFailureGraphQL::from)
+            .collect())
     }
 
     /// Get validation failures count by severity

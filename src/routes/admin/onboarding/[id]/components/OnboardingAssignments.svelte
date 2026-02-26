@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Building, Calendar, Loader2, Search, UserMinus, UserPlus, Users } from '@lucide/svelte';
+	import { Building, Calendar, Search, UserMinus, UserPlus } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
 	import * as Card from '$lib/components/ui/card';
@@ -10,10 +10,29 @@
 	import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date';
 	import { cn } from '$lib/utils';
 
+	interface AssignmentUser {
+		displayName?: string | null;
+		email?: string | null;
+		firstName?: string | null;
+		lastName?: string | null;
+	}
+
+	interface AssignmentRecord {
+		id: string;
+		user?: AssignmentUser | null;
+		dueDate?: string | null;
+		completedAt?: string | null;
+	}
+
+	interface OptionItem {
+		value: string;
+		label: string;
+	}
+
 	interface Props {
-		assignments: any[];
-		userOptions: any[];
-		departmentOptions: any[];
+		assignments: AssignmentRecord[];
+		userOptions: OptionItem[];
+		departmentOptions: OptionItem[];
 		assignmentType: 'user' | 'department';
 		selectedUsersToAssign: string[];
 		selectedDepartmentsToAssign: string[];
@@ -54,7 +73,7 @@
 		}
 
 		const lowerSearchTerms = searchTerms.map((term) => term.toLowerCase());
-		return assignments.filter((assignment: any) => {
+		return assignments.filter((assignment) => {
 			const displayName = (assignment.user?.displayName || '').toLowerCase();
 			const email = (assignment.user?.email || '').toLowerCase();
 			const firstName = (assignment.user?.firstName || '').toLowerCase();

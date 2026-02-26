@@ -5,8 +5,8 @@
 //!
 //! Covers User Story 2 requirements (T027-T031).
 
-use hr_graphql_server::testing::{TestContext, TestUserRole};
 use async_graphql::Variables;
+use hr_graphql_server::testing::{TestContext, TestUserRole};
 use serde_json::json;
 
 /// T027: Integration test for users query with authenticated user
@@ -49,18 +49,29 @@ async fn test_users_query_with_authentication() {
     let data = ctx.extract_data(&response);
     let data_str = data.to_string();
 
-    assert!(data_str.contains("users"), "Response should contain users array");
+    assert!(
+        data_str.contains("users"),
+        "Response should contain users array"
+    );
 
     // All test users should be in the response
     let test_users = ctx.users();
-    assert!(data_str.contains(&test_users.employee.email),
-        "Should contain employee user");
-    assert!(data_str.contains(&test_users.hr_manager.email),
-        "Should contain HR manager user");
-    assert!(data_str.contains(&test_users.admin.email),
-        "Should contain admin user");
-    assert!(data_str.contains(&test_users.system_admin.email),
-        "Should contain system admin user");
+    assert!(
+        data_str.contains(&test_users.employee.email),
+        "Should contain employee user"
+    );
+    assert!(
+        data_str.contains(&test_users.hr_manager.email),
+        "Should contain HR manager user"
+    );
+    assert!(
+        data_str.contains(&test_users.admin.email),
+        "Should contain admin user"
+    );
+    assert!(
+        data_str.contains(&test_users.system_admin.email),
+        "Should contain system admin user"
+    );
 }
 
 /// T028: Integration test for unauthorized access
@@ -89,12 +100,18 @@ async fn test_users_query_without_authentication() {
 
     // Assert - No errors (users query doesn't require auth in current implementation)
     let errors = ctx.extract_errors(&response);
-    assert!(errors.is_empty(), "Expected no errors for public query, got: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "Expected no errors for public query, got: {:?}",
+        errors
+    );
 
     // Assert - Returns users
     let data = ctx.extract_data(&response);
-    assert!(data.to_string().contains("users"),
-        "Response should contain users array");
+    assert!(
+        data.to_string().contains("users"),
+        "Response should contain users array"
+    );
 }
 
 /// T030: Integration test for RBAC permissions
@@ -131,17 +148,25 @@ async fn test_rbac_role_based_query_access() {
     for role in roles {
         // Act
         let user = ctx.user(role);
-        let response = ctx.execute_with_variables_as(query, variables.clone(), user).await;
+        let response = ctx
+            .execute_with_variables_as(query, variables.clone(), user)
+            .await;
 
         // Assert
         let errors = ctx.extract_errors(&response);
-        assert!(errors.is_empty(),
+        assert!(
+            errors.is_empty(),
             "Role {:?} should be able to execute query, got errors: {:?}",
-            role, errors);
+            role,
+            errors
+        );
 
         let data = ctx.extract_data(&response);
-        assert!(data.to_string().contains("users"),
-            "Role {:?} should get valid response", role);
+        assert!(
+            data.to_string().contains("users"),
+            "Role {:?} should get valid response",
+            role
+        );
     }
 }
 
@@ -152,10 +177,7 @@ async fn test_rbac_role_based_query_access() {
 #[tokio::test]
 async fn test_database_isolation_concurrent_contexts() {
     // Create two separate test contexts (two isolated databases)
-    let (ctx1, ctx2) = tokio::join!(
-        TestContext::new(),
-        TestContext::new()
-    );
+    let (ctx1, ctx2) = tokio::join!(TestContext::new(), TestContext::new());
 
     let ctx1 = ctx1.expect("Failed to create first context");
     let ctx2 = ctx2.expect("Failed to create second context");
@@ -186,30 +208,39 @@ async fn test_database_isolation_concurrent_contexts() {
         }
     "#;
 
-    let (response1, response2) = tokio::join!(
-        ctx1.execute_query(query),
-        ctx2.execute_query(query)
-    );
+    let (response1, response2) = tokio::join!(ctx1.execute_query(query), ctx2.execute_query(query));
 
     // Both should succeed independently
-    assert!(ctx1.extract_errors(&response1).is_empty(),
-        "Context 1 queries should succeed");
-    assert!(ctx2.extract_errors(&response2).is_empty(),
-        "Context 2 queries should succeed");
+    assert!(
+        ctx1.extract_errors(&response1).is_empty(),
+        "Context 1 queries should succeed"
+    );
+    assert!(
+        ctx2.extract_errors(&response2).is_empty(),
+        "Context 2 queries should succeed"
+    );
 
     // Each context should only see its own users
     let data1 = ctx1.extract_data(&response1).to_string();
     let data2 = ctx2.extract_data(&response2).to_string();
 
-    assert!(data1.contains(&user1.id.to_string()),
-        "Context 1 should contain its own users");
-    assert!(!data1.contains(&user2.id.to_string()),
-        "Context 1 should NOT contain context 2's users");
+    assert!(
+        data1.contains(&user1.id.to_string()),
+        "Context 1 should contain its own users"
+    );
+    assert!(
+        !data1.contains(&user2.id.to_string()),
+        "Context 1 should NOT contain context 2's users"
+    );
 
-    assert!(data2.contains(&user2.id.to_string()),
-        "Context 2 should contain its own users");
-    assert!(!data2.contains(&user1.id.to_string()),
-        "Context 2 should NOT contain context 1's users");
+    assert!(
+        data2.contains(&user2.id.to_string()),
+        "Context 2 should contain its own users"
+    );
+    assert!(
+        !data2.contains(&user1.id.to_string()),
+        "Context 2 should NOT contain context 1's users"
+    );
 }
 
 /// Integration test for query with variables and multiple filters
@@ -251,12 +282,18 @@ async fn test_query_with_complex_variables() {
     let data = ctx.extract_data(&response);
     let data_str = data.to_string();
 
-    assert!(data_str.contains(&admin.id.to_string()),
-        "Response should contain the requested user ID");
-    assert!(data_str.contains(&admin.email),
-        "Response should contain the user email");
-    assert!(data_str.contains("admin"),
-        "Response should contain admin role");
+    assert!(
+        data_str.contains(&admin.id.to_string()),
+        "Response should contain the requested user ID"
+    );
+    assert!(
+        data_str.contains(&admin.email),
+        "Response should contain the user email"
+    );
+    assert!(
+        data_str.contains("admin"),
+        "Response should contain admin role"
+    );
 }
 
 /// Integration test for pagination consistency
@@ -307,5 +344,8 @@ async fn test_pagination_consistency() {
 
     // Pages should have different content (no overlap)
     // This is a basic check - in production you'd parse JSON and check IDs
-    assert_ne!(data1, data2, "Different pages should have different content");
+    assert_ne!(
+        data1, data2,
+        "Different pages should have different content"
+    );
 }

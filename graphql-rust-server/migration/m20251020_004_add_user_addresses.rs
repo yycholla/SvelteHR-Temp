@@ -110,11 +110,7 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(
-                        ColumnDef::new(UserAddresses::UserId)
-                            .uuid()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(UserAddresses::UserId).uuid().not_null())
                     .col(
                         ColumnDef::new(UserAddresses::AddressType)
                             .string_len(50)
@@ -188,7 +184,10 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_user_addresses_user_id")
-                            .from((Schema::HrPublic, UserAddresses::Table), UserAddresses::UserId)
+                            .from(
+                                (Schema::HrPublic, UserAddresses::Table),
+                                UserAddresses::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),

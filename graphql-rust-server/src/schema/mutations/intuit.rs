@@ -3,22 +3,26 @@
 //! Handles OAuth flow, connection management, and employee synchronization
 
 use async_graphql::{Context, Object, Result, SimpleObject};
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait, Set, ActiveModelTrait, QuerySelect};
-use uuid::Uuid;
 use chrono::Utc;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, Set,
+};
+use uuid::Uuid;
 
 use crate::{
     auth::UserContext,
     database::get_db_from_context,
     integrations::intuit::{self as intuit, IntuitClient, IntuitClientManager},
     models::{
-        intuit_connection::{Entity as IntuitConnectionEntity, Column as IntuitConnectionColumn, ActiveModel as IntuitConnectionActiveModel},
-        intuit_sync_log::{Entity as IntuitSyncLogEntity, Column as IntuitSyncLogColumn},
+        intuit_connection::{
+            ActiveModel as IntuitConnectionActiveModel, Column as IntuitConnectionColumn,
+            Entity as IntuitConnectionEntity,
+        },
+        intuit_sync_log::{Column as IntuitSyncLogColumn, Entity as IntuitSyncLogEntity},
     },
     services::{
-        SyncTracker, EntityType, ChangeRecord, SyncStatusCounts,
-        SyncOrchestrator, ConflictStrategy, SyncMode,
-        PermissionChecker, SyncPermission,
+        ChangeRecord, ConflictStrategy, EntityType, PermissionChecker, SyncMode, SyncOrchestrator,
+        SyncPermission, SyncStatusCounts, SyncTracker,
     },
 };
 use sea_orm::QueryOrder;
@@ -61,7 +65,6 @@ pub struct SyncResult {
     pub synced_count: i32,
     pub errors: Vec<String>,
 }
-
 
 /// Result of syncing employees individually
 #[derive(Debug, Clone)]
@@ -328,15 +331,19 @@ impl IntuitQueries {
     /// Get authorization URL for OAuth flow
     async fn authorization_url(&self, ctx: &Context<'_>) -> Result<AuthorizationUrlResponse> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db);
-        checker.require(user_context, SyncPermission::ManageIntegrations).await?;
+        checker
+            .require(user_context, SyncPermission::ManageIntegrations)
+            .await?;
 
-        let (url, csrf_token) = intuit::get_authorization_url()
-            .map_err(|e| async_graphql::Error::new(format!("Failed to generate authorization URL: {}", e)))?;
+        let (url, csrf_token) = intuit::get_authorization_url().map_err(|e| {
+            async_graphql::Error::new(format!("Failed to generate authorization URL: {}", e))
+        })?;
 
         Ok(AuthorizationUrlResponse {
             url,
@@ -347,18 +354,26 @@ impl IntuitQueries {
     /// Get current connection status
     async fn connection(&self, ctx: &Context<'_>) -> Result<ConnectionInfo> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker - viewing connection status requires manage or view permissions
         let checker = PermissionChecker::new(db.clone());
-        let result = checker.check_any(user_context, &[
-            SyncPermission::ManageIntegrations,
-            SyncPermission::ViewSyncHistory,
-        ]).await?;
+        let result = checker
+            .check_any(
+                user_context,
+                &[
+                    SyncPermission::ManageIntegrations,
+                    SyncPermission::ViewSyncHistory,
+                ],
+            )
+            .await?;
 
         if !result.granted {
-            return Err(async_graphql::Error::new("Permission denied: requires sync view or manage permissions"));
+            return Err(async_graphql::Error::new(
+                "Permission denied: requires sync view or manage permissions",
+            ));
         }
 
         // Get the most recent active connection
@@ -390,26 +405,35 @@ impl IntuitQueries {
     /// Requires view metrics permission.
     async fn sync_status(&self, ctx: &Context<'_>) -> Result<SyncStatusOverview> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::ViewMetrics).await?;
+        checker
+            .require(user_context, SyncPermission::ViewMetrics)
+            .await?;
 
         // Get status counts for employees and departments
         let employee_counts = SyncTracker::get_sync_status_counts(&db, EntityType::Employee)
             .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get employee sync status: {}", e)))?;
+            .map_err(|e| {
+                async_graphql::Error::new(format!("Failed to get employee sync status: {}", e))
+            })?;
 
         let department_counts = SyncTracker::get_sync_status_counts(&db, EntityType::Department)
             .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get department sync status: {}", e)))?;
+            .map_err(|e| {
+                async_graphql::Error::new(format!("Failed to get department sync status: {}", e))
+            })?;
 
         // Calculate totals
         let total_synced = employee_counts.synced + department_counts.synced;
-        let total_pending = employee_counts.local_changed + employee_counts.remote_changed
-            + department_counts.local_changed + department_counts.remote_changed;
+        let total_pending = employee_counts.local_changed
+            + employee_counts.remote_changed
+            + department_counts.local_changed
+            + department_counts.remote_changed;
         let total_conflicts = employee_counts.conflicts + department_counts.conflicts;
 
         // Get last sync time from most recent log entry
@@ -441,26 +465,33 @@ impl IntuitQueries {
         entity_type: String,
     ) -> Result<Vec<PendingChange>> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::ViewSyncHistory).await?;
+        checker
+            .require(user_context, SyncPermission::ViewSyncHistory)
+            .await?;
 
         // Parse entity type
         let entity_type_enum = match entity_type.to_lowercase().as_str() {
             "employee" | "employees" => EntityType::Employee,
             "department" | "departments" => EntityType::Department,
-            _ => return Err(async_graphql::Error::new(
-                "Invalid entity_type: must be 'employee' or 'department'"
-            )),
+            _ => {
+                return Err(async_graphql::Error::new(
+                    "Invalid entity_type: must be 'employee' or 'department'",
+                ))
+            }
         };
 
         // Get local changes
         let changes = SyncTracker::get_local_changes(&db, entity_type_enum)
             .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get pending changes: {}", e)))?;
+            .map_err(|e| {
+                async_graphql::Error::new(format!("Failed to get pending changes: {}", e))
+            })?;
 
         Ok(changes.into_iter().map(|c| c.into()).collect())
     }
@@ -471,12 +502,15 @@ impl IntuitQueries {
     /// Requires view conflicts permission.
     async fn conflicts(&self, ctx: &Context<'_>) -> Result<Vec<ConflictRecord>> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::ViewConflicts).await?;
+        checker
+            .require(user_context, SyncPermission::ViewConflicts)
+            .await?;
 
         // Query recent sync logs with unresolved conflicts
         // Exclude logs where conflict_resolution starts with "Manually resolved"
@@ -512,14 +546,19 @@ impl IntuitQueries {
                         // Format: "CONFLICT: <description>"
 
                         // Remove "CONFLICT: " prefix to get clean description
-                        let description = error_part.trim_start_matches("CONFLICT:").trim().to_string();
+                        let description = error_part
+                            .trim_start_matches("CONFLICT:")
+                            .trim()
+                            .to_string();
 
                         // Extract QuickBooks ID if present
                         let qb_id = if let Some(start) = error_part.find("QB ID") {
                             let after_qb_id = &error_part[start + 6..]; // Skip "QB ID"
-                            // Handle both "QB ID: '55'" and "QB ID: 55" formats
+                                                                        // Handle both "QB ID: '55'" and "QB ID: 55" formats
                             let trimmed = after_qb_id.trim_start_matches(':').trim();
-                            if let Some(end) = trimmed.find(|c: char| c == ')' || c == ',' || c == ' ') {
+                            if let Some(end) =
+                                trimmed.find(|c: char| c == ')' || c == ',' || c == ' ')
+                            {
                                 trimmed[..end].trim().trim_matches('\'').to_string()
                             } else {
                                 trimmed.trim_matches('\'').to_string()
@@ -543,7 +582,7 @@ impl IntuitQueries {
                         // Try to look up employee details from database
                         let (employee_name, employee_email) = if qb_id != "unknown" {
                             // Try to find employee by QuickBooks ID
-                            use crate::models::user::{Entity as UserEntity, Column as UserColumn};
+                            use crate::models::user::{Column as UserColumn, Entity as UserEntity};
                             if let Ok(Some(user)) = UserEntity::find()
                                 .filter(UserColumn::IntuitEmployeeId.eq(&qb_id))
                                 .filter(UserColumn::DeletedAt.is_null())
@@ -552,14 +591,14 @@ impl IntuitQueries {
                             {
                                 (
                                     Some(format!("{} {}", user.first_name, user.last_name)),
-                                    Some(user.email.clone())
+                                    Some(user.email.clone()),
                                 )
                             } else {
                                 (None, email_from_error.clone())
                             }
                         } else if let Some(ref email) = email_from_error {
                             // Try to find employee by email
-                            use crate::models::user::{Entity as UserEntity, Column as UserColumn};
+                            use crate::models::user::{Column as UserColumn, Entity as UserEntity};
                             if let Ok(Some(user)) = UserEntity::find()
                                 .filter(UserColumn::Email.eq(email))
                                 .filter(UserColumn::DeletedAt.is_null())
@@ -568,7 +607,7 @@ impl IntuitQueries {
                             {
                                 (
                                     Some(format!("{} {}", user.first_name, user.last_name)),
-                                    Some(user.email.clone())
+                                    Some(user.email.clone()),
                                 )
                             } else {
                                 (None, Some(email.clone()))
@@ -580,7 +619,11 @@ impl IntuitQueries {
                         // Create conflict record
                         conflicts.push(ConflictRecord {
                             entity_type: log.sync_type.clone(),
-                            entity_id: format!("{}:{}", qb_id, employee_email.as_deref().unwrap_or("unknown")),
+                            entity_id: format!(
+                                "{}:{}",
+                                qb_id,
+                                employee_email.as_deref().unwrap_or("unknown")
+                            ),
                             quickbooks_id: qb_id,
                             description,
                             employee_name,
@@ -607,12 +650,15 @@ impl IntuitQueries {
         limit: Option<i32>,
     ) -> Result<Vec<SyncLogEntry>> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::ViewSyncHistory).await?;
+        checker
+            .require(user_context, SyncPermission::ViewSyncHistory)
+            .await?;
 
         let limit = limit.unwrap_or(20).clamp(1, 100) as u64;
 
@@ -622,20 +668,23 @@ impl IntuitQueries {
             .all(&db)
             .await?;
 
-        Ok(logs.into_iter().map(|log| SyncLogEntry {
-            id: log.id.to_string(),
-            sync_type: log.sync_type,
-            direction: log.direction,
-            change_direction: log.change_direction,
-            status: log.status,
-            pushed_count: log.pushed_count,
-            pulled_count: log.pulled_count,
-            updated_count: log.updated_count,
-            skipped_count: log.skipped_count,
-            conflict_detected: log.conflict_detected,
-            error_message: log.error_message,
-            created_at: log.created_at.into(),
-        }).collect())
+        Ok(logs
+            .into_iter()
+            .map(|log| SyncLogEntry {
+                id: log.id.to_string(),
+                sync_type: log.sync_type,
+                direction: log.direction,
+                change_direction: log.change_direction,
+                status: log.status,
+                pushed_count: log.pushed_count,
+                pulled_count: log.pulled_count,
+                updated_count: log.updated_count,
+                skipped_count: log.skipped_count,
+                conflict_detected: log.conflict_detected,
+                error_message: log.error_message,
+                created_at: log.created_at.into(),
+            })
+            .collect())
     }
 
     /// Get health monitoring queries
@@ -675,14 +724,22 @@ pub struct IntuitMutations;
 #[Object]
 impl IntuitMutations {
     /// Connect to QuickBooks using OAuth code and realm ID
-    async fn connect(&self, ctx: &Context<'_>, code: String, realm_id: String) -> Result<ConnectResult> {
+    async fn connect(
+        &self,
+        ctx: &Context<'_>,
+        code: String,
+        realm_id: String,
+    ) -> Result<ConnectResult> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::ManageIntegrations).await?;
+        checker
+            .require(user_context, SyncPermission::ManageIntegrations)
+            .await?;
 
         // Exchange code for tokens
         let tokens = match intuit::exchange_code_for_tokens(code).await {
@@ -697,8 +754,10 @@ impl IntuitMutations {
         };
 
         // Get company name from QuickBooks
-        let client = IntuitClient::new(tokens.access_token.clone(), realm_id.clone())
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create Intuit client: {}", e)))?;
+        let client =
+            IntuitClient::new(tokens.access_token.clone(), realm_id.clone()).map_err(|e| {
+                async_graphql::Error::new(format!("Failed to create Intuit client: {}", e))
+            })?;
 
         let company_name = match client.get_company_info().await {
             Ok(info) => info.company_name,
@@ -710,27 +769,70 @@ impl IntuitMutations {
 
         // Calculate token expiration time
         let expires_at = Utc::now() + chrono::Duration::seconds(tokens.expires_in);
+        let now = Utc::now();
 
-        // Save connection to database
-        let connection = IntuitConnectionActiveModel {
-            id: Set(Uuid::new_v4()),
-            realm_id: Set(realm_id),
-            access_token: Set(tokens.access_token),
-            refresh_token: Set(tokens.refresh_token),
-            token_expires_at: Set(expires_at.into()),
-            company_name: Set(company_name.clone()),
-            is_active: Set(true),
-            last_sync_at: Set(None),
-            employee_sync_token: Set(None),
-            department_sync_token: Set(None),
-            last_employee_sync_at: Set(None),
-            last_department_sync_at: Set(None),
-            created_at: Set(Utc::now().into()),
-            updated_at: Set(Utc::now().into()),
-            deleted_at: Set(None),
+        // Upsert connection for realm (single active connection policy).
+        // 1) Reuse existing realm connection when possible.
+        // 2) Deactivate all other active connections.
+        let existing_realm_connection = IntuitConnectionEntity::find()
+            .filter(IntuitConnectionColumn::RealmId.eq(&realm_id))
+            .filter(IntuitConnectionColumn::DeletedAt.is_null())
+            .order_by_desc(IntuitConnectionColumn::UpdatedAt)
+            .order_by_desc(IntuitConnectionColumn::CreatedAt)
+            .one(&db)
+            .await?;
+
+        let active_connection_id = if let Some(existing) = existing_realm_connection {
+            let existing_id = existing.id;
+            let mut active_model: IntuitConnectionActiveModel = existing.into();
+            active_model.access_token = Set(tokens.access_token);
+            active_model.refresh_token = Set(tokens.refresh_token);
+            active_model.token_expires_at = Set(expires_at.into());
+            active_model.company_name = Set(company_name.clone());
+            active_model.is_active = Set(true);
+            active_model.updated_at = Set(now.into());
+            active_model.deleted_at = Set(None);
+            active_model.update(&db).await?;
+            existing_id
+        } else {
+            let new_id = Uuid::new_v4();
+            let connection = IntuitConnectionActiveModel {
+                id: Set(new_id),
+                realm_id: Set(realm_id.clone()),
+                access_token: Set(tokens.access_token),
+                refresh_token: Set(tokens.refresh_token),
+                token_expires_at: Set(expires_at.into()),
+                company_name: Set(company_name.clone()),
+                is_active: Set(true),
+                last_sync_at: Set(None),
+                employee_sync_token: Set(None),
+                department_sync_token: Set(None),
+                last_employee_sync_at: Set(None),
+                last_department_sync_at: Set(None),
+                created_at: Set(now.into()),
+                updated_at: Set(now.into()),
+                deleted_at: Set(None),
+            };
+
+            connection.insert(&db).await?;
+            new_id
         };
 
-        connection.insert(&db).await?;
+        let active_connections = IntuitConnectionEntity::find()
+            .filter(IntuitConnectionColumn::IsActive.eq(true))
+            .filter(IntuitConnectionColumn::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        for conn in active_connections {
+            if conn.id == active_connection_id {
+                continue;
+            }
+            let mut inactive_model: IntuitConnectionActiveModel = conn.into();
+            inactive_model.is_active = Set(false);
+            inactive_model.updated_at = Set(now.into());
+            inactive_model.update(&db).await?;
+        }
 
         Ok(ConnectResult {
             success: true,
@@ -742,12 +844,15 @@ impl IntuitMutations {
     /// Disconnect from QuickBooks
     async fn disconnect(&self, ctx: &Context<'_>) -> Result<DisconnectResult> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::ManageIntegrations).await?;
+        checker
+            .require(user_context, SyncPermission::ManageIntegrations)
+            .await?;
 
         // Soft delete the most recent connection
         let connection = IntuitConnectionEntity::find()
@@ -758,7 +863,22 @@ impl IntuitMutations {
 
         match connection {
             Some(conn) => {
-                // Delete webhook subscriptions from QuickBooks before disconnecting
+                // Revoke OAuth token at Intuit before local disconnect.
+                // Prefer refresh token revocation; fall back to access token if missing.
+                let token_to_revoke = if conn.refresh_token.trim().is_empty() {
+                    conn.access_token.clone()
+                } else {
+                    conn.refresh_token.clone()
+                };
+                if let Err(e) = intuit::revoke_token(token_to_revoke).await {
+                    tracing::warn!(
+                        realm_id = %conn.realm_id,
+                        error = %e,
+                        "Failed to revoke Intuit token during disconnect; continuing with local cleanup"
+                    );
+                }
+
+                // Deactivate local webhook subscriptions before disconnecting.
                 if let Err(e) = delete_webhook_subscriptions(&db, &conn).await {
                     tracing::error!(
                         realm_id = %conn.realm_id,
@@ -789,26 +909,29 @@ impl IntuitMutations {
     /// Push employees from HR system to QuickBooks
     async fn push_employees_to_quickbooks(&self, ctx: &Context<'_>) -> Result<SyncResult> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::PushToQuickBooks).await?;
+        checker
+            .require(user_context, SyncPermission::PushToQuickBooks)
+            .await?;
 
         // Get QuickBooks client with automatic token refresh
         let client_manager = IntuitClientManager::new(db.clone());
-        let client = client_manager
-            .get_client()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create Intuit client: {}", e)))?;
-        let connection_id = client_manager
-            .get_connection_id()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get connection ID: {}", e)))?;
+        let client = client_manager.get_client().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to create Intuit client: {}", e))
+        })?;
+        let connection_id = client_manager.get_connection_id().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to get connection ID: {}", e))
+        })?;
 
         // Import user model
-        use crate::models::user::{Entity as UserEntity, Column as UserColumn, ActiveModel as UserActiveModel};
+        use crate::models::user::{
+            ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity,
+        };
         use sea_orm::Set;
 
         // Fetch all active employees from HR system
@@ -827,7 +950,10 @@ impl IntuitMutations {
 
         for emp in &hr_employees {
             if emp.email.is_empty() {
-                errors.push(format!("Employee {} {} has no email, skipping", emp.first_name, emp.last_name));
+                errors.push(format!(
+                    "Employee {} {} has no email, skipping",
+                    emp.first_name, emp.last_name
+                ));
                 continue;
             }
 
@@ -858,156 +984,181 @@ impl IntuitMutations {
 
         // ========== PART 1: Handle Creates ==========
         if !employees_to_create.is_empty() {
-            tracing::info!("Creating {} new employees in QuickBooks", employees_to_create.len());
+            tracing::info!(
+                "Creating {} new employees in QuickBooks",
+                employees_to_create.len()
+            );
 
             // Convert HR employees to QuickBooks EmployeeExtended objects with full data
-            use crate::models::employee::user_address::{Entity as UserAddressEntity, Column as UserAddressColumn};
-            use quickbooks_types::common::{Addr, PhoneNumber, NtRef};
+            use crate::models::employee::user_address::{
+                Column as UserAddressColumn, Entity as UserAddressEntity,
+            };
+            use quickbooks_types::common::{Addr, NtRef, PhoneNumber};
 
             let mut qb_employees = Vec::new();
             for emp in &employees_to_create {
-            // Fetch primary address for this employee
-            let primary_address = UserAddressEntity::find()
-                .filter(UserAddressColumn::UserId.eq(emp.id))
-                .filter(UserAddressColumn::IsPrimary.eq(true))
-                .filter(UserAddressColumn::DeletedAt.is_null())
-                .one(&db)
-                .await
-                .ok()
-                .flatten();
-
-            // Fetch manager's QuickBooks ID if employee has a manager
-            // Note: Currently unused as QuickBooks doesn't support ParentRef during creation
-            let _manager_ref = if let Some(manager_id) = emp.manager_id {
-                let manager = UserEntity::find_by_id(manager_id)
-                    .filter(UserColumn::DeletedAt.is_null())
+                // Fetch primary address for this employee
+                let primary_address = UserAddressEntity::find()
+                    .filter(UserAddressColumn::UserId.eq(emp.id))
+                    .filter(UserAddressColumn::IsPrimary.eq(true))
+                    .filter(UserAddressColumn::DeletedAt.is_null())
                     .one(&db)
-                    .await?;
+                    .await
+                    .ok()
+                    .flatten();
 
-                manager.and_then(|mgr| {
-                    mgr.intuit_employee_id.map(|qb_id| NtRef {
-                        value: Some(qb_id),
-                        name: Some(format!("{} {}", mgr.first_name, mgr.last_name)),
-                        entity_ref_type: Some("Employee".to_string()),
+                // Fetch manager's QuickBooks ID if employee has a manager
+                // Note: Currently unused as QuickBooks doesn't support ParentRef during creation
+                let _manager_ref = if let Some(manager_id) = emp.manager_id {
+                    let manager = UserEntity::find_by_id(manager_id)
+                        .filter(UserColumn::DeletedAt.is_null())
+                        .one(&db)
+                        .await?;
+
+                    manager.and_then(|mgr| {
+                        mgr.intuit_employee_id.map(|qb_id| NtRef {
+                            value: Some(qb_id),
+                            name: Some(format!("{} {}", mgr.first_name, mgr.last_name)),
+                            entity_ref_type: Some("Employee".to_string()),
+                        })
                     })
-                })
-            } else {
-                None
-            };
+                } else {
+                    None
+                };
 
-            // Fetch department's QuickBooks ID if employee has a department
-            // Note: Currently unused as batch employee creation doesn't support DepartmentRef
-            use crate::models::department::{Entity as DepartmentEntity, Column as DepartmentColumn};
+                // Fetch department's QuickBooks ID if employee has a department
+                // Note: Currently unused as batch employee creation doesn't support DepartmentRef
+                use crate::models::department::{
+                    Column as DepartmentColumn, Entity as DepartmentEntity,
+                };
 
-            let _department_ref = if let Some(department_id) = emp.department_id {
-                let department = DepartmentEntity::find_by_id(department_id)
-                    .filter(DepartmentColumn::DeletedAt.is_null())
-                    .one(&db)
-                    .await?;
+                let _department_ref = if let Some(department_id) = emp.department_id {
+                    let department = DepartmentEntity::find_by_id(department_id)
+                        .filter(DepartmentColumn::DeletedAt.is_null())
+                        .one(&db)
+                        .await?;
 
-                department.and_then(|dept| {
-                    dept.intuit_department_id.map(|qb_id| NtRef {
-                        value: Some(qb_id),
-                        name: Some(dept.name.clone()),
-                        // Note: entity_ref_type is not supported in batch employee creation
-                        entity_ref_type: None,
+                    department.and_then(|dept| {
+                        dept.intuit_department_id.map(|qb_id| NtRef {
+                            value: Some(qb_id),
+                            name: Some(dept.name.clone()),
+                            // Note: entity_ref_type is not supported in batch employee creation
+                            entity_ref_type: None,
+                        })
                     })
-                })
-            } else {
-                None
-            };
+                } else {
+                    None
+                };
 
-            // Build QuickBooks Employee with all available fields
-            let base_employee = intuit::Employee {
-                given_name: Some(emp.first_name.clone()),
-                family_name: Some(emp.last_name.clone()),
-                primary_email_addr: Some(intuit::EmailAddress {
-                    address: Some(emp.email.clone()),
-                }),
-                // QuickBooks Title field has a maximum length of 16 characters
-                title: emp.job_title.as_ref().map(|t| {
-                    if t.len() > 16 {
-                        t.chars().take(16).collect()
-                    } else {
-                        t.clone()
-                    }
-                }),
-                primary_phone: emp.phone_number.as_ref().map(|phone| PhoneNumber {
-                    free_form_number: Some(phone.clone()),
-                }),
-                mobile: emp.mobile_number.as_ref().map(|mobile| PhoneNumber {
-                    free_form_number: Some(mobile.clone()),
-                }),
-                primary_addr: primary_address.map(|addr| Addr {
-                    line1: Some(addr.address_line1.clone()),
-                    city: Some(addr.city.clone()),
-                    country_sub_division_code: Some(addr.state_province.clone()),
-                    postal_code: Some(addr.postal_code.clone()),
-                    country: Some(addr.country.clone()),
-                    id: None,
-                }),
-                birth_date: emp.birth_date,
-                hired_date: emp.hire_date.map(|dt| dt.date_naive()),
-                active: Some(true),
-                ..Default::default()
-            };
-
-            // Create EmployeeExtended without department reference
-            // Note: ParentRef (manager) and DepartmentRef are not supported during batch employee creation
-            // Department assignment will need to be done via individual employee updates after creation
-            let qb_employee = intuit::EmployeeExtended {
-                base: base_employee,
-                employee_number: emp.employee_number.clone(),
-                department_ref: None,
-                parent_ref: None,
-                sparse: None,
-            };
-
-            if qb_employee.department_ref.is_some() {
-                tracing::debug!("Employee {} has department reference set", emp.email);
-            }
-
-            qb_employees.push(qb_employee);
-        }
-
-        tracing::info!("Batch creating {} employees in QuickBooks", qb_employees.len());
-
-        // Batch create employees (API handles chunking into groups of 30)
-        let batch_results = client.batch_create_employees(qb_employees).await?;
-
-        // Process results and update local database
-        for (index, result) in batch_results.iter().enumerate() {
-            let hr_employee = employees_to_create[index];
-
-            match result {
-                Ok(qb_employee) => {
-                    if let Some(qb_id) = &qb_employee.id {
-                        let mut user_update: UserActiveModel = hr_employee.clone().into();
-                        user_update.intuit_employee_id = Set(Some(qb_id.clone()));
-                        user_update.updated_at = Set(Utc::now());
-
-                        if let Err(e) = user_update.update(&db).await {
-                            errors.push(format!("Created in QuickBooks but failed to update local record for {}: {}", hr_employee.email, e));
+                // Build QuickBooks Employee with all available fields
+                let base_employee = intuit::Employee {
+                    given_name: Some(emp.first_name.clone()),
+                    family_name: Some(emp.last_name.clone()),
+                    primary_email_addr: Some(intuit::EmailAddress {
+                        address: Some(emp.email.clone()),
+                    }),
+                    // QuickBooks Title field has a maximum length of 16 characters
+                    title: emp.job_title.as_ref().map(|t| {
+                        if t.len() > 16 {
+                            t.chars().take(16).collect()
                         } else {
-                            synced_count += 1;
-                            tracing::info!("Created employee {} in QuickBooks with ID {}", hr_employee.email, qb_id);
+                            t.clone()
                         }
-                    } else {
-                        errors.push(format!("QuickBooks didn't return ID for employee {}", hr_employee.email));
+                    }),
+                    primary_phone: emp.phone_number.as_ref().map(|phone| PhoneNumber {
+                        free_form_number: Some(phone.clone()),
+                    }),
+                    mobile: emp.mobile_number.as_ref().map(|mobile| PhoneNumber {
+                        free_form_number: Some(mobile.clone()),
+                    }),
+                    primary_addr: primary_address.map(|addr| Addr {
+                        line1: Some(addr.address_line1.clone()),
+                        city: Some(addr.city.clone()),
+                        country_sub_division_code: Some(addr.state_province.clone()),
+                        postal_code: Some(addr.postal_code.clone()),
+                        country: Some(addr.country.clone()),
+                        id: None,
+                    }),
+                    birth_date: emp.birth_date,
+                    hired_date: emp.hire_date.map(|dt| dt.date_naive()),
+                    active: Some(true),
+                    ..Default::default()
+                };
+
+                // Create EmployeeExtended without department reference
+                // Note: ParentRef (manager) and DepartmentRef are not supported during batch employee creation
+                // Department assignment will need to be done via individual employee updates after creation
+                let qb_employee = intuit::EmployeeExtended {
+                    base: base_employee,
+                    employee_number: emp.employee_number.clone(),
+                    department_ref: None,
+                    parent_ref: None,
+                    sparse: None,
+                };
+
+                if qb_employee.department_ref.is_some() {
+                    tracing::debug!("Employee {} has department reference set", emp.email);
+                }
+
+                qb_employees.push(qb_employee);
+            }
+
+            tracing::info!(
+                "Batch creating {} employees in QuickBooks",
+                qb_employees.len()
+            );
+
+            // Batch create employees (API handles chunking into groups of 30)
+            let batch_results = client.batch_create_employees(qb_employees).await?;
+
+            // Process results and update local database
+            for (index, result) in batch_results.iter().enumerate() {
+                let hr_employee = employees_to_create[index];
+
+                match result {
+                    Ok(qb_employee) => {
+                        if let Some(qb_id) = &qb_employee.id {
+                            let mut user_update: UserActiveModel = hr_employee.clone().into();
+                            user_update.intuit_employee_id = Set(Some(qb_id.clone()));
+                            user_update.updated_at = Set(Utc::now());
+
+                            if let Err(e) = user_update.update(&db).await {
+                                errors.push(format!("Created in QuickBooks but failed to update local record for {}: {}", hr_employee.email, e));
+                            } else {
+                                synced_count += 1;
+                                tracing::info!(
+                                    "Created employee {} in QuickBooks with ID {}",
+                                    hr_employee.email,
+                                    qb_id
+                                );
+                            }
+                        } else {
+                            errors.push(format!(
+                                "QuickBooks didn't return ID for employee {}",
+                                hr_employee.email
+                            ));
+                        }
+                    }
+                    Err(e) => {
+                        errors.push(format!(
+                            "Failed to create {} in QuickBooks: {}",
+                            hr_employee.email, e
+                        ));
                     }
                 }
-                Err(e) => {
-                    errors.push(format!("Failed to create {} in QuickBooks: {}", hr_employee.email, e));
-                }
             }
-        }
         } // End of create block
 
         // ========== PART 2: Handle Updates ==========
         if !employees_to_update.is_empty() {
-            tracing::info!("Updating {} existing employees in QuickBooks", employees_to_update.len());
+            tracing::info!(
+                "Updating {} existing employees in QuickBooks",
+                employees_to_update.len()
+            );
 
-            use crate::models::employee::user_address::{Entity as UserAddressEntity, Column as UserAddressColumn};
+            use crate::models::employee::user_address::{
+                Column as UserAddressColumn, Entity as UserAddressEntity,
+            };
             use quickbooks_types::common::{Addr, PhoneNumber};
 
             for emp in employees_to_update {
@@ -1020,7 +1171,10 @@ impl IntuitMutations {
                 let current_qb_employee = match client.get_employee(&qb_id).await {
                     Ok(qb_emp) => qb_emp,
                     Err(e) => {
-                        errors.push(format!("Failed to fetch employee {} from QuickBooks: {}", emp.email, e));
+                        errors.push(format!(
+                            "Failed to fetch employee {} from QuickBooks: {}",
+                            emp.email, e
+                        ));
                         continue;
                     }
                 };
@@ -1029,7 +1183,10 @@ impl IntuitMutations {
                 let sync_token = match current_qb_employee.base.sync_token {
                     Some(token) => token,
                     None => {
-                        errors.push(format!("Employee {} in QuickBooks has no SyncToken", emp.email));
+                        errors.push(format!(
+                            "Employee {} in QuickBooks has no SyncToken",
+                            emp.email
+                        ));
                         continue;
                     }
                 };
@@ -1094,7 +1251,8 @@ impl IntuitMutations {
                     Ok(updated_qb_employee) => {
                         // Update local sync fields
                         let mut user_update: UserActiveModel = emp.clone().into();
-                        user_update.quickbooks_sync_token = Set(updated_qb_employee.sync_token.clone());
+                        user_update.quickbooks_sync_token =
+                            Set(updated_qb_employee.sync_token.clone());
                         user_update.last_synced_at = Set(Some(Utc::now()));
                         user_update.sync_status = Set("synced".to_string());
                         user_update.updated_at = Set(Utc::now());
@@ -1107,7 +1265,10 @@ impl IntuitMutations {
                         }
                     }
                     Err(e) => {
-                        errors.push(format!("Failed to update {} in QuickBooks: {}", emp.email, e));
+                        errors.push(format!(
+                            "Failed to update {} in QuickBooks: {}",
+                            emp.email, e
+                        ));
                     }
                 }
             }
@@ -1125,13 +1286,18 @@ impl IntuitMutations {
 
     /// Update employee departments in QuickBooks
     /// This operation updates existing QuickBooks employees with their department references
-    async fn update_employee_departments_in_quickbooks(&self, ctx: &Context<'_>) -> Result<SyncResult> {
+    async fn update_employee_departments_in_quickbooks(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Result<SyncResult> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::PushToQuickBooks).await?;
+        checker
+            .require(user_context, SyncPermission::PushToQuickBooks)
+            .await?;
 
         // Get QuickBooks client with automatic token refresh
         let client_manager = IntuitClientManager::new(db.clone());
@@ -1145,7 +1311,7 @@ impl IntuitMutations {
             .map_err(|e| async_graphql::Error::new(e.to_string()))?;
 
         // Import user model
-        use crate::models::user::{Entity as UserEntity, Column as UserColumn};
+        use crate::models::user::{Column as UserColumn, Entity as UserEntity};
 
         // Find all employees that have both QuickBooks ID and department ID
         let employees_with_departments = UserEntity::find()
@@ -1163,7 +1329,7 @@ impl IntuitMutations {
             });
         }
 
-        use crate::models::department::{Entity as DepartmentEntity, Column as DepartmentColumn};
+        use crate::models::department::{Column as DepartmentColumn, Entity as DepartmentEntity};
         use quickbooks_types::common::NtRef;
 
         let mut updated_count = 0;
@@ -1212,19 +1378,30 @@ impl IntuitMutations {
                             match client.update_employee(employee_update).await {
                                 Ok(_) => {
                                     updated_count += 1;
-                                    tracing::info!("Updated department for employee {} (QB ID: {})", emp.email, qb_emp_id);
+                                    tracing::info!(
+                                        "Updated department for employee {} (QB ID: {})",
+                                        emp.email,
+                                        qb_emp_id
+                                    );
                                 }
                                 Err(e) => {
-                                    errors.push(format!("Failed to update {} with department: {}", emp.email, e));
+                                    errors.push(format!(
+                                        "Failed to update {} with department: {}",
+                                        emp.email, e
+                                    ));
                                 }
                             }
                         }
                         Err(e) => {
-                            errors.push(format!("Failed to fetch QB employee {}: {}", emp.email, e));
+                            errors
+                                .push(format!("Failed to fetch QB employee {}: {}", emp.email, e));
                         }
                     }
                 } else {
-                    errors.push(format!("Department '{}' not synced to QuickBooks", dept.name));
+                    errors.push(format!(
+                        "Department '{}' not synced to QuickBooks",
+                        dept.name
+                    ));
                 }
             }
         }
@@ -1241,23 +1418,24 @@ impl IntuitMutations {
     /// Synchronize all employees with QuickBooks (pull from QB to HR)
     async fn sync_all_employees(&self, ctx: &Context<'_>) -> Result<SyncResult> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::TriggerEmployeeSync).await?;
+        checker
+            .require(user_context, SyncPermission::TriggerEmployeeSync)
+            .await?;
 
         // Get QuickBooks client with automatic token refresh
         let client_manager = IntuitClientManager::new(db.clone());
-        let client = client_manager
-            .get_client()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create Intuit client: {}", e)))?;
-        let connection_id = client_manager
-            .get_connection_id()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get connection ID: {}", e)))?;
+        let client = client_manager.get_client().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to create Intuit client: {}", e))
+        })?;
+        let connection_id = client_manager.get_connection_id().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to get connection ID: {}", e))
+        })?;
 
         // Fetch employees from QuickBooks
         let qb_employees = match client.list_employees().await {
@@ -1275,18 +1453,31 @@ impl IntuitMutations {
         let mut errors = Vec::new();
 
         // Import user model
-        use crate::models::user::{Entity as UserEntity, Column as UserColumn, ActiveModel as UserActiveModel};
-        use sea_orm::{Set, NotSet};
+        use crate::models::user::{
+            ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity,
+        };
+        use sea_orm::{NotSet, Set};
 
         // Sync each employee from QuickBooks to local database
-        tracing::info!("Processing {} employees from QuickBooks", qb_employees.len());
+        tracing::info!(
+            "Processing {} employees from QuickBooks",
+            qb_employees.len()
+        );
 
         // Log all employee names for debugging
         for (idx, emp) in qb_employees.iter().enumerate() {
             if idx < 10 || idx >= qb_employees.len() - 10 {
-                tracing::debug!("Employee {}: ID={:?}, given_name={:?}, family_name={:?}, email={:?}",
-                    idx, emp.base.id, emp.base.given_name, emp.base.family_name,
-                    emp.base.primary_email_addr.as_ref().and_then(|e| e.address.as_ref()));
+                tracing::debug!(
+                    "Employee {}: ID={:?}, given_name={:?}, family_name={:?}, email={:?}",
+                    idx,
+                    emp.base.id,
+                    emp.base.given_name,
+                    emp.base.family_name,
+                    emp.base
+                        .primary_email_addr
+                        .as_ref()
+                        .and_then(|e| e.address.as_ref())
+                );
             }
         }
 
@@ -1304,19 +1495,29 @@ impl IntuitMutations {
             tracing::debug!("Processing QuickBooks employee ID: {}", qb_id);
 
             // Log the full employee data for debugging
-            tracing::debug!("QB Employee data: given_name={:?}, family_name={:?}, primary_email_addr={:?}",
-                qb_employee.base.given_name, qb_employee.base.family_name, qb_employee.base.primary_email_addr);
+            tracing::debug!(
+                "QB Employee data: given_name={:?}, family_name={:?}, primary_email_addr={:?}",
+                qb_employee.base.given_name,
+                qb_employee.base.family_name,
+                qb_employee.base.primary_email_addr
+            );
 
             let email = match &qb_employee.base.primary_email_addr {
                 Some(e) => {
                     let email_addr = e.address.clone().unwrap_or_default();
                     if email_addr.is_empty() {
-                        tracing::warn!("Employee {} has primary_email_addr but address field is empty", qb_id);
-                        errors.push(format!("Employee {} has empty email address, skipping", qb_id));
+                        tracing::warn!(
+                            "Employee {} has primary_email_addr but address field is empty",
+                            qb_id
+                        );
+                        errors.push(format!(
+                            "Employee {} has empty email address, skipping",
+                            qb_id
+                        ));
                         continue;
                     }
                     email_addr
-                },
+                }
                 None => {
                     tracing::warn!("Employee {} missing primary_email_addr field", qb_id);
                     errors.push(format!("Employee {} missing email, skipping", qb_id));
@@ -1329,7 +1530,7 @@ impl IntuitMutations {
                 .filter(
                     sea_orm::Condition::any()
                         .add(UserColumn::IntuitEmployeeId.eq(&qb_id))
-                        .add(UserColumn::Email.eq(&email))
+                        .add(UserColumn::Email.eq(&email)),
                 )
                 .filter(UserColumn::DeletedAt.is_null()) // Exclude soft-deleted users
                 .one(&db)
@@ -1376,8 +1577,16 @@ impl IntuitMutations {
                     tracing::info!("Creating new user from QuickBooks employee {}", qb_id);
                     use uuid::Uuid;
 
-                    let given_name = qb_employee.base.given_name.clone().unwrap_or_else(|| "Unknown".to_string());
-                    let family_name = qb_employee.base.family_name.clone().unwrap_or_else(|| "Employee".to_string());
+                    let given_name = qb_employee
+                        .base
+                        .given_name
+                        .clone()
+                        .unwrap_or_else(|| "Unknown".to_string());
+                    let family_name = qb_employee
+                        .base
+                        .family_name
+                        .clone()
+                        .unwrap_or_else(|| "Employee".to_string());
                     let display_name = format!("{} {}", given_name, family_name);
 
                     tracing::debug!("Creating user: {} {} ({})", given_name, family_name, email);
@@ -1447,7 +1656,8 @@ impl IntuitMutations {
                             tracing::info!("✓ Successfully created new user {} (ID: {}) from QuickBooks employee {}", email, inserted_user.id, qb_id);
                         }
                         Err(e) => {
-                            let error_msg = format!("Failed to create user {} from QuickBooks: {}", email, e);
+                            let error_msg =
+                                format!("Failed to create user {} from QuickBooks: {}", email, e);
                             tracing::error!("{}", error_msg);
                             errors.push(error_msg);
                         }
@@ -1461,9 +1671,16 @@ impl IntuitMutations {
 
         // Log sync summary
         if errors.is_empty() {
-            tracing::info!("✓ Sync completed successfully: {} employees synced", synced_count);
+            tracing::info!(
+                "✓ Sync completed successfully: {} employees synced",
+                synced_count
+            );
         } else {
-            tracing::warn!("Sync completed with {} errors: {} employees synced", errors.len(), synced_count);
+            tracing::warn!(
+                "Sync completed with {} errors: {} employees synced",
+                errors.len(),
+                synced_count
+            );
             for error in &errors {
                 tracing::error!("Sync error: {}", error);
             }
@@ -1479,25 +1696,27 @@ impl IntuitMutations {
     /// Push departments from HR system to QuickBooks
 
     /// Sync employees one-by-one to identify problematic records
-    /// 
+    ///
     /// This is a diagnostic version of sync_all_employees that processes each employee
     /// individually and reports detailed results for each one, making it easy to identify
     /// which specific employee is causing sync failures.
     async fn sync_employees_individually(&self, ctx: &Context<'_>) -> Result<IndividualSyncResult> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::TriggerEmployeeSync).await?;
+        checker
+            .require(user_context, SyncPermission::TriggerEmployeeSync)
+            .await?;
 
         // Get QuickBooks client with automatic token refresh
         let client_manager = IntuitClientManager::new(db.clone());
-        let client = client_manager
-            .get_client()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create Intuit client: {}", e)))?;
+        let client = client_manager.get_client().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to create Intuit client: {}", e))
+        })?;
 
         // Fetch employees from QuickBooks
         let qb_employees = match client.list_employees().await {
@@ -1522,7 +1741,7 @@ impl IntuitMutations {
 
         for (index, qb_employee) in qb_employees.into_iter().enumerate() {
             let employee_number = index + 1;
-            
+
             // Get employee identifier
             let qb_id = match &qb_employee.base.id {
                 Some(id) => id.clone(),
@@ -1543,14 +1762,20 @@ impl IntuitMutations {
             let given_name = qb_employee.base.given_name.clone().unwrap_or_default();
             let family_name = qb_employee.base.family_name.clone().unwrap_or_default();
             let employee_name = format!("{} {}", given_name, family_name).trim().to_string();
-            
+
             let email = match &qb_employee.base.primary_email_addr {
                 Some(e) => e.address.clone().unwrap_or_default(),
                 None => String::new(),
             };
 
-            tracing::info!("Processing employee {}/{}: {} (ID: {}, Email: {})",
-                employee_number, total, employee_name, qb_id, email);
+            tracing::info!(
+                "Processing employee {}/{}: {} (ID: {}, Email: {})",
+                employee_number,
+                total,
+                employee_name,
+                qb_id,
+                email
+            );
 
             // Track sync duration
             let sync_start = std::time::Instant::now();
@@ -1558,16 +1783,24 @@ impl IntuitMutations {
             // Attempt to sync this individual employee by sending to QuickBooks
             let sync_result = async {
                 // Send this single employee to QuickBooks to test if it causes errors
-                client.update_employee(qb_employee.clone()).await
+                client
+                    .update_employee(qb_employee.clone())
+                    .await
                     .map_err(|e| format!("QuickBooks API error: {}", e))
-            }.await;
+            }
+            .await;
 
             let sync_duration_ms = sync_start.elapsed().as_millis() as i32;
 
             match sync_result {
                 Ok(_) => {
-                    tracing::info!("✓ Successfully synced employee {}/{}: {} ({}ms)",
-                        employee_number, total, employee_name, sync_duration_ms);
+                    tracing::info!(
+                        "✓ Successfully synced employee {}/{}: {} ({}ms)",
+                        employee_number,
+                        total,
+                        employee_name,
+                        sync_duration_ms
+                    );
 
                     // Record successful sync log
                     use crate::models::intuit_sync_log;
@@ -1575,7 +1808,7 @@ impl IntuitMutations {
                         Some(user_context.user_id),
                         "employee_diagnostic",
                         "push",
-                        "success"
+                        "success",
                     );
                     sync_log.sync_duration_ms = sea_orm::Set(Some(sync_duration_ms));
                     sync_log.updated_count = sea_orm::Set(1);
@@ -1585,15 +1818,17 @@ impl IntuitMutations {
                     // Record health metric
                     use crate::services::health_monitor::HealthMonitor;
                     let health_monitor = HealthMonitor::new(std::sync::Arc::new(db.clone()));
-                    let _ = health_monitor.record_sync_metric(
-                        Some(sync_duration_ms),
-                        Some(1), // 1 employee processed
-                        0,       // no errors
-                        None,    // API calls unknown
-                        "healthy",
-                        Some("employee".to_string()),
-                        Some("push".to_string())
-                    ).await;
+                    let _ = health_monitor
+                        .record_sync_metric(
+                            Some(sync_duration_ms),
+                            Some(1), // 1 employee processed
+                            0,       // no errors
+                            None,    // API calls unknown
+                            "healthy",
+                            Some("employee".to_string()),
+                            Some("push".to_string()),
+                        )
+                        .await;
 
                     results.push(EmployeeSyncResult {
                         employee_number,
@@ -1606,22 +1841,39 @@ impl IntuitMutations {
                     succeeded += 1;
                 }
                 Err(error_msg) => {
-                    tracing::error!("✗ Failed to sync employee {}/{}: {} - Error: {} ({}ms)",
-                        employee_number, total, employee_name, error_msg, sync_duration_ms);
+                    tracing::error!(
+                        "✗ Failed to sync employee {}/{}: {} - Error: {} ({}ms)",
+                        employee_number,
+                        total,
+                        employee_name,
+                        error_msg,
+                        sync_duration_ms
+                    );
 
                     // Auto-resolve: If employee not found in QuickBooks, clear the invalid mapping
                     let mut resolved_error = error_msg.clone();
                     let mut is_ghost_record = false;
-                    let should_auto_resolve = error_msg.contains("EMPLOYEE_NOT_FOUND") || error_msg.contains("does not exist");
-                    tracing::info!("Error message: '{}', Should auto-resolve: {}", error_msg, should_auto_resolve);
+                    let should_auto_resolve = error_msg.contains("EMPLOYEE_NOT_FOUND")
+                        || error_msg.contains("does not exist");
+                    tracing::info!(
+                        "Error message: '{}', Should auto-resolve: {}",
+                        error_msg,
+                        should_auto_resolve
+                    );
 
                     if should_auto_resolve {
                         tracing::warn!("🔧 Auto-resolving: Clearing invalid QuickBooks mapping for employee {} (QB ID: {})", employee_name, qb_id);
 
                         // Find and clear the intuit_employee_id from the employee record
-                        use crate::models::user::{Entity as UserEntity, Column as UserColumn, ActiveModel as UserActiveModel};
+                        use crate::models::user::{
+                            ActiveModel as UserActiveModel, Column as UserColumn,
+                            Entity as UserEntity,
+                        };
 
-                        tracing::info!("🔍 Searching for employee with IntuitEmployeeId = {}", qb_id);
+                        tracing::info!(
+                            "🔍 Searching for employee with IntuitEmployeeId = {}",
+                            qb_id
+                        );
 
                         match UserEntity::find()
                             .filter(UserColumn::IntuitEmployeeId.eq(&qb_id))
@@ -1637,17 +1889,30 @@ impl IntuitMutations {
                                 match active_employee.update(&db).await {
                                     Ok(_) => {
                                         tracing::info!("✅ Successfully cleared invalid QuickBooks mapping for employee {} (QB ID: {})", employee_name, qb_id);
-                                        resolved_error = format!("{} (Auto-resolved: Mapping cleared)", error_msg);
+                                        resolved_error = format!(
+                                            "{} (Auto-resolved: Mapping cleared)",
+                                            error_msg
+                                        );
                                     }
                                     Err(e) => {
-                                        tracing::error!("❌ Failed to update employee record: {}", e);
+                                        tracing::error!(
+                                            "❌ Failed to update employee record: {}",
+                                            e
+                                        );
                                     }
                                 }
                             }
                             Ok(None) => {
                                 // Couldn't find by QB ID, try to find by name/email
-                                tracing::warn!("⚠️  Could not find local employee record with QB ID: {}", qb_id);
-                                tracing::info!("🔍 Attempting to match employee by name/email: {} / {}", employee_name, email);
+                                tracing::warn!(
+                                    "⚠️  Could not find local employee record with QB ID: {}",
+                                    qb_id
+                                );
+                                tracing::info!(
+                                    "🔍 Attempting to match employee by name/email: {} / {}",
+                                    employee_name,
+                                    email
+                                );
 
                                 // Parse name components
                                 let parts: Vec<&str> = employee_name.split_whitespace().collect();
@@ -1688,13 +1953,21 @@ impl IntuitMutations {
                                     tracing::warn!("🔍 QuickBooks data corruption detected: Employee {} (ID: {}) exists in QB list API but returns NOT_FOUND on update", employee_name, qb_id);
                                     tracing::info!("💡 Recommendation: This is a ghost record in QuickBooks. Consider:");
                                     tracing::info!("   1. Manually reviewing and deleting this employee from QuickBooks");
-                                    tracing::info!("   2. Or skipping this employee in future syncs");
-                                    resolved_error = format!("{} (QB Ghost Record: Not found in local system or QB)", error_msg);
+                                    tracing::info!(
+                                        "   2. Or skipping this employee in future syncs"
+                                    );
+                                    resolved_error = format!(
+                                        "{} (QB Ghost Record: Not found in local system or QB)",
+                                        error_msg
+                                    );
                                     is_ghost_record = true;
                                 }
                             }
                             Err(e) => {
-                                tracing::error!("❌ Database error while searching for employee: {}", e);
+                                tracing::error!(
+                                    "❌ Database error while searching for employee: {}",
+                                    e
+                                );
                             }
                         }
                     }
@@ -1706,7 +1979,7 @@ impl IntuitMutations {
                         Some(user_context.user_id),
                         "employee_diagnostic",
                         "push",
-                        sync_status
+                        sync_status,
                     );
                     sync_log.sync_duration_ms = sea_orm::Set(Some(sync_duration_ms));
                     sync_log.error_message = sea_orm::Set(Some(resolved_error.clone()));
@@ -1717,15 +1990,17 @@ impl IntuitMutations {
                     use crate::services::health_monitor::HealthMonitor;
                     let health_monitor = HealthMonitor::new(std::sync::Arc::new(db.clone()));
                     if !is_ghost_record {
-                        let _ = health_monitor.record_sync_metric(
-                            Some(sync_duration_ms),
-                            Some(1), // 1 employee attempted
-                            1,       // 1 error
-                            None,    // API calls unknown
-                            "degraded",
-                            Some("employee".to_string()),
-                            Some("push".to_string())
-                        ).await;
+                        let _ = health_monitor
+                            .record_sync_metric(
+                                Some(sync_duration_ms),
+                                Some(1), // 1 employee attempted
+                                1,       // 1 error
+                                None,    // API calls unknown
+                                "degraded",
+                                Some("employee".to_string()),
+                                Some("push".to_string()),
+                            )
+                            .await;
                     }
 
                     results.push(EmployeeSyncResult {
@@ -1734,7 +2009,11 @@ impl IntuitMutations {
                         employee_name,
                         employee_email: if email.is_empty() { None } else { Some(email) },
                         success: is_ghost_record, // Mark ghost records as "success" to avoid false alarms
-                        error: if is_ghost_record { None } else { Some(resolved_error.clone()) },
+                        error: if is_ghost_record {
+                            None
+                        } else {
+                            Some(resolved_error.clone())
+                        },
                     });
 
                     // Only increment failed counter for actual failures, not ghost records
@@ -1767,26 +2046,30 @@ impl IntuitMutations {
     /// Push departments from HR system to QuickBooks
     async fn push_departments_to_quickbooks(&self, ctx: &Context<'_>) -> Result<SyncResult> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::PushToQuickBooks).await?;
+        checker
+            .require(user_context, SyncPermission::PushToQuickBooks)
+            .await?;
 
         // Get QuickBooks client with automatic token refresh
         let client_manager = IntuitClientManager::new(db.clone());
-        let client = client_manager
-            .get_client()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create Intuit client: {}", e)))?;
-        let connection_id = client_manager
-            .get_connection_id()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get connection ID: {}", e)))?;
+        let client = client_manager.get_client().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to create Intuit client: {}", e))
+        })?;
+        let connection_id = client_manager.get_connection_id().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to get connection ID: {}", e))
+        })?;
 
         // Import department model
-        use crate::models::department::{Entity as DepartmentEntity, Column as DepartmentColumn, ActiveModel as DepartmentActiveModel};
+        use crate::models::department::{
+            ActiveModel as DepartmentActiveModel, Column as DepartmentColumn,
+            Entity as DepartmentEntity,
+        };
         use sea_orm::Set;
 
         // Fetch all active departments from HR system
@@ -1795,7 +2078,10 @@ impl IntuitMutations {
             .all(&db)
             .await?;
 
-        tracing::info!("Found {} total departments in database", hr_departments.len());
+        tracing::info!(
+            "Found {} total departments in database",
+            hr_departments.len()
+        );
 
         let mut synced_count = 0;
         let mut errors = Vec::new();
@@ -1816,10 +2102,17 @@ impl IntuitMutations {
                         dept_update.updated_at = Set(Utc::now());
 
                         if let Err(e) = dept_update.update(&db).await {
-                            errors.push(format!("Failed to update local ID for {}: {}", local_dept.name, e));
+                            errors.push(format!(
+                                "Failed to update local ID for {}: {}",
+                                local_dept.name, e
+                            ));
                         } else {
                             synced_count += 1;
-                            tracing::info!("Matched department '{}' with existing QuickBooks ID {}", local_dept.name, qb_id);
+                            tracing::info!(
+                                "Matched department '{}' with existing QuickBooks ID {}",
+                                local_dept.name,
+                                qb_id
+                            );
                         }
                     }
                 }
@@ -1844,12 +2137,18 @@ impl IntuitMutations {
                 tracing::debug!("Department '{}' will be updated in QuickBooks", dept.name);
             } else {
                 departments_to_create.push(dept);
-                tracing::info!("Department '{}' needs to be created in QuickBooks", dept.name);
+                tracing::info!(
+                    "Department '{}' needs to be created in QuickBooks",
+                    dept.name
+                );
             }
         }
 
-        tracing::info!("Found {} departments to create and {} to update in QuickBooks",
-            departments_to_create.len(), departments_to_update.len());
+        tracing::info!(
+            "Found {} departments to create and {} to update in QuickBooks",
+            departments_to_create.len(),
+            departments_to_update.len()
+        );
 
         // ========== PART 1: Handle Creates ==========
         if departments_to_create.is_empty() && departments_to_update.is_empty() {
@@ -1872,18 +2171,27 @@ impl IntuitMutations {
                 name: Some(dept.name.clone()),
                 active: Some(true),
                 sub_department: Some(false), // TODO: Support hierarchical departments
-                parent_ref: None, // TODO: Support parent departments
+                parent_ref: None,            // TODO: Support parent departments
                 ..Default::default()
             })
             .collect();
 
-        tracing::info!("Batch creating {} departments in QuickBooks", qb_departments.len());
-        tracing::debug!("Department names: {:?}", qb_departments.iter().map(|d| &d.name).collect::<Vec<_>>());
+        tracing::info!(
+            "Batch creating {} departments in QuickBooks",
+            qb_departments.len()
+        );
+        tracing::debug!(
+            "Department names: {:?}",
+            qb_departments.iter().map(|d| &d.name).collect::<Vec<_>>()
+        );
 
         // Batch create departments (API handles chunking)
         let batch_results = client.batch_create_departments(qb_departments).await?;
 
-        tracing::info!("Received {} results from QuickBooks batch create", batch_results.len());
+        tracing::info!(
+            "Received {} results from QuickBooks batch create",
+            batch_results.len()
+        );
 
         // Process results and update local database
         for (index, result) in batch_results.iter().enumerate() {
@@ -1891,7 +2199,10 @@ impl IntuitMutations {
 
             match result {
                 Ok(qb_department) => {
-                    tracing::info!("QuickBooks created department '{}' successfully", hr_department.name);
+                    tracing::info!(
+                        "QuickBooks created department '{}' successfully",
+                        hr_department.name
+                    );
                     if let Some(qb_id) = &qb_department.id {
                         let mut dept_update: DepartmentActiveModel = hr_department.clone().into();
                         dept_update.intuit_department_id = Set(Some(qb_id.clone()));
@@ -1901,16 +2212,26 @@ impl IntuitMutations {
                             errors.push(format!("Created in QuickBooks but failed to update local record for {}: {}", hr_department.name, e));
                         } else {
                             synced_count += 1;
-                            tracing::info!("Created department {} in QuickBooks with ID {}", hr_department.name, qb_id);
+                            tracing::info!(
+                                "Created department {} in QuickBooks with ID {}",
+                                hr_department.name,
+                                qb_id
+                            );
                         }
                     } else {
-                        let err_msg = format!("QuickBooks didn't return ID for department {}", hr_department.name);
+                        let err_msg = format!(
+                            "QuickBooks didn't return ID for department {}",
+                            hr_department.name
+                        );
                         tracing::error!("{}", err_msg);
                         errors.push(err_msg);
                     }
                 }
                 Err(e) => {
-                    let err_msg = format!("Failed to create '{}' in QuickBooks: {}", hr_department.name, e);
+                    let err_msg = format!(
+                        "Failed to create '{}' in QuickBooks: {}",
+                        hr_department.name, e
+                    );
                     tracing::error!("{}", err_msg);
                     errors.push(err_msg);
                 }
@@ -1919,7 +2240,10 @@ impl IntuitMutations {
 
         // ========== PART 2: Handle Updates ==========
         if !departments_to_update.is_empty() {
-            tracing::info!("Updating {} departments in QuickBooks", departments_to_update.len());
+            tracing::info!(
+                "Updating {} departments in QuickBooks",
+                departments_to_update.len()
+            );
 
             for dept in departments_to_update {
                 let qb_id = dept.intuit_department_id.clone().unwrap();
@@ -1927,7 +2251,9 @@ impl IntuitMutations {
                 // Fetch current department from QuickBooks to get SyncToken
                 match client.get_department(&qb_id).await {
                     Ok(current_qb_department) => {
-                        let sync_token = current_qb_department.sync_token.unwrap_or_else(|| "0".to_string());
+                        let sync_token = current_qb_department
+                            .sync_token
+                            .unwrap_or_else(|| "0".to_string());
 
                         // Build updated department with current data
                         let updated_department = intuit::Department {
@@ -1943,11 +2269,15 @@ impl IntuitMutations {
                         // Perform update
                         match client.update_department(updated_department).await {
                             Ok(updated_qb_department) => {
-                                tracing::info!("Successfully updated department '{}' in QuickBooks", dept.name);
+                                tracing::info!(
+                                    "Successfully updated department '{}' in QuickBooks",
+                                    dept.name
+                                );
 
                                 // Update local sync tracking fields
                                 let mut dept_update: DepartmentActiveModel = dept.clone().into();
-                                dept_update.quickbooks_sync_token = Set(updated_qb_department.sync_token.clone());
+                                dept_update.quickbooks_sync_token =
+                                    Set(updated_qb_department.sync_token.clone());
                                 dept_update.last_synced_at = Set(Some(Utc::now()));
                                 dept_update.sync_status = Set("synced".to_string());
                                 dept_update.updated_at = Set(Utc::now());
@@ -1955,7 +2285,10 @@ impl IntuitMutations {
                                 match dept_update.update(&db).await {
                                     Ok(_) => {
                                         synced_count += 1;
-                                        tracing::info!("Updated local sync fields for department '{}'", dept.name);
+                                        tracing::info!(
+                                            "Updated local sync fields for department '{}'",
+                                            dept.name
+                                        );
                                     }
                                     Err(e) => {
                                         let err_msg = format!("Updated in QuickBooks but failed to update local sync fields for {}: {}", dept.name, e);
@@ -1965,14 +2298,20 @@ impl IntuitMutations {
                                 }
                             }
                             Err(e) => {
-                                let err_msg = format!("Failed to update department '{}' in QuickBooks: {}", dept.name, e);
+                                let err_msg = format!(
+                                    "Failed to update department '{}' in QuickBooks: {}",
+                                    dept.name, e
+                                );
                                 tracing::error!("{}", err_msg);
                                 errors.push(err_msg);
                             }
                         }
                     }
                     Err(e) => {
-                        let err_msg = format!("Failed to fetch current department '{}' from QuickBooks: {}", dept.name, e);
+                        let err_msg = format!(
+                            "Failed to fetch current department '{}' from QuickBooks: {}",
+                            dept.name, e
+                        );
                         tracing::error!("{}", err_msg);
                         errors.push(err_msg);
                     }
@@ -1980,7 +2319,11 @@ impl IntuitMutations {
             }
         }
 
-        tracing::info!("Department sync complete: {} synced, {} errors", synced_count, errors.len());
+        tracing::info!(
+            "Department sync complete: {} synced, {} errors",
+            synced_count,
+            errors.len()
+        );
 
         // Update last sync time
         update_last_sync_time(&db, connection_id).await?;
@@ -1995,23 +2338,24 @@ impl IntuitMutations {
     /// Synchronize all departments with QuickBooks (pull from QB to HR)
     async fn sync_all_departments(&self, ctx: &Context<'_>) -> Result<SyncResult> {
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::TriggerDepartmentSync).await?;
+        checker
+            .require(user_context, SyncPermission::TriggerDepartmentSync)
+            .await?;
 
         // Get QuickBooks client with automatic token refresh
         let client_manager = IntuitClientManager::new(db.clone());
-        let client = client_manager
-            .get_client()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create Intuit client: {}", e)))?;
-        let connection_id = client_manager
-            .get_connection_id()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get connection ID: {}", e)))?;
+        let client = client_manager.get_client().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to create Intuit client: {}", e))
+        })?;
+        let connection_id = client_manager.get_connection_id().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to get connection ID: {}", e))
+        })?;
 
         // Fetch departments from QuickBooks
         let qb_departments = match client.query_departments().await {
@@ -2020,7 +2364,10 @@ impl IntuitMutations {
                 return Ok(SyncResult {
                     success: false,
                     synced_count: 0,
-                    errors: vec![format!("Failed to fetch departments from QuickBooks: {}", e)],
+                    errors: vec![format!(
+                        "Failed to fetch departments from QuickBooks: {}",
+                        e
+                    )],
                 });
             }
         };
@@ -2029,11 +2376,17 @@ impl IntuitMutations {
         let mut errors = Vec::new();
 
         // Import department model
-        use crate::models::department::{Entity as DepartmentEntity, Column as DepartmentColumn, ActiveModel as DepartmentActiveModel};
-        use sea_orm::{Set, QueryFilter, Condition, sea_query::Expr};
+        use crate::models::department::{
+            ActiveModel as DepartmentActiveModel, Column as DepartmentColumn,
+            Entity as DepartmentEntity,
+        };
+        use sea_orm::{sea_query::Expr, Condition, QueryFilter, Set};
 
         // Sync each department from QuickBooks to local database
-        tracing::info!("Processing {} departments from QuickBooks", qb_departments.len());
+        tracing::info!(
+            "Processing {} departments from QuickBooks",
+            qb_departments.len()
+        );
 
         // First pass: Create/update departments without parent relationships
         for qb_department in &qb_departments {
@@ -2056,7 +2409,11 @@ impl IntuitMutations {
                 }
             };
 
-            tracing::debug!("Processing QuickBooks department: ID={}, name={}", qb_id, name);
+            tracing::debug!(
+                "Processing QuickBooks department: ID={}, name={}",
+                qb_id,
+                name
+            );
 
             // Check if department already exists by intuit_department_id or name (case-insensitive, excluding soft-deleted)
             let existing_department = DepartmentEntity::find()
@@ -2065,8 +2422,8 @@ impl IntuitMutations {
                         .add(DepartmentColumn::IntuitDepartmentId.eq(&qb_id))
                         .add(Expr::cust_with_values(
                             "LOWER(name) = LOWER($1)",
-                            vec![sea_orm::Value::from(name.clone())]
-                        ))
+                            vec![sea_orm::Value::from(name.clone())],
+                        )),
                 )
                 .filter(DepartmentColumn::DeletedAt.is_null()) // Exclude soft-deleted departments
                 .one(&db)
@@ -2119,10 +2476,17 @@ impl IntuitMutations {
                     match new_department.insert(&db).await {
                         Ok(inserted_dept) => {
                             synced_count += 1;
-                            tracing::info!("✓ Successfully created new department {} (ID: {}) from QuickBooks", name, inserted_dept.id);
+                            tracing::info!(
+                                "✓ Successfully created new department {} (ID: {}) from QuickBooks",
+                                name,
+                                inserted_dept.id
+                            );
                         }
                         Err(e) => {
-                            let error_msg = format!("Failed to create department {} from QuickBooks: {}", name, e);
+                            let error_msg = format!(
+                                "Failed to create department {} from QuickBooks: {}",
+                                name, e
+                            );
                             tracing::error!("{}", error_msg);
                             errors.push(error_msg);
                         }
@@ -2134,7 +2498,8 @@ impl IntuitMutations {
         // Second pass: Update parent department relationships
         // This ensures all departments exist before we try to link parents
         for qb_department in &qb_departments {
-            if let (Some(qb_id), Some(parent_ref)) = (&qb_department.id, &qb_department.parent_ref) {
+            if let (Some(qb_id), Some(parent_ref)) = (&qb_department.id, &qb_department.parent_ref)
+            {
                 if let Some(parent_qb_id) = &parent_ref.value {
                     // Find local department by QuickBooks ID
                     if let Ok(Some(local_dept)) = DepartmentEntity::find()
@@ -2156,9 +2521,16 @@ impl IntuitMutations {
                             dept_update.updated_at = Set(Utc::now());
 
                             if let Err(e) = dept_update.update(&db).await {
-                                tracing::warn!("Failed to update parent relationship for department {}: {}", qb_id, e);
+                                tracing::warn!(
+                                    "Failed to update parent relationship for department {}: {}",
+                                    qb_id,
+                                    e
+                                );
                             } else {
-                                tracing::debug!("Updated parent relationship for department {}", qb_id);
+                                tracing::debug!(
+                                    "Updated parent relationship for department {}",
+                                    qb_id
+                                );
                             }
                         }
                     }
@@ -2171,9 +2543,16 @@ impl IntuitMutations {
 
         // Log sync summary
         if errors.is_empty() {
-            tracing::info!("✓ Sync completed successfully: {} departments synced", synced_count);
+            tracing::info!(
+                "✓ Sync completed successfully: {} departments synced",
+                synced_count
+            );
         } else {
-            tracing::warn!("Sync completed with {} errors: {} departments synced", errors.len(), synced_count);
+            tracing::warn!(
+                "Sync completed with {} errors: {} departments synced",
+                errors.len(),
+                synced_count
+            );
             for error in &errors {
                 tracing::error!("Sync error: {}", error);
             }
@@ -2199,23 +2578,24 @@ impl IntuitMutations {
     ) -> Result<BidirectionalSyncResult> {
         let entity_type = entity_type.into();
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::TriggerBidirectionalSync).await?;
+        checker
+            .require(user_context, SyncPermission::TriggerBidirectionalSync)
+            .await?;
 
         // Get QuickBooks client with automatic token refresh
         let client_manager = IntuitClientManager::new(db.clone());
-        let client = client_manager
-            .get_client()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create QuickBooks client: {}", e)))?;
-        let connection_id = client_manager
-            .get_connection_id()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get connection ID: {}", e)))?;
+        let client = client_manager.get_client().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to create QuickBooks client: {}", e))
+        })?;
+        let connection_id = client_manager.get_connection_id().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to get connection ID: {}", e))
+        })?;
 
         // Determine conflict strategy (default to LastWriteWins)
         let strategy = conflict_strategy
@@ -2223,9 +2603,7 @@ impl IntuitMutations {
             .unwrap_or(ConflictStrategy::LastWriteWins);
 
         // Determine sync mode (default to Auto)
-        let mode = sync_mode
-            .map(|m| m.into())
-            .unwrap_or(SyncMode::Auto);
+        let mode = sync_mode.map(|m| m.into()).unwrap_or(SyncMode::Auto);
 
         tracing::info!(
             "Starting bidirectional sync for {:?} with strategy {:?} and mode {:?}",
@@ -2235,9 +2613,15 @@ impl IntuitMutations {
         );
 
         // Perform intelligent bidirectional sync with mode selection
-        let sync_report = SyncOrchestrator::sync_bidirectional_intelligent(&db, &client, entity_type, strategy, mode)
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Sync failed: {}", e)))?;
+        let sync_report = SyncOrchestrator::sync_bidirectional_intelligent(
+            &db,
+            &client,
+            entity_type,
+            strategy,
+            mode,
+        )
+        .await
+        .map_err(|e| async_graphql::Error::new(format!("Sync failed: {}", e)))?;
 
         // Update last sync time
         update_last_sync_time(&db, connection_id).await?;
@@ -2250,21 +2634,34 @@ impl IntuitMutations {
             Some(user_context.user_id),
             &format!("{:?}", entity_type),
             "TwoWay",
-            if sync_report.errors.is_empty() { "Success" } else { "Error" },
+            if sync_report.errors.is_empty() {
+                "Success"
+            } else {
+                "Error"
+            },
         );
 
         // Set enhanced tracking fields
         sync_log.change_direction = Set(Some("TwoWay".to_string()));
 
         // Detect conflicts from error messages that start with "CONFLICT:"
-        let has_conflicts = sync_report.conflicts_resolved > 0 ||
-            sync_report.errors.iter().any(|e| e.error_message.starts_with("CONFLICT:"));
+        let has_conflicts = sync_report.conflicts_resolved > 0
+            || sync_report
+                .errors
+                .iter()
+                .any(|e| e.error_message.starts_with("CONFLICT:"));
 
         sync_log.conflict_detected = Set(has_conflicts);
         sync_log.conflict_resolution = Set(if has_conflicts {
-            Some(format!("{:?} (manual review required for {} unresolved conflicts)",
+            Some(format!(
+                "{:?} (manual review required for {} unresolved conflicts)",
                 strategy,
-                sync_report.errors.iter().filter(|e| e.error_message.starts_with("CONFLICT:")).count()))
+                sync_report
+                    .errors
+                    .iter()
+                    .filter(|e| e.error_message.starts_with("CONFLICT:"))
+                    .count()
+            ))
         } else {
             None
         });
@@ -2279,7 +2676,9 @@ impl IntuitMutations {
         sync_log.changes_processed = Set(sync_report.changes_processed as i32);
 
         if !sync_report.errors.is_empty() {
-            let error_summary = sync_report.errors.iter()
+            let error_summary = sync_report
+                .errors
+                .iter()
                 .take(5)
                 .map(|e| e.error_message.as_str())
                 .collect::<Vec<_>>()
@@ -2288,11 +2687,17 @@ impl IntuitMutations {
                 "{} errors: {}{}",
                 sync_report.errors.len(),
                 error_summary,
-                if sync_report.errors.len() > 5 { "..." } else { "" }
+                if sync_report.errors.len() > 5 {
+                    "..."
+                } else {
+                    ""
+                }
             )));
         }
 
-        sync_log.insert(&db).await
+        sync_log
+            .insert(&db)
+            .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create sync log: {}", e)))?;
 
         // Convert errors to strings
@@ -2346,12 +2751,15 @@ impl IntuitMutations {
     ) -> Result<ConflictResolutionResult> {
         let entity_type_enum: EntityType = entity_type.into();
         let db = get_db_from_context(ctx)?;
-        let user_context = ctx.data::<UserContext>()
+        let user_context = ctx
+            .data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
         // Use permission checker for granular access control
         let checker = PermissionChecker::new(db.clone());
-        checker.require(user_context, SyncPermission::ResolveConflicts).await?;
+        checker
+            .require(user_context, SyncPermission::ResolveConflicts)
+            .await?;
 
         tracing::info!(
             "Resolving conflict for {:?} entity_id={} with resolution={:?}",
@@ -2362,14 +2770,12 @@ impl IntuitMutations {
 
         // Get QuickBooks client with automatic token refresh (will be used when conflict resolution is implemented)
         let client_manager = IntuitClientManager::new(db.clone());
-        let _client = client_manager
-            .get_client()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create QuickBooks client: {}", e)))?;
-        let _connection_id = client_manager
-            .get_connection_id()
-            .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to get connection ID: {}", e)))?;
+        let _client = client_manager.get_client().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to create QuickBooks client: {}", e))
+        })?;
+        let _connection_id = client_manager.get_connection_id().await.map_err(|e| {
+            async_graphql::Error::new(format!("Failed to get connection ID: {}", e))
+        })?;
 
         // For now, conflict resolution marks the conflict as acknowledged
         // The actual data conflicts need to be manually resolved in the database or QuickBooks
@@ -2396,8 +2802,7 @@ impl IntuitMutations {
         // Mark the conflict as acknowledged by updating the sync log
         // Find the most recent sync log with this conflict
         use crate::models::intuit_sync_log::{
-            Entity as IntuitSyncLogEntity,
-            Column as IntuitSyncLogColumn,
+            Column as IntuitSyncLogColumn, Entity as IntuitSyncLogEntity,
         };
 
         let recent_log = IntuitSyncLogEntity::find()
@@ -2432,50 +2837,64 @@ impl IntuitMutations {
     /// Reset employee QuickBooks sync status (DEV ONLY)
     /// Clears intuit_employee_id for a limited number of employees to allow re-testing sync
     #[allow(unused_variables)]
-    async fn reset_employee_sync_for_testing(&self, ctx: &Context<'_>, limit: Option<i32>) -> Result<i32> {
+    async fn reset_employee_sync_for_testing(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i32>,
+    ) -> Result<i32> {
         // Only allow in development mode
         #[cfg(not(debug_assertions))]
         {
-            return Err(async_graphql::Error::new("This mutation is only available in development mode"));
+            return Err(async_graphql::Error::new(
+                "This mutation is only available in development mode",
+            ));
         }
 
         #[cfg(debug_assertions)]
         {
             let db = get_db_from_context(ctx)?;
-            let user_context = ctx.data::<UserContext>()
+            let user_context = ctx
+                .data::<UserContext>()
                 .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
             // Dev endpoints require ManageIntegrations permission (critical)
             let checker = PermissionChecker::new(db.clone());
-            checker.require(user_context, SyncPermission::ManageIntegrations).await?;
+            checker
+                .require(user_context, SyncPermission::ManageIntegrations)
+                .await?;
 
-            use crate::models::user::{Entity as UserEntity, Column as UserColumn, ActiveModel as UserActiveModel};
+            use crate::models::user::{
+                ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity,
+            };
 
             let limit = limit.unwrap_or(5).min(20); // Default 5, max 20
 
-        // Find employees with QB IDs and departments
-        use sea_orm::QuerySelect;
+            // Find employees with QB IDs and departments
+            use sea_orm::QuerySelect;
 
-        let employees = UserEntity::find()
-            .filter(UserColumn::DeletedAt.is_null())
-            .filter(UserColumn::IntuitEmployeeId.is_not_null())
-            .filter(UserColumn::DepartmentId.is_not_null())
-            .limit(Some(limit as u64))
-            .all(&db)
-            .await?;
+            let employees = UserEntity::find()
+                .filter(UserColumn::DeletedAt.is_null())
+                .filter(UserColumn::IntuitEmployeeId.is_not_null())
+                .filter(UserColumn::DepartmentId.is_not_null())
+                .limit(Some(limit as u64))
+                .all(&db)
+                .await?;
 
-        let mut reset_count = 0;
+            let mut reset_count = 0;
 
-        for employee in employees {
-            let mut emp_update: UserActiveModel = employee.into();
-            emp_update.intuit_employee_id = Set(None);
-            emp_update.updated_at = Set(Utc::now());
+            for employee in employees {
+                let mut emp_update: UserActiveModel = employee.into();
+                emp_update.intuit_employee_id = Set(None);
+                emp_update.updated_at = Set(Utc::now());
 
-            emp_update.update(&db).await?;
-            reset_count += 1;
-        }
+                emp_update.update(&db).await?;
+                reset_count += 1;
+            }
 
-            tracing::info!("[DEV] Reset {} employees for QuickBooks re-sync testing", reset_count);
+            tracing::info!(
+                "[DEV] Reset {} employees for QuickBooks re-sync testing",
+                reset_count
+            );
 
             Ok(reset_count)
         }
@@ -2487,40 +2906,51 @@ impl IntuitMutations {
         // Only allow in development mode
         #[cfg(not(debug_assertions))]
         {
-            return Err(async_graphql::Error::new("This mutation is only available in development mode"));
+            return Err(async_graphql::Error::new(
+                "This mutation is only available in development mode",
+            ));
         }
 
         #[cfg(debug_assertions)]
         {
             let db = get_db_from_context(ctx)?;
-            let user_context = ctx.data::<UserContext>()
+            let user_context = ctx
+                .data::<UserContext>()
                 .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
             // Dev endpoints require ManageIntegrations permission (critical)
             let checker = PermissionChecker::new(db.clone());
-            checker.require(user_context, SyncPermission::ManageIntegrations).await?;
+            checker
+                .require(user_context, SyncPermission::ManageIntegrations)
+                .await?;
 
-            use crate::models::department::{Entity as DepartmentEntity, Column as DepartmentColumn, ActiveModel as DepartmentActiveModel};
+            use crate::models::department::{
+                ActiveModel as DepartmentActiveModel, Column as DepartmentColumn,
+                Entity as DepartmentEntity,
+            };
 
             // Find all departments with QuickBooks IDs
             let departments = DepartmentEntity::find()
-            .filter(DepartmentColumn::DeletedAt.is_null())
-            .filter(DepartmentColumn::IntuitDepartmentId.is_not_null())
-            .all(&db)
-            .await?;
+                .filter(DepartmentColumn::DeletedAt.is_null())
+                .filter(DepartmentColumn::IntuitDepartmentId.is_not_null())
+                .all(&db)
+                .await?;
 
-        let mut reset_count = 0;
+            let mut reset_count = 0;
 
-        for department in departments {
-            let mut dept_update: DepartmentActiveModel = department.into();
-            dept_update.intuit_department_id = Set(None);
-            dept_update.updated_at = Set(Utc::now());
+            for department in departments {
+                let mut dept_update: DepartmentActiveModel = department.into();
+                dept_update.intuit_department_id = Set(None);
+                dept_update.updated_at = Set(Utc::now());
 
-            dept_update.update(&db).await?;
-            reset_count += 1;
-        }
+                dept_update.update(&db).await?;
+                reset_count += 1;
+            }
 
-            tracing::info!("[DEV] Reset {} departments for QuickBooks re-sync testing", reset_count);
+            tracing::info!(
+                "[DEV] Reset {} departments for QuickBooks re-sync testing",
+                reset_count
+            );
 
             Ok(reset_count)
         }
@@ -2544,7 +2974,6 @@ impl IntuitMutations {
 
 // Helper functions
 
-
 async fn update_last_sync_time(db: &DatabaseConnection, connection_id: Uuid) -> Result<()> {
     let connection = IntuitConnectionEntity::find_by_id(connection_id)
         .one(db)
@@ -2564,10 +2993,9 @@ async fn delete_webhook_subscriptions(
     db: &DatabaseConnection,
     connection: &crate::models::intuit_connection::Model,
 ) -> anyhow::Result<()> {
-    use crate::integrations::intuit::WebhookApiClient;
     use crate::models::webhook_subscriptions::{
-        Column as WebhookSubscriptionColumn, Entity as WebhookSubscriptionEntity,
-        ActiveModel as WebhookSubscriptionActiveModel,
+        ActiveModel as WebhookSubscriptionActiveModel, Column as WebhookSubscriptionColumn,
+        Entity as WebhookSubscriptionEntity,
     };
 
     // Find all active subscriptions for this realm
@@ -2585,47 +3013,21 @@ async fn delete_webhook_subscriptions(
 
     tracing::info!(
         count = subscriptions.len(),
-        "Deleting webhook subscriptions from QuickBooks"
+        "Deactivating local webhook subscriptions (QuickBooks webhooks are portal-managed)"
     );
 
-    // Create webhook API client
-    let webhook_client = WebhookApiClient::new(connection.access_token.clone());
-
     for subscription in subscriptions {
-        // Delete from QuickBooks
-        let delete_result = webhook_client
-            .delete_webhook(&subscription.webhook_id)
-            .await;
+        tracing::info!(
+            webhook_id = %subscription.webhook_id,
+            "Marking webhook subscription inactive locally"
+        );
 
-        match delete_result {
-            Ok(_) => {
-                tracing::info!(
-                    webhook_id = %subscription.webhook_id,
-                    "Deleted webhook subscription from QuickBooks"
-                );
-
-                // Soft delete from database
-                let mut active_model: WebhookSubscriptionActiveModel = subscription.into();
-                active_model.is_active = Set(false);
-                active_model.deleted_at = Set(Some(Utc::now().into()));
-                active_model.updated_at = Set(Utc::now().into());
-                active_model.update(db).await?;
-            }
-            Err(e) => {
-                tracing::error!(
-                    webhook_id = %subscription.webhook_id,
-                    error = %e,
-                    "Failed to delete webhook from QuickBooks - marking as inactive in database"
-                );
-
-                // Still mark as inactive in database even if QuickBooks deletion fails
-                let mut active_model: WebhookSubscriptionActiveModel = subscription.into();
-                active_model.is_active = Set(false);
-                active_model.deleted_at = Set(Some(Utc::now().into()));
-                active_model.updated_at = Set(Utc::now().into());
-                active_model.update(db).await?;
-            }
-        }
+        // Soft delete from database (portal-managed upstream)
+        let mut active_model: WebhookSubscriptionActiveModel = subscription.into();
+        active_model.is_active = Set(false);
+        active_model.deleted_at = Set(Some(Utc::now().into()));
+        active_model.updated_at = Set(Utc::now().into());
+        active_model.update(db).await?;
     }
 
     Ok(())

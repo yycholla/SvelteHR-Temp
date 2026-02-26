@@ -61,12 +61,7 @@ impl ActiveModelBehavior for ActiveModel {}
 /// Helper for creating sync log entries
 impl ActiveModel {
     /// Create a new sync log entry
-    pub fn new(
-        user_id: Option<Uuid>,
-        sync_type: &str,
-        direction: &str,
-        status: &str,
-    ) -> Self {
+    pub fn new(user_id: Option<Uuid>, sync_type: &str, direction: &str, status: &str) -> Self {
         Self {
             id: Set(Uuid::new_v4()),
             user_id: Set(user_id),

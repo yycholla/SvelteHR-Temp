@@ -12,16 +12,19 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20251202_006_integrate_onboarding_documents::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20251202_006_integrate_onboarding_documents::Migration;
 
     /// Setup a test database connection
     /// Uses DATABASE_URL from environment or defaults to test database
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -30,7 +33,8 @@ mod tests {
         let _ = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
-                "DROP INDEX IF EXISTS hr_public.idx_onboarding_document_uploads_document_id".to_string(),
+                "DROP INDEX IF EXISTS hr_public.idx_onboarding_document_uploads_document_id"
+                    .to_string(),
             ))
             .await;
 
@@ -54,7 +58,8 @@ mod tests {
         let _ = db
             .execute(Statement::from_string(
                 DbBackend::Postgres,
-                "DELETE FROM hr_public.document_categories WHERE name = 'Onboarding Documents'".to_string(),
+                "DELETE FROM hr_public.document_categories WHERE name = 'Onboarding Documents'"
+                    .to_string(),
             ))
             .await;
     }
@@ -90,7 +95,8 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'onboarding_document_uploads'
-                 AND column_name = 'document_id'".to_string(),
+                 AND column_name = 'document_id'"
+                    .to_string(),
             ))
             .await;
 
@@ -99,11 +105,18 @@ mod tests {
         assert!(column_info.is_some(), "Should have column information");
 
         let column = column_info.unwrap();
-        let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
-        let is_nullable: String = column.try_get("", "is_nullable").expect("Should get is_nullable");
+        let data_type: String = column
+            .try_get("", "data_type")
+            .expect("Should get data_type");
+        let is_nullable: String = column
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
 
         assert_eq!(data_type, "uuid", "Column should be UUID type");
-        assert_eq!(is_nullable, "YES", "Column should be nullable for gradual migration");
+        assert_eq!(
+            is_nullable, "YES",
+            "Column should be nullable for gradual migration"
+        );
 
         // Verify the foreign key constraint was created
         let fk_result = db
@@ -114,12 +127,16 @@ mod tests {
                  WHERE constraint_schema = 'hr_public'
                  AND table_name = 'onboarding_document_uploads'
                  AND constraint_name = 'fk_onboarding_document_uploads_document_id'
-                 AND constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
         assert!(fk_result.is_ok(), "Foreign key constraint should exist");
-        assert!(fk_result.unwrap().is_some(), "Should have constraint information");
+        assert!(
+            fk_result.unwrap().is_some(),
+            "Should have constraint information"
+        );
 
         // Verify the index was created
         let index_result = db
@@ -129,12 +146,16 @@ mod tests {
                  FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'onboarding_document_uploads'
-                 AND indexname = 'idx_onboarding_document_uploads_document_id'".to_string(),
+                 AND indexname = 'idx_onboarding_document_uploads_document_id'"
+                    .to_string(),
             ))
             .await;
 
         assert!(index_result.is_ok(), "Index should exist");
-        assert!(index_result.unwrap().is_some(), "Should have index information");
+        assert!(
+            index_result.unwrap().is_some(),
+            "Should have index information"
+        );
 
         // Verify the document category was created
         let category_result = db
@@ -142,7 +163,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT name, description
                  FROM hr_public.document_categories
-                 WHERE name = 'Onboarding Documents'".to_string(),
+                 WHERE name = 'Onboarding Documents'"
+                    .to_string(),
             ))
             .await;
 
@@ -152,11 +174,19 @@ mod tests {
 
         let category = category_info.unwrap();
         let name: String = category.try_get("", "name").expect("Should get name");
-        let description: String = category.try_get("", "description").expect("Should get description");
+        let description: String = category
+            .try_get("", "description")
+            .expect("Should get description");
 
         assert_eq!(name, "Onboarding Documents");
-        assert!(description.contains("W-4"), "Description should mention W-4");
-        assert!(description.contains("I-9"), "Description should mention I-9");
+        assert!(
+            description.contains("W-4"),
+            "Description should mention W-4"
+        );
+        assert!(
+            description.contains("I-9"),
+            "Description should mention I-9"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -192,15 +222,22 @@ mod tests {
                  FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'onboarding_document_uploads'
-                 AND indexname = 'idx_onboarding_document_uploads_document_id'".to_string(),
+                 AND indexname = 'idx_onboarding_document_uploads_document_id'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(index_result.is_ok(), "Should be able to check if index exists");
+        assert!(
+            index_result.is_ok(),
+            "Should be able to check if index exists"
+        );
         let index_info = index_result.unwrap();
         assert!(index_info.is_some(), "Should have index count");
 
-        let count: i64 = index_info.unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = index_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 0, "Index should be dropped");
 
         // Verify the foreign key constraint was dropped
@@ -211,15 +248,22 @@ mod tests {
                  FROM information_schema.table_constraints
                  WHERE constraint_schema = 'hr_public'
                  AND table_name = 'onboarding_document_uploads'
-                 AND constraint_name = 'fk_onboarding_document_uploads_document_id'".to_string(),
+                 AND constraint_name = 'fk_onboarding_document_uploads_document_id'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(fk_result.is_ok(), "Should be able to check if constraint exists");
+        assert!(
+            fk_result.is_ok(),
+            "Should be able to check if constraint exists"
+        );
         let fk_info = fk_result.unwrap();
         assert!(fk_info.is_some(), "Should have constraint count");
 
-        let fk_count: i64 = fk_info.unwrap().try_get("", "count").expect("Should get count");
+        let fk_count: i64 = fk_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(fk_count, 0, "Foreign key constraint should be dropped");
 
         // Verify the document_id column was dropped
@@ -230,15 +274,22 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'onboarding_document_uploads'
-                 AND column_name = 'document_id'".to_string(),
+                 AND column_name = 'document_id'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(column_result.is_ok(), "Should be able to check if column exists");
+        assert!(
+            column_result.is_ok(),
+            "Should be able to check if column exists"
+        );
         let column_info = column_result.unwrap();
         assert!(column_info.is_some(), "Should have column count");
 
-        let col_count: i64 = column_info.unwrap().try_get("", "count").expect("Should get count");
+        let col_count: i64 = column_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(col_count, 0, "Column should be dropped");
 
         // Verify the document category was deleted
@@ -247,15 +298,22 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count
                  FROM hr_public.document_categories
-                 WHERE name = 'Onboarding Documents'".to_string(),
+                 WHERE name = 'Onboarding Documents'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(category_result.is_ok(), "Should be able to check if category exists");
+        assert!(
+            category_result.is_ok(),
+            "Should be able to check if category exists"
+        );
         let category_info = category_result.unwrap();
         assert!(category_info.is_some(), "Should have category count");
 
-        let cat_count: i64 = category_info.unwrap().try_get("", "count").expect("Should get count");
+        let cat_count: i64 = category_info
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(cat_count, 0, "Category should be deleted");
 
         // Clean up after test
@@ -289,7 +347,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count
                  FROM hr_public.document_categories
-                 WHERE name = 'Onboarding Documents'".to_string(),
+                 WHERE name = 'Onboarding Documents'"
+                    .to_string(),
             ))
             .await;
 
@@ -376,20 +435,34 @@ mod tests {
                  WHERE tc.constraint_type = 'FOREIGN KEY'
                    AND tc.table_schema = 'hr_public'
                    AND tc.table_name = 'onboarding_document_uploads'
-                   AND tc.constraint_name = 'fk_onboarding_document_uploads_document_id'".to_string(),
+                   AND tc.constraint_name = 'fk_onboarding_document_uploads_document_id'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(fk_definition.is_ok(), "Should be able to query foreign key constraint");
+        assert!(
+            fk_definition.is_ok(),
+            "Should be able to query foreign key constraint"
+        );
         let fk_info = fk_definition.unwrap();
         assert!(fk_info.is_some(), "Should have constraint information");
 
         let constraint_info = fk_info.unwrap();
-        let delete_rule: String = constraint_info.try_get("", "delete_rule").expect("Should get delete_rule");
-        assert_eq!(delete_rule, "CASCADE", "Foreign key should have ON DELETE CASCADE");
+        let delete_rule: String = constraint_info
+            .try_get("", "delete_rule")
+            .expect("Should get delete_rule");
+        assert_eq!(
+            delete_rule, "CASCADE",
+            "Foreign key should have ON DELETE CASCADE"
+        );
 
-        let foreign_table: String = constraint_info.try_get("", "foreign_table_name").expect("Should get foreign_table_name");
-        assert_eq!(foreign_table, "documents", "Should reference documents table");
+        let foreign_table: String = constraint_info
+            .try_get("", "foreign_table_name")
+            .expect("Should get foreign_table_name");
+        assert_eq!(
+            foreign_table, "documents",
+            "Should reference documents table"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -419,16 +492,26 @@ mod tests {
                  FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'onboarding_document_uploads'
-                 AND column_name = 'document_id'".to_string(),
+                 AND column_name = 'document_id'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(nullable_check.is_ok(), "Should be able to query column info");
+        assert!(
+            nullable_check.is_ok(),
+            "Should be able to query column info"
+        );
         let nullable_info = nullable_check.unwrap();
         assert!(nullable_info.is_some(), "Should have nullable information");
 
-        let is_nullable: String = nullable_info.unwrap().try_get("", "is_nullable").expect("Should get is_nullable");
-        assert_eq!(is_nullable, "YES", "document_id column should allow NULL values for gradual migration");
+        let is_nullable: String = nullable_info
+            .unwrap()
+            .try_get("", "is_nullable")
+            .expect("Should get is_nullable");
+        assert_eq!(
+            is_nullable, "YES",
+            "document_id column should allow NULL values for gradual migration"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -464,19 +547,33 @@ mod tests {
                  JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY(i.indkey)
                  WHERE n.nspname = 'hr_public'
                    AND t.relname = 'onboarding_document_uploads'
-                   AND idx.relname = 'idx_onboarding_document_uploads_document_id'".to_string(),
+                   AND idx.relname = 'idx_onboarding_document_uploads_document_id'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(index_columns.is_ok(), "Should be able to query index columns");
+        assert!(
+            index_columns.is_ok(),
+            "Should be able to query index columns"
+        );
         let columns = index_columns.unwrap();
         assert_eq!(columns.len(), 1, "Index should be on exactly one column");
 
-        let column_name: String = columns[0].try_get("", "column_name").expect("Should get column name");
-        assert_eq!(column_name, "document_id", "Index should be on document_id column");
+        let column_name: String = columns[0]
+            .try_get("", "column_name")
+            .expect("Should get column name");
+        assert_eq!(
+            column_name, "document_id",
+            "Index should be on document_id column"
+        );
 
-        let is_unique: bool = columns[0].try_get("", "is_unique").expect("Should get is_unique");
-        assert!(!is_unique, "Index should be non-unique (allows multiple uploads per document)");
+        let is_unique: bool = columns[0]
+            .try_get("", "is_unique")
+            .expect("Should get is_unique");
+        assert!(
+            !is_unique,
+            "Index should be non-unique (allows multiple uploads per document)"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;
@@ -504,7 +601,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT id::text as id_text, name, description, created_at, updated_at
                  FROM hr_public.document_categories
-                 WHERE name = 'Onboarding Documents'".to_string(),
+                 WHERE name = 'Onboarding Documents'"
+                    .to_string(),
             ))
             .await;
 
@@ -518,15 +616,33 @@ mod tests {
         assert_eq!(id.len(), 36, "UUID should be 36 characters with hyphens");
 
         // Verify timestamps are set
-        let created_at: chrono::DateTime<chrono::Utc> = category.try_get("", "created_at").expect("Should have created_at");
-        let updated_at: chrono::DateTime<chrono::Utc> = category.try_get("", "updated_at").expect("Should have updated_at");
-        assert!(created_at <= updated_at, "created_at should be <= updated_at");
+        let created_at: chrono::DateTime<chrono::Utc> = category
+            .try_get("", "created_at")
+            .expect("Should have created_at");
+        let updated_at: chrono::DateTime<chrono::Utc> = category
+            .try_get("", "updated_at")
+            .expect("Should have updated_at");
+        assert!(
+            created_at <= updated_at,
+            "created_at should be <= updated_at"
+        );
 
         // Verify description contains key terms
-        let description: String = category.try_get("", "description").expect("Should have description");
-        assert!(description.contains("W-4"), "Description should mention W-4 form");
-        assert!(description.contains("I-9"), "Description should mention I-9 form");
-        assert!(description.contains("onboarding"), "Description should mention onboarding");
+        let description: String = category
+            .try_get("", "description")
+            .expect("Should have description");
+        assert!(
+            description.contains("W-4"),
+            "Description should mention W-4 form"
+        );
+        assert!(
+            description.contains("I-9"),
+            "Description should mention I-9 form"
+        );
+        assert!(
+            description.contains("onboarding"),
+            "Description should mention onboarding"
+        );
 
         // Clean up after test
         cleanup_test_data(&db).await;

@@ -5,9 +5,11 @@
 
 use async_graphql::{Context, InputObject, Object, Result};
 // use axum_login::AuthSession; // REMOVED: Using JWT UserContext instead
-use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait, PaginatorTrait, Condition};
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::extension::postgres::PgExpr;
+use sea_orm::{
+    ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -15,30 +17,66 @@ use crate::{
     database::get_db_from_context,
     error::AppError,
     models::{
-        task::{TaskStatus, TaskPriority, Model as Task, Entity as TaskEntity, Column as TaskColumn},
-        user::{Model as User, Entity as UserEntity, Column as UserColumn},
-        department::{Model as Department, Entity as DepartmentEntity, Column as DepartmentColumn, DepartmentQueryResult, DepartmentsOrderBy},
-        tasks::task_type::{Model as TaskTypeModel, Entity as TaskTypeEntity, Column as TaskTypeColumn},
-        event::{Model as Event, Entity as EventEntity, Column as EventColumn},
-        event_attendee::{Model as EventAttendee, Entity as EventAttendeeEntity, Column as EventAttendeeColumn},
-        leave_request::{Model as LeaveRequest, Entity as LeaveRequestEntity, Column as LeaveRequestColumn},
-        leave_balance::{Model as LeaveBalance, Entity as LeaveBalanceEntity, Column as LeaveBalanceColumn},
-        leave_type::{Model as LeaveType, Entity as LeaveTypeEntity, Column as LeaveTypeColumn},
-        performance_review::{Model as PerformanceReview, Entity as PerformanceReviewEntity, Column as PerformanceReviewColumn},
-        employee::{
-            emergency_contact::{Model as EmergencyContactModel, Entity as EmergencyContactEntity, Column as EmergencyContactColumn},
-            employee_vehicle::{Model as EmployeeVehicleModel, Entity as EmployeeVehicleEntity, Column as EmployeeVehicleColumn},
+        department::{
+            Column as DepartmentColumn, DepartmentQueryResult, DepartmentsOrderBy,
+            Entity as DepartmentEntity, Model as Department,
         },
-        time::attendance_record::{Model as AttendanceRecordModel, Entity as AttendanceRecordEntity, Column as AttendanceRecordColumn},
+        // user_session::{Entity as UserSessionEntity, Column as UserSessionColumn}, // REMOVED: JWT-only auth
+        employee::employee_goal::{
+            Column as EmployeeGoalColumn, Entity as EmployeeGoalEntity, Model as EmployeeGoalModel,
+        },
+        employee::{
+            emergency_contact::{
+                Column as EmergencyContactColumn, Entity as EmergencyContactEntity,
+                Model as EmergencyContactModel,
+            },
+            employee_vehicle::{
+                Column as EmployeeVehicleColumn, Entity as EmployeeVehicleEntity,
+                Model as EmployeeVehicleModel,
+            },
+        },
+        event::{Column as EventColumn, Entity as EventEntity, Model as Event},
+        event_attendee::{
+            Column as EventAttendeeColumn, Entity as EventAttendeeEntity, Model as EventAttendee,
+        },
+        leave_balance::{
+            Column as LeaveBalanceColumn, Entity as LeaveBalanceEntity, Model as LeaveBalance,
+        },
+        leave_request::{
+            Column as LeaveRequestColumn, Entity as LeaveRequestEntity, Model as LeaveRequest,
+        },
+        leave_type::{Column as LeaveTypeColumn, Entity as LeaveTypeEntity, Model as LeaveType},
+        notification::{
+            Column as NotificationColumn, Entity as NotificationEntity, Model as Notification,
+        },
+        performance_review::{
+            Column as PerformanceReviewColumn, Entity as PerformanceReviewEntity,
+            Model as PerformanceReview,
+        },
         system::{
-            hr_report::{Model as HRReportModel, Entity as HrReportEntity, Column as HrReportColumn},
-            activity_log::{Model as ActivityLogModel, Entity as ActivityLogEntity, Column as ActivityLogColumn},
-            rollback_request::{Model as RollbackRequestModel, Entity as RollbackRequestEntity, Column as RollbackRequestColumn, RollbackStatus},
+            activity_log::{
+                Column as ActivityLogColumn, Entity as ActivityLogEntity, Model as ActivityLogModel,
+            },
+            hr_report::{
+                Column as HrReportColumn, Entity as HrReportEntity, Model as HRReportModel,
+            },
+            rollback_request::{
+                Column as RollbackRequestColumn, Entity as RollbackRequestEntity,
+                Model as RollbackRequestModel, RollbackStatus,
+            },
             system_settings::Model as SystemSettingsModel,
         },
-        notification::{Model as Notification, Entity as NotificationEntity, Column as NotificationColumn},
-        // user_session::{Entity as UserSessionEntity, Column as UserSessionColumn}, // REMOVED: JWT-only auth
-        employee::employee_goal::{Model as EmployeeGoalModel, Entity as EmployeeGoalEntity, Column as EmployeeGoalColumn},
+        task::{
+            Column as TaskColumn, Entity as TaskEntity, Model as Task, TaskPriority, TaskStatus,
+        },
+        tasks::task_type::{
+            Column as TaskTypeColumn, Entity as TaskTypeEntity, Model as TaskTypeModel,
+        },
+        time::attendance_record::{
+            Column as AttendanceRecordColumn, Entity as AttendanceRecordEntity,
+            Model as AttendanceRecordModel,
+        },
+        user::{Column as UserColumn, Entity as UserEntity, Model as User},
     },
 };
 
@@ -103,7 +141,7 @@ pub fn apply_user_rls_filter(
     // Policy Update: Allow all authenticated users to view the employee directory.
     // Previously restricted to department-only for non-admins.
     // System admins and Admin role bypass RLS - see all users (implicit in returning query)
-    
+
     // Return query without additional filters
     query
 }
@@ -196,7 +234,7 @@ impl QueryRoot {
     // =========================================================================
     // User Queries
     // =========================================================================
-    
+
     /// Get all users with optional filtering and pagination
     ///
     /// # Security: RLS Enforced
@@ -211,21 +249,26 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
-        tracing::info!("[Users Query] Starting query with limit={}, offset={}", limit, offset);
+        tracing::info!(
+            "[Users Query] Starting query with limit={}, offset={}",
+            limit,
+            offset
+        );
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
-        tracing::info!("[Users Query] UserContext: user_id={:?}, is_admin={}, is_system={}",
+        tracing::info!(
+            "[Users Query] UserContext: user_id={:?}, is_admin={}, is_system={}",
             user_context.user_id,
             user_context.is_admin(),
             user_context.is_system()
         );
 
         // Build query with RLS filter (removed hardcoded isActive filter - let client filter)
-        let mut query = UserEntity::find()
-            .filter(UserColumn::DeletedAt.is_null());
+        let mut query = UserEntity::find().filter(UserColumn::DeletedAt.is_null());
 
         // Apply RLS filter based on user context
         query = apply_user_rls_filter(query, user_context);
@@ -238,7 +281,10 @@ impl QueryRoot {
             .all(&db)
             .await?;
 
-        tracing::info!("[Users Query] Query completed, returned {} users", users.len());
+        tracing::info!(
+            "[Users Query] Query completed, returned {} users",
+            users.len()
+        );
 
         Ok(users)
     }
@@ -252,8 +298,9 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Build query with RLS filter (CRITICAL: even direct ID lookups must be filtered!)
         let mut query = UserEntity::find()
@@ -288,8 +335,9 @@ impl QueryRoot {
         let offset = offset.unwrap_or(0).max(0);
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Start with base query
         let mut query = DepartmentEntity::find();
@@ -301,7 +349,10 @@ impl QueryRoot {
                 query = query.filter(
                     Condition::any()
                         .add(Expr::col(DepartmentColumn::Name.as_column_ref()).ilike(&pattern))
-                        .add(Expr::col(DepartmentColumn::Description.as_column_ref()).ilike(&pattern))
+                        .add(
+                            Expr::col(DepartmentColumn::Description.as_column_ref())
+                                .ilike(&pattern),
+                        ),
                 );
             }
 
@@ -334,11 +385,17 @@ impl QueryRoot {
                 DepartmentsOrderBy::NameAsc => query.order_by_asc(DepartmentColumn::Name),
                 DepartmentsOrderBy::NameDesc => query.order_by_desc(DepartmentColumn::Name),
                 DepartmentsOrderBy::ManagerIdAsc => query.order_by_asc(DepartmentColumn::ManagerId),
-                DepartmentsOrderBy::ManagerIdDesc => query.order_by_desc(DepartmentColumn::ManagerId),
+                DepartmentsOrderBy::ManagerIdDesc => {
+                    query.order_by_desc(DepartmentColumn::ManagerId)
+                }
                 DepartmentsOrderBy::CreatedAtAsc => query.order_by_asc(DepartmentColumn::CreatedAt),
-                DepartmentsOrderBy::CreatedAtDesc => query.order_by_desc(DepartmentColumn::CreatedAt),
+                DepartmentsOrderBy::CreatedAtDesc => {
+                    query.order_by_desc(DepartmentColumn::CreatedAt)
+                }
                 DepartmentsOrderBy::UpdatedAtAsc => query.order_by_asc(DepartmentColumn::UpdatedAt),
-                DepartmentsOrderBy::UpdatedAtDesc => query.order_by_desc(DepartmentColumn::UpdatedAt),
+                DepartmentsOrderBy::UpdatedAtDesc => {
+                    query.order_by_desc(DepartmentColumn::UpdatedAt)
+                }
             };
         } else {
             // Default sort: name ascending (most intuitive for UI)
@@ -357,7 +414,7 @@ impl QueryRoot {
 
         // Calculate pagination metadata
         let page = (offset / limit) + 1;
-        let total_pages = (total_count + limit - 1) / limit;  // Ceiling division
+        let total_pages = (total_count + limit - 1) / limit; // Ceiling division
         let has_next_page = offset + limit < total_count;
         let has_previous_page = offset > 0;
 
@@ -380,8 +437,9 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Build query with RLS filter
         let mut query = DepartmentEntity::find()
@@ -416,8 +474,9 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         let mut ancestors = Vec::new();
         let mut current_id = Some(department_id);
@@ -430,7 +489,7 @@ impl QueryRoot {
             depth += 1;
             if depth > max_depth {
                 return Err(async_graphql::Error::new(
-                    "Department hierarchy too deep or circular dependency detected"
+                    "Department hierarchy too deep or circular dependency detected",
                 ));
             }
 
@@ -485,18 +544,17 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Use GIN index: find all departments where ancestor_ids contains this department's ID
         // This leverages the idx_departments_ancestor_ids GIN index for O(log n) performance
         let mut query = DepartmentEntity::find()
-            .filter(
-                Expr::cust_with_values(
-                    "ancestor_ids @> ARRAY[$1]::uuid[]",
-                    vec![department_id]
-                )
-            )
+            .filter(Expr::cust_with_values(
+                "ancestor_ids @> ARRAY[$1]::uuid[]",
+                vec![department_id],
+            ))
             .filter(DepartmentColumn::DeletedAt.is_null());
 
         // Apply RLS filter
@@ -534,15 +592,15 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Normalize name for comparison (trim and case-insensitive)
         let normalized_name = name.trim().to_lowercase();
 
         // Build query to find departments with matching name
-        let mut query = DepartmentEntity::find()
-            .filter(DepartmentColumn::DeletedAt.is_null());
+        let mut query = DepartmentEntity::find().filter(DepartmentColumn::DeletedAt.is_null());
 
         // Apply parent scope
         match parent_department_id {
@@ -601,11 +659,11 @@ impl QueryRoot {
         let offset = offset.unwrap_or(0).max(0);
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
-        let mut query = TaskEntity::find()
-            .filter(TaskColumn::DeletedAt.is_null());
+        let mut query = TaskEntity::find().filter(TaskColumn::DeletedAt.is_null());
 
         // Apply RLS filter FIRST (before user-provided filters)
         query = apply_task_rls_filter(query, user_context);
@@ -671,8 +729,9 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         // Build query with RLS filter
         let mut query = TaskEntity::find()
@@ -700,10 +759,7 @@ impl QueryRoot {
             query = query.filter(TaskTypeColumn::IsActive.eq(active));
         }
 
-        let task_types = query
-            .order_by_asc(TaskTypeColumn::Name)
-            .all(&db)
-            .await?;
+        let task_types = query.order_by_asc(TaskTypeColumn::Name).all(&db).await?;
 
         Ok(task_types)
     }
@@ -711,9 +767,7 @@ impl QueryRoot {
     /// Get a single task type by ID
     async fn task_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<TaskTypeModel>> {
         let db = get_db_from_context(ctx)?;
-        let task_type = TaskTypeEntity::find_by_id(id)
-            .one(&db)
-            .await?;
+        let task_type = TaskTypeEntity::find_by_id(id).one(&db).await?;
         Ok(task_type)
     }
 
@@ -738,11 +792,11 @@ impl QueryRoot {
         let offset = offset.unwrap_or(0).max(0);
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
-        let mut query = LeaveRequestEntity::find()
-            .filter(LeaveRequestColumn::DeletedAt.is_null());
+        let mut query = LeaveRequestEntity::find().filter(LeaveRequestColumn::DeletedAt.is_null());
 
         // Apply RLS filter
         query = apply_leave_request_rls_filter(query, user_context);
@@ -770,8 +824,9 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         let mut query = LeaveRequestEntity::find()
             .filter(LeaveRequestColumn::Id.eq(id))
@@ -800,8 +855,7 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
-        let mut query = LeaveBalanceEntity::find()
-            .filter(LeaveBalanceColumn::DeletedAt.is_null());
+        let mut query = LeaveBalanceEntity::find().filter(LeaveBalanceColumn::DeletedAt.is_null());
 
         // Add employee filter if provided
         if let Some(eid) = employee_id {
@@ -942,11 +996,12 @@ impl QueryRoot {
         let offset = offset.unwrap_or(0).max(0);
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
-        let mut query = PerformanceReviewEntity::find()
-            .filter(PerformanceReviewColumn::DeletedAt.is_null());
+        let mut query =
+            PerformanceReviewEntity::find().filter(PerformanceReviewColumn::DeletedAt.is_null());
 
         // Apply RLS filter
         query = apply_performance_review_rls_filter(query, user_context);
@@ -970,12 +1025,17 @@ impl QueryRoot {
     ///
     /// # Security: RLS Enforced
     /// Users can only view their own reviews unless they have elevated privileges.
-    async fn performance_review(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<PerformanceReview>> {
+    async fn performance_review(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<PerformanceReview>> {
         let db = get_db_from_context(ctx)?;
 
         // Extract UserContext for RLS filtering
-        let user_context = ctx.data::<UserContext>()
-            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+        let user_context = ctx.data::<UserContext>().map_err(|_| {
+            async_graphql::Error::new("Authentication required - UserContext not found")
+        })?;
 
         let mut query = PerformanceReviewEntity::find()
             .filter(PerformanceReviewColumn::Id.eq(id))
@@ -989,9 +1049,9 @@ impl QueryRoot {
     }
 
     // =========================================================================
-    // Activity Log Queries  
+    // Activity Log Queries
     // =========================================================================
-    
+
     /// Get activity logs with optional user filtering and pagination
     async fn activity_logs(
         &self,
@@ -1023,18 +1083,14 @@ impl QueryRoot {
     }
 
     /// Get total count of activity logs with optional user filtering
-    async fn activity_logs_count(
-        &self,
-        ctx: &Context<'_>,
-        user_id: Option<Uuid>,
-    ) -> Result<i64> {
+    async fn activity_logs_count(&self, ctx: &Context<'_>, user_id: Option<Uuid>) -> Result<i64> {
         let db = get_db_from_context(ctx)?;
         let mut query = ActivityLogEntity::find();
 
         if let Some(uid) = user_id {
-             query = query.filter(ActivityLogColumn::UserId.eq(uid));
+            query = query.filter(ActivityLogColumn::UserId.eq(uid));
         }
-        
+
         let count = query.count(&db).await?;
         Ok(count as i64)
     }
@@ -1163,8 +1219,7 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
-        let mut query = EventEntity::find()
-            .filter(EventColumn::DeletedAt.is_null());
+        let mut query = EventEntity::find().filter(EventColumn::DeletedAt.is_null());
 
         // Add upcoming filter if requested
         if upcoming_only.unwrap_or(false) {
@@ -1463,9 +1518,7 @@ impl QueryRoot {
     /// Get a single HR report by ID
     async fn hr_report(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<HRReportModel>> {
         let db = get_db_from_context(ctx)?;
-        let report = HrReportEntity::find_by_id(id)
-            .one(&db)
-            .await?;
+        let report = HrReportEntity::find_by_id(id).one(&db).await?;
         Ok(report)
     }
 
@@ -1477,14 +1530,22 @@ impl QueryRoot {
     async fn trainings(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::Training>> {
         let db = get_db_from_context(ctx)?;
         // TODO: RLS filtering?
-        let trainings = crate::models::training::training::Entity::find().all(&db).await?;
+        let trainings = crate::models::training::training::Entity::find()
+            .all(&db)
+            .await?;
         Ok(trainings)
     }
 
     /// Get single training
-    async fn training(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::Training>> {
+    async fn training(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<crate::models::Training>> {
         let db = get_db_from_context(ctx)?;
-        let training = crate::models::training::training::Entity::find_by_id(id).one(&db).await?;
+        let training = crate::models::training::training::Entity::find_by_id(id)
+            .one(&db)
+            .await?;
         Ok(training)
     }
 
@@ -1497,9 +1558,9 @@ impl QueryRoot {
             .filter(crate::models::training::assignment::Column::UserId.eq(user_context.user_id))
             .all(&db)
             .await?;
-        
+
         let training_ids: Vec<Uuid> = assignments.iter().map(|a| a.training_id).collect();
-        
+
         let trainings = crate::models::training::training::Entity::find()
             .filter(crate::models::training::training::Column::Id.is_in(training_ids))
             .all(&db)
@@ -1509,7 +1570,11 @@ impl QueryRoot {
     }
 
     /// Get content for a training
-    async fn training_contents(&self, ctx: &Context<'_>, training_id: Uuid) -> Result<Vec<crate::models::TrainingContent>> {
+    async fn training_contents(
+        &self,
+        ctx: &Context<'_>,
+        training_id: Uuid,
+    ) -> Result<Vec<crate::models::TrainingContent>> {
         let db = get_db_from_context(ctx)?;
         let contents = crate::models::training::content::Entity::find()
             .filter(crate::models::training::content::Column::TrainingId.eq(training_id))
@@ -1520,7 +1585,11 @@ impl QueryRoot {
     }
 
     /// Get assignments for a training with user information
-    async fn training_assignments(&self, ctx: &Context<'_>, training_id: Uuid) -> Result<Vec<crate::models::training::TrainingAssignmentWithUser>> {
+    async fn training_assignments(
+        &self,
+        ctx: &Context<'_>,
+        training_id: Uuid,
+    ) -> Result<Vec<crate::models::training::TrainingAssignmentWithUser>> {
         let db = get_db_from_context(ctx)?;
 
         // Find all assignments for this training and load related users
@@ -1531,22 +1600,28 @@ impl QueryRoot {
             .await?;
 
         // Map to TrainingAssignmentWithUser
-        let result = assignments.into_iter().map(|(assignment, user)| {
-            crate::models::training::TrainingAssignmentWithUser {
-                id: assignment.id,
-                user_id: assignment.user_id,
-                training_id: assignment.training_id,
-                assigned_at: assignment.assigned_at,
-                due_date: assignment.due_date,
-                user,
-            }
-        }).collect();
+        let result = assignments
+            .into_iter()
+            .map(
+                |(assignment, user)| crate::models::training::TrainingAssignmentWithUser {
+                    id: assignment.id,
+                    user_id: assignment.user_id,
+                    training_id: assignment.training_id,
+                    assigned_at: assignment.assigned_at,
+                    due_date: assignment.due_date,
+                    user,
+                },
+            )
+            .collect();
 
         Ok(result)
     }
 
     /// Get all training assignments across all trainings with user information
-    async fn all_training_assignments(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::training::TrainingAssignmentWithUser>> {
+    async fn all_training_assignments(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Result<Vec<crate::models::training::TrainingAssignmentWithUser>> {
         let db = get_db_from_context(ctx)?;
 
         // Find all assignments and load related users
@@ -1556,16 +1631,19 @@ impl QueryRoot {
             .await?;
 
         // Map to TrainingAssignmentWithUser
-        let result = assignments.into_iter().map(|(assignment, user)| {
-            crate::models::training::TrainingAssignmentWithUser {
-                id: assignment.id,
-                user_id: assignment.user_id,
-                training_id: assignment.training_id,
-                assigned_at: assignment.assigned_at,
-                due_date: assignment.due_date,
-                user,
-            }
-        }).collect();
+        let result = assignments
+            .into_iter()
+            .map(
+                |(assignment, user)| crate::models::training::TrainingAssignmentWithUser {
+                    id: assignment.id,
+                    user_id: assignment.user_id,
+                    training_id: assignment.training_id,
+                    assigned_at: assignment.assigned_at,
+                    due_date: assignment.due_date,
+                    user,
+                },
+            )
+            .collect();
 
         Ok(result)
     }
@@ -1644,22 +1722,36 @@ impl QueryRoot {
     // =========================================================================
 
     /// Get all onboarding modules
-    async fn onboarding_modules(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::OnboardingModule>> {
+    async fn onboarding_modules(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Result<Vec<crate::models::OnboardingModule>> {
         let db = get_db_from_context(ctx)?;
         // TODO: RLS filtering?
-        let modules = crate::models::onboarding::onboarding_module::Entity::find().all(&db).await?;
+        let modules = crate::models::onboarding::onboarding_module::Entity::find()
+            .all(&db)
+            .await?;
         Ok(modules)
     }
 
     /// Get single onboarding module
-    async fn onboarding_module(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::OnboardingModule>> {
+    async fn onboarding_module(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<crate::models::OnboardingModule>> {
         let db = get_db_from_context(ctx)?;
-        let module = crate::models::onboarding::onboarding_module::Entity::find_by_id(id).one(&db).await?;
+        let module = crate::models::onboarding::onboarding_module::Entity::find_by_id(id)
+            .one(&db)
+            .await?;
         Ok(module)
     }
 
     /// Get onboarding modules assigned to current user
-    async fn my_onboarding_modules(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::OnboardingModule>> {
+    async fn my_onboarding_modules(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Result<Vec<crate::models::OnboardingModule>> {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?;
 
@@ -1679,7 +1771,10 @@ impl QueryRoot {
     }
 
     /// Get onboarding assignments for current user (with module details)
-    async fn my_onboarding_assignments(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::AssignmentWithModule>> {
+    async fn my_onboarding_assignments(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Result<Vec<crate::models::AssignmentWithModule>> {
         use sea_orm::ModelTrait;
 
         let db = get_db_from_context(ctx)?;
@@ -1714,7 +1809,10 @@ impl QueryRoot {
     }
 
     /// Get all onboarding assignments (admin/HR view)
-    async fn all_onboarding_assignments(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::AssignmentWithUser>> {
+    async fn all_onboarding_assignments(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Result<Vec<crate::models::AssignmentWithUser>> {
         let db = get_db_from_context(ctx)?;
 
         // Find all assignments and load related users
@@ -1724,8 +1822,9 @@ impl QueryRoot {
             .await?;
 
         // Map to AssignmentWithUser
-        let result = assignments.into_iter().map(|(assignment, user)| {
-            AssignmentWithUser {
+        let result = assignments
+            .into_iter()
+            .map(|(assignment, user)| AssignmentWithUser {
                 id: assignment.id,
                 user_id: assignment.user_id,
                 onboarding_module_id: assignment.onboarding_module_id,
@@ -1734,8 +1833,8 @@ impl QueryRoot {
                 due_date: assignment.due_date,
                 completed_at: assignment.completed_at,
                 user,
-            }
-        }).collect();
+            })
+            .collect();
 
         Ok(result)
     }
@@ -1743,38 +1842,64 @@ impl QueryRoot {
     /// Get all form templates
     async fn form_templates(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::FormTemplate>> {
         let db = get_db_from_context(ctx)?;
-        let templates = crate::models::onboarding::form_template::Entity::find().all(&db).await?;
+        let templates = crate::models::onboarding::form_template::Entity::find()
+            .all(&db)
+            .await?;
         Ok(templates)
     }
 
     /// Get single form template
-    async fn form_template(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::FormTemplate>> {
+    async fn form_template(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<crate::models::FormTemplate>> {
         let db = get_db_from_context(ctx)?;
-        let template = crate::models::onboarding::form_template::Entity::find_by_id(id).one(&db).await?;
+        let template = crate::models::onboarding::form_template::Entity::find_by_id(id)
+            .one(&db)
+            .await?;
         Ok(template)
     }
 
     /// Get content blocks for an onboarding module
-    async fn onboarding_content_blocks(&self, ctx: &Context<'_>, onboarding_module_id: Uuid) -> Result<Vec<crate::models::ContentBlockGraphQL>> {
+    async fn onboarding_content_blocks(
+        &self,
+        ctx: &Context<'_>,
+        onboarding_module_id: Uuid,
+    ) -> Result<Vec<crate::models::ContentBlockGraphQL>> {
         let db = get_db_from_context(ctx)?;
         let blocks = crate::models::onboarding::content_block::Entity::find()
-            .filter(crate::models::onboarding::content_block::Column::OnboardingModuleId.eq(onboarding_module_id))
+            .filter(
+                crate::models::onboarding::content_block::Column::OnboardingModuleId
+                    .eq(onboarding_module_id),
+            )
             .order_by_asc(crate::models::onboarding::content_block::Column::SequenceOrder)
             .all(&db)
             .await?;
-        Ok(blocks.into_iter().map(|b| crate::models::ContentBlockGraphQL::from(b)).collect())
+        Ok(blocks
+            .into_iter()
+            .map(|b| crate::models::ContentBlockGraphQL::from(b))
+            .collect())
     }
 
     /// Get assignments for an onboarding module
-    async fn onboarding_assignments(&self, ctx: &Context<'_>, onboarding_module_id: Uuid) -> Result<Vec<AssignmentWithUser>> {
+    async fn onboarding_assignments(
+        &self,
+        ctx: &Context<'_>,
+        onboarding_module_id: Uuid,
+    ) -> Result<Vec<AssignmentWithUser>> {
         let db = get_db_from_context(ctx)?;
         let assignments = crate::models::onboarding::assignment::Entity::find()
-            .filter(crate::models::onboarding::assignment::Column::OnboardingModuleId.eq(onboarding_module_id))
+            .filter(
+                crate::models::onboarding::assignment::Column::OnboardingModuleId
+                    .eq(onboarding_module_id),
+            )
             .find_also_related(crate::models::user::Entity)
             .all(&db)
             .await?;
-        let result = assignments.into_iter().map(|(assignment, user)| {
-            AssignmentWithUser {
+        let result = assignments
+            .into_iter()
+            .map(|(assignment, user)| AssignmentWithUser {
                 id: assignment.id,
                 user_id: assignment.user_id,
                 onboarding_module_id: assignment.onboarding_module_id,
@@ -1783,8 +1908,8 @@ impl QueryRoot {
                 due_date: assignment.due_date,
                 completed_at: assignment.completed_at,
                 user,
-            }
-        }).collect();
+            })
+            .collect();
         Ok(result)
     }
 
@@ -1799,7 +1924,10 @@ impl QueryRoot {
 
         // Get all content blocks for this module
         let blocks = crate::models::onboarding::content_block::Entity::find()
-            .filter(crate::models::onboarding::content_block::Column::OnboardingModuleId.eq(onboarding_module_id))
+            .filter(
+                crate::models::onboarding::content_block::Column::OnboardingModuleId
+                    .eq(onboarding_module_id),
+            )
             .all(&db)
             .await?;
 
@@ -1816,7 +1944,10 @@ impl QueryRoot {
             .all(&db)
             .await?;
 
-        Ok(progress.into_iter().map(|p| crate::models::ProgressGraphQL::from(p)).collect())
+        Ok(progress
+            .into_iter()
+            .map(|p| crate::models::ProgressGraphQL::from(p))
+            .collect())
     }
 
     /// Get form submission for a content block (current user)
@@ -1829,8 +1960,13 @@ impl QueryRoot {
         let user_context = ctx.data::<UserContext>()?;
 
         let submission = crate::models::onboarding::form_submission::Entity::find()
-            .filter(crate::models::onboarding::form_submission::Column::UserId.eq(user_context.user_id))
-            .filter(crate::models::onboarding::form_submission::Column::ContentBlockId.eq(content_block_id))
+            .filter(
+                crate::models::onboarding::form_submission::Column::UserId.eq(user_context.user_id),
+            )
+            .filter(
+                crate::models::onboarding::form_submission::Column::ContentBlockId
+                    .eq(content_block_id),
+            )
             .one(&db)
             .await?;
 
@@ -1847,8 +1983,13 @@ impl QueryRoot {
         let user_context = ctx.data::<UserContext>()?;
 
         let uploads = crate::models::onboarding::document_upload::Entity::find()
-            .filter(crate::models::onboarding::document_upload::Column::UserId.eq(user_context.user_id))
-            .filter(crate::models::onboarding::document_upload::Column::ContentBlockId.eq(content_block_id))
+            .filter(
+                crate::models::onboarding::document_upload::Column::UserId.eq(user_context.user_id),
+            )
+            .filter(
+                crate::models::onboarding::document_upload::Column::ContentBlockId
+                    .eq(content_block_id),
+            )
             .all(&db)
             .await?;
 
@@ -1883,12 +2024,18 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
 
         let forms = crate::models::onboarding::form::Entity::find()
-            .filter(crate::models::onboarding::form::Column::OnboardingModuleId.eq(onboarding_module_id))
+            .filter(
+                crate::models::onboarding::form::Column::OnboardingModuleId
+                    .eq(onboarding_module_id),
+            )
             .order_by_asc(crate::models::onboarding::form::Column::SequenceOrder)
             .all(&db)
             .await?;
 
-        Ok(forms.into_iter().map(crate::models::OnboardingFormGraphQL::from).collect())
+        Ok(forms
+            .into_iter()
+            .map(crate::models::OnboardingFormGraphQL::from)
+            .collect())
     }
 
     /// Get form blocks for a specific onboarding form
@@ -1900,12 +2047,18 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
 
         let blocks = crate::models::onboarding::form_block::Entity::find()
-            .filter(crate::models::onboarding::form_block::Column::OnboardingFormId.eq(onboarding_form_id))
+            .filter(
+                crate::models::onboarding::form_block::Column::OnboardingFormId
+                    .eq(onboarding_form_id),
+            )
             .order_by_asc(crate::models::onboarding::form_block::Column::SequenceOrder)
             .all(&db)
             .await?;
 
-        Ok(blocks.into_iter().map(crate::models::FormBlockGraphQL::from).collect())
+        Ok(blocks
+            .into_iter()
+            .map(crate::models::FormBlockGraphQL::from)
+            .collect())
     }
 
     /// Get form progress for a specific user and form
@@ -1919,7 +2072,10 @@ impl QueryRoot {
 
         let progress = crate::models::onboarding::form_progress::Entity::find()
             .filter(crate::models::onboarding::form_progress::Column::UserId.eq(user_id))
-            .filter(crate::models::onboarding::form_progress::Column::OnboardingFormId.eq(onboarding_form_id))
+            .filter(
+                crate::models::onboarding::form_progress::Column::OnboardingFormId
+                    .eq(onboarding_form_id),
+            )
             .one(&db)
             .await?;
 
@@ -1939,7 +2095,10 @@ impl QueryRoot {
             .all(&db)
             .await?;
 
-        Ok(progress_list.into_iter().map(crate::models::FormProgressGraphQL::from).collect())
+        Ok(progress_list
+            .into_iter()
+            .map(crate::models::FormProgressGraphQL::from)
+            .collect())
     }
 
     // =========================================================================
@@ -1947,7 +2106,9 @@ impl QueryRoot {
     // =========================================================================
 
     /// Get all system settings (requires system_settings:read permission)
-    #[graphql(guard = "crate::middleware::guards::RequirePermission::new(\"system_settings:read\")")]
+    #[graphql(
+        guard = "crate::middleware::guards::RequirePermission::new(\"system_settings:read\")"
+    )]
     async fn system_settings(&self, ctx: &Context<'_>) -> Result<Vec<SystemSettingsModel>> {
         let db = get_db_from_context(ctx)?;
         let settings = SystemSettingsModel::find_all(&db).await?;
@@ -1955,7 +2116,9 @@ impl QueryRoot {
     }
 
     /// Get system settings by category (requires system_settings:read permission)
-    #[graphql(guard = "crate::middleware::guards::RequirePermission::new(\"system_settings:read\")")]
+    #[graphql(
+        guard = "crate::middleware::guards::RequirePermission::new(\"system_settings:read\")"
+    )]
     async fn system_settings_by_category(
         &self,
         ctx: &Context<'_>,
@@ -2030,7 +2193,9 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<crate::models::documents::document::Model>> {
-        use crate::models::documents::document::{Entity as DocumentEntity, Column as DocumentColumn};
+        use crate::models::documents::document::{
+            Column as DocumentColumn, Entity as DocumentEntity,
+        };
 
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(20).clamp(1, 100);
@@ -2053,7 +2218,9 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<crate::models::documents::document::Model>> {
-        use crate::models::documents::document::{Entity as DocumentEntity, Column as DocumentColumn};
+        use crate::models::documents::document::{
+            Column as DocumentColumn, Entity as DocumentEntity,
+        };
 
         let db = get_db_from_context(ctx)?;
 
@@ -2092,7 +2259,10 @@ impl QueryRoot {
 
         // Validate date range
         if start > end {
-            return Err(AppError::Validation("start_date must be before or equal to end_date".to_string()).into());
+            return Err(AppError::Validation(
+                "start_date must be before or equal to end_date".to_string(),
+            )
+            .into());
         }
 
         // Query statistics
@@ -2150,7 +2320,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<crate::models::role::Model>> {
-        use crate::models::role::{Entity as RoleEntity, Column as RoleColumn};
+        use crate::models::role::{Column as RoleColumn, Entity as RoleEntity};
 
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
@@ -2169,8 +2339,12 @@ impl QueryRoot {
     }
 
     /// Get a single role by ID
-    async fn role(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::role::Model>> {
-        use crate::models::role::{Entity as RoleEntity, Column as RoleColumn};
+    async fn role(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<crate::models::role::Model>> {
+        use crate::models::role::{Column as RoleColumn, Entity as RoleEntity};
 
         let db = get_db_from_context(ctx)?;
         let role = RoleEntity::find_by_id(id)
@@ -2182,8 +2356,12 @@ impl QueryRoot {
     }
 
     /// Get role by name
-    async fn role_by_name(&self, ctx: &Context<'_>, name: String) -> Result<Option<crate::models::role::Model>> {
-        use crate::models::role::{Entity as RoleEntity, Column as RoleColumn};
+    async fn role_by_name(
+        &self,
+        ctx: &Context<'_>,
+        name: String,
+    ) -> Result<Option<crate::models::role::Model>> {
+        use crate::models::role::{Column as RoleColumn, Entity as RoleEntity};
 
         let db = get_db_from_context(ctx)?;
         let role = RoleEntity::find()
@@ -2203,14 +2381,13 @@ impl QueryRoot {
         offset: Option<i64>,
         resource: Option<String>,
     ) -> Result<Vec<crate::models::permission::Model>> {
-        use crate::models::permission::{Entity as PermissionEntity, Column as PermissionColumn};
+        use crate::models::permission::{Column as PermissionColumn, Entity as PermissionEntity};
 
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(200).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
-        let mut query = PermissionEntity::find()
-            .filter(PermissionColumn::DeletedAt.is_null());
+        let mut query = PermissionEntity::find().filter(PermissionColumn::DeletedAt.is_null());
 
         // Filter by resource if provided
         if let Some(res) = resource {
@@ -2229,8 +2406,12 @@ impl QueryRoot {
     }
 
     /// Get a single permission by ID
-    async fn permission(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::permission::Model>> {
-        use crate::models::permission::{Entity as PermissionEntity, Column as PermissionColumn};
+    async fn permission(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<crate::models::permission::Model>> {
+        use crate::models::permission::{Column as PermissionColumn, Entity as PermissionEntity};
 
         let db = get_db_from_context(ctx)?;
         let permission = PermissionEntity::find_by_id(id)
@@ -2249,8 +2430,10 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<crate::models::user::Model>> {
-        use crate::models::user::{Entity as UserEntity, Column as UserColumn};
-        use crate::models::user_role_assignment::{Entity as UserRoleEntity, Column as UserRoleColumn};
+        use crate::models::user::{Column as UserColumn, Entity as UserEntity};
+        use crate::models::user_role_assignment::{
+            Column as UserRoleColumn, Entity as UserRoleEntity,
+        };
 
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
@@ -2287,8 +2470,10 @@ impl QueryRoot {
         ctx: &Context<'_>,
         user_id: Uuid,
     ) -> Result<Vec<crate::models::role::Model>> {
-        use crate::models::role::{Entity as RoleEntity};
-        use crate::models::user_role_assignment::{Entity as UserRoleEntity, Column as UserRoleColumn};
+        use crate::models::role::Entity as RoleEntity;
+        use crate::models::user_role_assignment::{
+            Column as UserRoleColumn, Entity as UserRoleEntity,
+        };
 
         let db = get_db_from_context(ctx)?;
 
@@ -2321,9 +2506,11 @@ impl QueryRoot {
         ctx: &Context<'_>,
         user_id: Uuid,
     ) -> Result<Vec<crate::models::permission::Model>> {
-        use crate::models::permission::{Entity as PermissionEntity};
-        use crate::models::role_permission::{Entity as RolePermEntity, Column as RolePermColumn};
-        use crate::models::user_role_assignment::{Entity as UserRoleEntity, Column as UserRoleColumn};
+        use crate::models::permission::Entity as PermissionEntity;
+        use crate::models::role_permission::{Column as RolePermColumn, Entity as RolePermEntity};
+        use crate::models::user_role_assignment::{
+            Column as UserRoleColumn, Entity as UserRoleEntity,
+        };
 
         let db = get_db_from_context(ctx)?;
 
@@ -2524,12 +2711,18 @@ mod tests {
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
 
-        assert!(data_str.contains(&test_user.id.to_string()),
-            "Response should contain user ID");
-        assert!(data_str.contains(&test_user.email),
-            "Response should contain user email");
-        assert!(data_str.contains(&test_user.role),
-            "Response should contain user role");
+        assert!(
+            data_str.contains(&test_user.id.to_string()),
+            "Response should contain user ID"
+        );
+        assert!(
+            data_str.contains(&test_user.email),
+            "Response should contain user email"
+        );
+        assert!(
+            data_str.contains(&test_user.role),
+            "Response should contain user role"
+        );
     }
 
     /// T021 Pattern: Test async execution with authenticated user
@@ -2568,8 +2761,11 @@ mod tests {
         // Assert - Should have error about missing AuthSession
         let errors = ctx.extract_errors(&response);
         assert!(!errors.is_empty(), "Expected AuthSession error");
-        assert!(errors[0].contains("AuthSession") || errors[0].contains("does not exist"),
-            "Expected AuthSession-related error, got: {:?}", errors);
+        assert!(
+            errors[0].contains("AuthSession") || errors[0].contains("does not exist"),
+            "Expected AuthSession-related error, got: {:?}",
+            errors
+        );
     }
 
     /// T020 Pattern: Test authorization failure - unauthenticated access
@@ -2597,8 +2793,10 @@ mod tests {
         let data_str = data.to_string();
 
         // Me query returns null when not authenticated
-        assert!(data_str.contains("null"),
-            "Unauthenticated request should return null");
+        assert!(
+            data_str.contains("null"),
+            "Unauthenticated request should return null"
+        );
     }
 
     /// Test users query with pagination
@@ -2637,7 +2835,10 @@ mod tests {
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
 
-        assert!(data_str.contains("users"), "Response should contain users field");
+        assert!(
+            data_str.contains("users"),
+            "Response should contain users field"
+        );
 
         // Should contain at least one of our test users
         let test_users = ctx.users();
@@ -2645,7 +2846,10 @@ mod tests {
             || data_str.contains(&test_users.hr_manager.email)
             || data_str.contains(&test_users.admin.email);
 
-        assert!(has_test_user, "Response should contain at least one test user");
+        assert!(
+            has_test_user,
+            "Response should contain at least one test user"
+        );
     }
 
     /// Test users query with variables
@@ -2682,7 +2886,9 @@ mod tests {
         }));
 
         // Act
-        let response = ctx.execute_with_variables_as(query, variables, &test_user).await;
+        let response = ctx
+            .execute_with_variables_as(query, variables, &test_user)
+            .await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2690,7 +2896,10 @@ mod tests {
 
         // Assert - Returns users
         let data = ctx.extract_data(&response);
-        assert!(data.to_string().contains("users"), "Response should contain users field");
+        assert!(
+            data.to_string().contains("users"),
+            "Response should contain users field"
+        );
     }
 
     /// Test authenticated query with variables
@@ -2724,7 +2933,9 @@ mod tests {
         }));
 
         // Act
-        let response = ctx.execute_with_variables_as(query, variables, test_user).await;
+        let response = ctx
+            .execute_with_variables_as(query, variables, test_user)
+            .await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2734,10 +2945,11 @@ mod tests {
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
 
-        assert!(data_str.contains(&test_user.id.to_string()),
-            "Response should contain requested user ID");
+        assert!(
+            data_str.contains(&test_user.id.to_string()),
+            "Response should contain requested user ID"
+        );
     }
-
 
     /// Test count_employees_by_department query
     /// SKIPPED: countEmployeesByDepartment function not yet implemented
@@ -2792,10 +3004,12 @@ mod tests {
         // Assert - Count is returned (may be 0 or more)
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
+
         // Should contain countEmployeesByDepartment field with a number
-        assert!(data_str.contains("countEmployeesByDepartment"),
-            "Response should contain countEmployeesByDepartment field");
+        assert!(
+            data_str.contains("countEmployeesByDepartment"),
+            "Response should contain countEmployeesByDepartment field"
+        );
     }
 
     /// Test count_employees_by_department with empty department
@@ -2833,9 +3047,11 @@ mod tests {
         // Assert - Count is 0 for non-existent/empty department
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("countEmployeesByDepartment: 0"),
-            "Empty department should return count of 0");
+
+        assert!(
+            data_str.contains("countEmployeesByDepartment: 0"),
+            "Empty department should return count of 0"
+        );
     }
 
     /// Test getDepartmentAncestors with existing department
@@ -2865,7 +3081,7 @@ mod tests {
 
         // Find a department with a parent (contains "parentDepartmentId: Some")
         let has_parent = dept_str.contains("parentDepartmentId: Some");
-        
+
         if !has_parent {
             println!("Skipping test: no departments with parents found");
             return;
@@ -2909,9 +3125,11 @@ mod tests {
         // Assert - Returns ancestor list (may be empty if no grandparent)
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("getDepartmentAncestors"),
-            "Response should contain getDepartmentAncestors field");
+
+        assert!(
+            data_str.contains("getDepartmentAncestors"),
+            "Response should contain getDepartmentAncestors field"
+        );
     }
 
     /// Test getDepartmentAncestors with root department (no parent)
@@ -2983,9 +3201,11 @@ mod tests {
         // Assert - Empty list for root department
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("getDepartmentAncestors: []"),
-            "Root department should have empty ancestor list");
+
+        assert!(
+            data_str.contains("getDepartmentAncestors: []"),
+            "Root department should have empty ancestor list"
+        );
     }
 
     /// Test getDepartmentDescendants with existing department
@@ -3048,9 +3268,11 @@ mod tests {
         // Assert - Returns descendants list (may be empty)
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("getDepartmentDescendants"),
-            "Response should contain getDepartmentDescendants field");
+
+        assert!(
+            data_str.contains("getDepartmentDescendants"),
+            "Response should contain getDepartmentDescendants field"
+        );
     }
 
     /// Test getDepartmentDescendants with non-existent department
@@ -3065,7 +3287,7 @@ mod tests {
         let test_user = ctx.user(TestUserRole::Employee);
 
         let invalid_id = uuid::Uuid::new_v4();
-        
+
         let query = format!(
             r#"
             query {{
@@ -3088,9 +3310,11 @@ mod tests {
         // Assert - Empty list for non-existent department
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("getDepartmentDescendants: []"),
-            "Non-existent department should return empty descendant list");
+
+        assert!(
+            data_str.contains("getDepartmentDescendants: []"),
+            "Non-existent department should return empty descendant list"
+        );
     }
 
     /// Test isDepartmentNameUnique with existing name
@@ -3154,9 +3378,11 @@ mod tests {
         // Assert - Returns false for duplicate name
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("isDepartmentNameUnique: false"),
-            "Existing department name should not be unique");
+
+        assert!(
+            data_str.contains("isDepartmentNameUnique: false"),
+            "Existing department name should not be unique"
+        );
     }
 
     /// Test isDepartmentNameUnique with new unique name
@@ -3196,9 +3422,11 @@ mod tests {
         // Assert - Returns true for unique name
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("isDepartmentNameUnique: true"),
-            "New department name should be unique");
+
+        assert!(
+            data_str.contains("isDepartmentNameUnique: true"),
+            "New department name should be unique"
+        );
     }
 
     /// Test isDepartmentNameUnique with exclude_department_id (update scenario)
@@ -3268,9 +3496,11 @@ mod tests {
         // Assert - Returns true when excluding self
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("isDepartmentNameUnique: true"),
-            "Department name should be unique when excluding itself");
+
+        assert!(
+            data_str.contains("isDepartmentNameUnique: true"),
+            "Department name should be unique when excluding itself"
+        );
     }
 
     /// Test isDepartmentNameUnique case-insensitive matching
@@ -3335,9 +3565,11 @@ mod tests {
         // Assert - Returns false (case-insensitive match)
         let data = ctx.extract_data(&response);
         let data_str = data.to_string();
-        
-        assert!(data_str.contains("isDepartmentNameUnique: false"),
-            "Name should not be unique (case-insensitive comparison)");
+
+        assert!(
+            data_str.contains("isDepartmentNameUnique: false"),
+            "Name should not be unique (case-insensitive comparison)"
+        );
     }
 
     /// Test department filtering by search term
@@ -3370,14 +3602,16 @@ mod tests {
 
         // Assert - Results contain "Engineering" in name or description
         let data = ctx.extract_data(&response);
-        let departments = data["departments"]["items"].as_array().expect("Expected array");
+        let departments = data["departments"]["items"]
+            .as_array()
+            .expect("Expected array");
 
         for dept in departments {
             let name = dept["name"].as_str().unwrap_or("");
             let description = dept["description"].as_str().unwrap_or("");
             assert!(
-                name.to_lowercase().contains("engineering") ||
-                description.to_lowercase().contains("engineering"),
+                name.to_lowercase().contains("engineering")
+                    || description.to_lowercase().contains("engineering"),
                 "Department should contain 'Engineering' in name or description"
             );
         }
@@ -3413,7 +3647,9 @@ mod tests {
 
         // Assert - All results have parentDepartmentId: null
         let data = ctx.extract_data(&response);
-        let departments = data["departments"]["items"].as_array().expect("Expected array");
+        let departments = data["departments"]["items"]
+            .as_array()
+            .expect("Expected array");
 
         for dept in departments {
             assert!(
@@ -3473,7 +3709,9 @@ mod tests {
 
         // Assert - All results have matching parentDepartmentId
         let data = ctx.extract_data(&response);
-        let departments = data["departments"]["items"].as_array().expect("Expected array");
+        let departments = data["departments"]["items"]
+            .as_array()
+            .expect("Expected array");
 
         for dept in departments {
             let parent_id = dept["parentDepartmentId"].as_str().unwrap_or("");
@@ -3514,7 +3752,9 @@ mod tests {
 
         // Assert - No deleted departments returned
         let data = ctx.extract_data(&response);
-        let departments = data["departments"]["items"].as_array().expect("Expected array");
+        let departments = data["departments"]["items"]
+            .as_array()
+            .expect("Expected array");
 
         for dept in departments {
             assert!(
@@ -3547,7 +3787,9 @@ mod tests {
 
         let managed_response = ctx.execute_query_as(get_managed, &test_user).await;
         let managed_data = ctx.extract_data(&managed_response);
-        let departments = managed_data["departments"]["items"].as_array().expect("Expected array");
+        let departments = managed_data["departments"]["items"]
+            .as_array()
+            .expect("Expected array");
 
         // Find a department with a manager
         let dept_with_manager = departments.iter().find(|d| !d["managerId"].is_null());
@@ -3579,7 +3821,9 @@ mod tests {
 
             // Assert - All results have matching managerId
             let data = ctx.extract_data(&response);
-            let filtered_departments = data["departments"]["items"].as_array().expect("Expected array");
+            let filtered_departments = data["departments"]["items"]
+                .as_array()
+                .expect("Expected array");
 
             for dept in filtered_departments {
                 let dept_manager_id = dept["managerId"].as_str().unwrap_or("");

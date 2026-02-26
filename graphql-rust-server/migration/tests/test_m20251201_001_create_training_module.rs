@@ -22,9 +22,8 @@ mod tests {
 
     /// Set up test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/hr_test".to_string()
-        });
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
         Database::connect(&db_url)
             .await
             .expect("Failed to connect to test database")
@@ -529,7 +528,10 @@ mod tests {
         assert!(before_result.is_some(), "Query should return result");
         let row = before_result.unwrap();
         let before_count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(before_count, 4, "All 4 tables should exist before down migration");
+        assert_eq!(
+            before_count, 4,
+            "All 4 tables should exist before down migration"
+        );
 
         // Run down migration
         Migration

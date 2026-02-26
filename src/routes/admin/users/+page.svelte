@@ -7,25 +7,72 @@
 
 	// Import decomposed components
 	import UserFilters from './components/UserFilters.svelte';
-	import UserTable from './components/UserTable.svelte';
 	import UserSpreadsheet from './components/UserSpreadsheet.svelte';
 	import UserCreateModal from './components/UserCreateModal.svelte';
 	import UserEditModal from './components/UserEditModal.svelte';
 	import BulkActionsToolbar from '$lib/components/admin/BulkActionsToolbar.svelte';
 	import type { RowEdit } from '$lib/components/ui/spreadsheet';
 
-	const { data } = $props();
+	interface RoleOption {
+		id: string;
+		name: string;
+	}
+
+	interface DepartmentOption {
+		id: string;
+		name: string;
+	}
+
+	interface UserRecord {
+		id: string;
+		email: string;
+		displayName: string | null;
+		role?: string;
+		roles?: RoleOption[];
+		department?: DepartmentOption | null;
+		manager?: { id: string; displayName: string; email: string } | null;
+		jobTitle?: string | null;
+		phone?: string | null;
+		mobilePhone?: string | null;
+		birthDate?: string | null;
+		hireDate?: string | null;
+		isActive: boolean;
+	}
+
+	interface UserFormState {
+		email: string;
+		displayName: string;
+		password: string;
+		roleId: string;
+		departmentId: string;
+		managerId: string;
+		jobTitle: string;
+		phone: string;
+		mobilePhone: string;
+		birthDate: string;
+		hireDate: string;
+		isActive: boolean;
+	}
+
+	interface UsersPageData {
+		users: UserRecord[];
+		roles: RoleOption[];
+		departments: DepartmentOption[];
+		error?: string;
+	}
+
+	const { data }: { data: UsersPageData } = $props();
 
 	let showCreateModal = $state(false);
 	let showEditModal = $state(false);
-	let selectedUser = $state<any>(null);
+	let selectedUser = $state<UserRecord | null>(null);
 	let searchQuery = $state('');
 	let loading = $state(false);
 	let errorMessage = $state('');
 	let selectedEmployees = $state<Array<{ id: string; displayName: string; isActive: boolean }>>([]);
 
 	// Form state for create/edit
-	let formData = $state({
+	let formData = $state<UserFormState>({
 		email: '',
 		displayName: '',
 		password: '',
@@ -52,7 +99,7 @@
 		// Convert Set<string> of IDs to array of employee objects
 		selectedEmployees = Array.from(selectedIds)
 			.map((id) => {
-				const user = data.users.find((u: any) => u.id === id);
+				const user = data.users.find((u) => u.id === id);
 				if (!user) return null;
 				return {
 					id: user.id,
@@ -69,7 +116,7 @@
 
 	// Filtered users based on search query AND filters (Client-side)
 	const filteredUsers = $derived(
-		data.users.filter((user: any) => {
+		data.users.filter((user) => {
 			// Search Query
 			if (searchQuery) {
 				const query = searchQuery.toLowerCase();
@@ -82,7 +129,7 @@
 
 			// Role Filter
 			if (filters.role) {
-				const hasRole = user.roles?.some((r: any) => r.name === filters.role);
+				const hasRole = user.roles?.some((r) => r.name === filters.role);
 				if (!hasRole) return false;
 			}
 
@@ -99,6 +146,22 @@
 
 			return true;
 		})
+	);
+
+	const spreadsheetUsers = $derived(
+		filteredUsers.map((user) => ({
+			...user,
+			department: user.department ?? null,
+			role: user.roles?.[0]?.name || user.role || 'Employee'
+		}))
+	);
+
+	const allSpreadsheetUsers = $derived(
+		data.users.map((user) => ({
+			...user,
+			department: user.department ?? null,
+			role: user.roles?.[0]?.name || user.role || 'Employee'
+		}))
 	);
 
 	function openCreateModal() {
@@ -120,7 +183,7 @@
 		errorMessage = '';
 	}
 
-	function openEditModal(user: any) {
+	function openEditModal(user: UserRecord) {
 		selectedUser = user;
 		formData = {
 			email: user.email,
@@ -281,7 +344,7 @@
 		}
 	}
 
-	async function toggleUserStatus(user: any) {
+	async function toggleUserStatus(user: UserRecord) {
 		loading = true;
 		try {
 			const client = createUrqlClient();
@@ -325,7 +388,7 @@
 	}
 
 	// Handle inline edits from spreadsheet
-	async function handleSaveEdits(edits: RowEdit<unknown>[]) {
+	async function handleSaveEdits(edits: RowEdit<UserRecord>[]) {
 		loading = true;
 		errorMessage = '';
 
@@ -480,7 +543,7 @@
 					}
 
 					// Get the user's current role assignments
-					const user = edit.originalRow as any;
+					const user = edit.originalRow;
 					const currentRoleAssignments = user.roles || [];
 
 					// Remove all existing role assignments
@@ -607,8 +670,8 @@
 	<!-- Table Area - Enhanced Spreadsheet -->
 	<div class="flex-1 overflow-hidden min-h-0 relative">
 		<UserSpreadsheet
-			{filteredUsers}
-			allUsers={data.users}
+			filteredUsers={spreadsheetUsers}
+			allUsers={allSpreadsheetUsers}
 			{loading}
 			roles={data.roles}
 			departments={data.departments}

@@ -1,12 +1,12 @@
 //! Webhook GraphQL Mutations
 
 use async_graphql::{Context, Object, Result};
-use uuid::Uuid;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::auth::UserContext;
-use crate::services::webhook_processor::WebhookProcessor;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
+use crate::services::webhook_processor::WebhookProcessor;
 
 #[derive(Default)]
 pub struct WebhookMutations;
@@ -53,9 +53,10 @@ impl WebhookMutations {
         let verifier_token = std::env::var("INTUIT_WEBHOOK_VERIFIER_TOKEN")
             .map_err(|_| "INTUIT_WEBHOOK_VERIFIER_TOKEN not configured. This must match the token in QuickBooks Developer Portal.")?;
 
-        // Get webhook URL from environment variable
-        let webhook_url = std::env::var("WEBHOOK_URL")
-            .unwrap_or_else(|_| "http://localhost:3001/api/webhooks/intuit".to_string());
+        // Get webhook URL from environment variable.
+        // This mirrors the URL configured in Intuit Developer Portal.
+        let webhook_url = std::env::var("INTUIT_WEBHOOK_URL")
+            .unwrap_or_else(|_| "https://dev.hr.mtncarerx.com/api/intuit/webhook".to_string());
 
         // Build event types for QuickBooks webhooks
         let mut event_types = Vec::new();
@@ -104,22 +105,23 @@ impl WebhookMutations {
         };
 
         use sea_orm::ActiveModelTrait;
-        subscription.insert(db)
+        subscription
+            .insert(db)
             .await
             .map_err(|e| format!("Failed to save webhook subscription: {}", e))?;
 
         Ok(RegisterWebhookResult {
             success: true,
-            message: format!("Webhook registered successfully for entities: {}", entity_names.join(", ")),
+            message: format!(
+                "Webhook registered successfully for entities: {}",
+                entity_names.join(", ")
+            ),
             webhook_id,
         })
     }
 
     /// Unregister webhook subscription
-    async fn unregister_webhook(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<UnregisterWebhookResult> {
+    async fn unregister_webhook(&self, ctx: &Context<'_>) -> Result<UnregisterWebhookResult> {
         use crate::models::webhook_subscriptions;
         use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
@@ -147,7 +149,8 @@ impl WebhookMutations {
         active_subscription.deleted_at = Set(Some(chrono::Utc::now().into()));
         active_subscription.updated_at = Set(chrono::Utc::now().into());
 
-        active_subscription.update(db)
+        active_subscription
+            .update(db)
             .await
             .map_err(|e| format!("Failed to deactivate webhook subscription: {}", e))?;
 
@@ -235,9 +238,15 @@ pub struct RegisterWebhookResult {
 
 #[Object]
 impl RegisterWebhookResult {
-    async fn success(&self) -> bool { self.success }
-    async fn message(&self) -> &str { &self.message }
-    async fn webhook_id(&self) -> &str { &self.webhook_id }
+    async fn success(&self) -> bool {
+        self.success
+    }
+    async fn message(&self) -> &str {
+        &self.message
+    }
+    async fn webhook_id(&self) -> &str {
+        &self.webhook_id
+    }
 }
 
 /// Unregister webhook result
@@ -249,8 +258,12 @@ pub struct UnregisterWebhookResult {
 
 #[Object]
 impl UnregisterWebhookResult {
-    async fn success(&self) -> bool { self.success }
-    async fn message(&self) -> &str { &self.message }
+    async fn success(&self) -> bool {
+        self.success
+    }
+    async fn message(&self) -> &str {
+        &self.message
+    }
 }
 
 /// Retry webhook event result
@@ -263,9 +276,15 @@ pub struct RetryWebhookEventResult {
 
 #[Object]
 impl RetryWebhookEventResult {
-    async fn success(&self) -> bool { self.success }
-    async fn message(&self) -> &str { &self.message }
-    async fn events_processed(&self) -> i32 { self.events_processed }
+    async fn success(&self) -> bool {
+        self.success
+    }
+    async fn message(&self) -> &str {
+        &self.message
+    }
+    async fn events_processed(&self) -> i32 {
+        self.events_processed
+    }
 }
 
 /// Process pending webhook events result
@@ -280,9 +299,19 @@ pub struct ProcessPendingWebhookEventsResult {
 
 #[Object]
 impl ProcessPendingWebhookEventsResult {
-    async fn success(&self) -> bool { self.success }
-    async fn message(&self) -> &str { &self.message }
-    async fn events_processed(&self) -> i32 { self.events_processed }
-    async fn events_succeeded(&self) -> i32 { self.events_succeeded }
-    async fn events_failed(&self) -> i32 { self.events_failed }
+    async fn success(&self) -> bool {
+        self.success
+    }
+    async fn message(&self) -> &str {
+        &self.message
+    }
+    async fn events_processed(&self) -> i32 {
+        self.events_processed
+    }
+    async fn events_succeeded(&self) -> i32 {
+        self.events_succeeded
+    }
+    async fn events_failed(&self) -> i32 {
+        self.events_failed
+    }
 }

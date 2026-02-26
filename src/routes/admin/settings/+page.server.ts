@@ -7,8 +7,35 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
+interface UserRoleRecord {
+	name: string;
+}
+
+interface UserWithRolesRecord {
+	roles?: UserRoleRecord[];
+}
+
+interface SystemSettingRecord {
+	category: string;
+	settings: string | Record<string, unknown>;
+}
+
+interface AdminSettingsData {
+	general: Record<string, unknown>;
+	authentication: Record<string, unknown>;
+	notifications: Record<string, unknown>;
+	security: Record<string, unknown>;
+	developer: Record<string, unknown>;
+	stats: {
+		totalDepartments: number;
+		totalUsers: number;
+		totalRoles: number;
+	};
+	[key: string]: unknown;
+}
+
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies } = event;
+	const { cookies } = event;
 
 	// Check authentication and permissions
 	PermissionChecks.adminRead(event);
@@ -32,8 +59,10 @@ export const load: PageServerLoad = async (event) => {
 					updatedAt
 				}
 				departments(limit: $limit) {
-					id
-					name
+					items {
+						id
+						name
+					}
 				}
 				users(limit: $limit) {
 					id
@@ -48,18 +77,22 @@ export const load: PageServerLoad = async (event) => {
 		const result = await client.query(settingsQuery, { limit: 1000 });
 
 		// Parse settings from database (JSONB format)
-		const settingsData = result.data?.systemSettings || [];
+		const settingsData: SystemSettingRecord[] = result.data?.systemSettings || [];
 
 		// Convert array of settings to object by category
-		const departments = result.data?.departments || [];
-		const users = result.data?.users || [];
+		const departments = result.data?.departments?.items || [];
+		const users: UserWithRolesRecord[] = result.data?.users || [];
 
 		// Calculate unique roles from users (flatten roles arrays)
 		const uniqueRoles = [
-			...new Set(users.flatMap((u: any) => (u.roles || []).map((r: any) => r.name)).filter(Boolean))
+			...new Set(
+				users
+					.flatMap((user) => (user.roles || []).map((role) => role.name))
+					.filter((roleName) => Boolean(roleName))
+			)
 		];
 
-		const settings: any = {
+		const settings: AdminSettingsData = {
 			general: {},
 			authentication: {},
 			notifications: {},
@@ -88,7 +121,7 @@ export const load: PageServerLoad = async (event) => {
 					typeof setting.settings === 'string' ? JSON.parse(setting.settings) : setting.settings;
 
 				const uiCategory = categoryMapping[setting.category] || setting.category;
-				settings[uiCategory] = parsed;
+				settings[uiCategory] = parsed as Record<string, unknown>;
 			} catch (parseError) {
 				logger.error('[ADMIN SETTINGS] Failed to parse category:', parseError as Error, {
 					category: setting.category

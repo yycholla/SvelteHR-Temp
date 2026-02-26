@@ -7,7 +7,7 @@ class MockGraphQLAdapter implements GraphQLPort {
 	private responses = new Map<string, unknown>();
 	private errors = new Map<string, Error>();
 
-	async query<TData = unknown>(_query: string, _variables?: unknown): Promise<TData> {
+	async query<TData = unknown>(_query: string | object, _variables?: object): Promise<TData> {
 		const key = 'query';
 		if (this.errors.has(key)) {
 			throw this.errors.get(key);
@@ -19,7 +19,21 @@ class MockGraphQLAdapter implements GraphQLPort {
 		return response as TData;
 	}
 
-	async mutate<TData = unknown>(_mutation: string, _variables?: unknown): Promise<TData> {
+	async mutation<TData = unknown>(_mutation: string | object, _variables?: object): Promise<TData> {
+		const key = 'mutation';
+		if (this.errors.has(key)) {
+			throw this.errors.get(key);
+		}
+		const response = this.responses.get(key);
+		if (response === undefined) {
+			throw new Error(
+				'MockGraphQLAdapter: No response set for mutation. Call setResponse() first.'
+			);
+		}
+		return response as TData;
+	}
+
+	async mutate<TData = unknown>(_mutation: string | object, _variables?: object): Promise<TData> {
 		const key = 'mutate';
 		if (this.errors.has(key)) {
 			throw this.errors.get(key);

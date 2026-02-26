@@ -43,7 +43,7 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 export function createGoalService(event: RequestEvent): GoalService {
 	const client = createUrqlClient(
 		event.fetch,
-		undefined,
+		event.locals.accessToken,
 		undefined,
 		serializeCookies(event.cookies)
 	);

@@ -13,8 +13,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::{
-    auth::UserContext,
-    models::system::activity_log::ActiveModel as ActivityLogActiveModel,
+    auth::UserContext, models::system::activity_log::ActiveModel as ActivityLogActiveModel,
 };
 
 /// Audit logging extension for GraphQL mutations
@@ -66,8 +65,13 @@ impl Extension for AuditExtensionImpl {
                 let variables = ctx.data_opt::<Variables>().cloned();
                 let request_metadata = ctx.data_opt::<crate::handlers::RequestMetadata>().cloned();
 
-                tracing::debug!("AuditExtension: db={:?}, user_context={:?}, op_name={:?}, metadata={:?}",
-                    db.is_some(), user_context.is_some(), operation_name, request_metadata.is_some());
+                tracing::debug!(
+                    "AuditExtension: db={:?}, user_context={:?}, op_name={:?}, metadata={:?}",
+                    db.is_some(),
+                    user_context.is_some(),
+                    operation_name,
+                    request_metadata.is_some()
+                );
 
                 // Clone response data and errors for logging
                 let had_errors = !response.errors.is_empty();
@@ -82,7 +86,9 @@ impl Extension for AuditExtensionImpl {
                         had_errors,
                         request_metadata,
                         response_data,
-                    ).await {
+                    )
+                    .await
+                    {
                         tracing::error!("Failed to create audit log: {:?}", e);
                     } else {
                         tracing::debug!("Audit log created successfully");
@@ -106,17 +112,37 @@ fn is_mutation_by_name(operation_name: &str) -> bool {
 
     // Common mutation prefixes that indicate write operations
     let mutation_prefixes = [
-        "create", "update", "edit", "delete", "remove",
-        "upload", "assign", "unassign", "approve", "reject",
-        "add", "set", "insert", "modify", "revoke", "grant",
-        "activate", "deactivate", "enable", "disable",
-        "submit", "cancel", "complete", "archive", "restore"
+        "create",
+        "update",
+        "edit",
+        "delete",
+        "remove",
+        "upload",
+        "assign",
+        "unassign",
+        "approve",
+        "reject",
+        "add",
+        "set",
+        "insert",
+        "modify",
+        "revoke",
+        "grant",
+        "activate",
+        "deactivate",
+        "enable",
+        "disable",
+        "submit",
+        "cancel",
+        "complete",
+        "archive",
+        "restore",
     ];
 
-    mutation_prefixes.iter().any(|prefix| name_lower.starts_with(prefix))
+    mutation_prefixes
+        .iter()
+        .any(|prefix| name_lower.starts_with(prefix))
 }
-
-
 
 /// Extract action type from mutation name (e.g., "createDocument" -> "CREATE")
 fn extract_action_from_mutation(mutation_name: &str) -> String {
@@ -177,7 +203,15 @@ fn to_snake_case(s: &str) -> String {
 /// Extract resource ID from mutation variables
 fn extract_resource_id(variables: &Variables) -> Option<Uuid> {
     // Try common ID field names
-    for key in &["id", "documentId", "employeeId", "userId", "categoryId", "taskId", "eventId"] {
+    for key in &[
+        "id",
+        "documentId",
+        "employeeId",
+        "userId",
+        "categoryId",
+        "taskId",
+        "eventId",
+    ] {
         if let Some(Value::String(id_str)) = variables.get(*key) {
             if let Ok(uuid) = Uuid::parse_str(id_str) {
                 return Some(uuid);
@@ -241,7 +275,9 @@ async fn log_mutation_audit(
     let resource_type = extract_resource_type_from_mutation(&operation_name);
 
     // Extract resource ID from variables or response
-    let resource_id = variables.as_ref().and_then(extract_resource_id)
+    let resource_id = variables
+        .as_ref()
+        .and_then(extract_resource_id)
         .or_else(|| extract_resource_id_from_response(&response_data));
 
     // Create details JSON with mutation variables (excluding sensitive fields)
@@ -322,10 +358,22 @@ mod tests {
 
     #[test]
     fn test_extract_resource_type_from_mutation() {
-        assert_eq!(extract_resource_type_from_mutation("createDocument"), "document");
-        assert_eq!(extract_resource_type_from_mutation("updateEmployee"), "employee");
-        assert_eq!(extract_resource_type_from_mutation("deleteCategory"), "category");
-        assert_eq!(extract_resource_type_from_mutation("uploadDocument"), "document");
+        assert_eq!(
+            extract_resource_type_from_mutation("createDocument"),
+            "document"
+        );
+        assert_eq!(
+            extract_resource_type_from_mutation("updateEmployee"),
+            "employee"
+        );
+        assert_eq!(
+            extract_resource_type_from_mutation("deleteCategory"),
+            "category"
+        );
+        assert_eq!(
+            extract_resource_type_from_mutation("uploadDocument"),
+            "document"
+        );
     }
 
     #[test]

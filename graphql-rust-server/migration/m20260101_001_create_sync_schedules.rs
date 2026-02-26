@@ -200,7 +200,9 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(SyncScheduleHistory::CompletedAt).timestamp_with_time_zone())
+                    .col(
+                        ColumnDef::new(SyncScheduleHistory::CompletedAt).timestamp_with_time_zone(),
+                    )
                     .col(
                         ColumnDef::new(SyncScheduleHistory::Status)
                             .string_len(20)
@@ -311,11 +313,19 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Step 1: Drop tables in reverse order (cascades foreign keys, indexes, and constraints)
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, SyncScheduleHistory::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, SyncScheduleHistory::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, SyncSchedules::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, SyncSchedules::Table))
+                    .to_owned(),
+            )
             .await?;
 
         Ok(())

@@ -12,18 +12,19 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 /// - `LOKI_URL`: Loki endpoint URL (e.g., "http://loki-stack.monitoring.svc.cluster.local:3100")
 /// - `LOKI_ENABLED`: Enable Loki logging ("true" or "false", default: "false")
 pub fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("error"));
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("error"));
 
     #[cfg(feature = "loki")]
     {
         let loki_enabled = std::env::var("LOKI_ENABLED")
             .unwrap_or_else(|_| "false".to_string())
-            .to_lowercase() == "true";
+            .to_lowercase()
+            == "true";
 
         if loki_enabled {
-            let loki_url = std::env::var("LOKI_URL")
-                .unwrap_or_else(|_| "http://loki-stack.monitoring.svc.cluster.local:3100".to_string());
+            let loki_url = std::env::var("LOKI_URL").unwrap_or_else(|_| {
+                "http://loki-stack.monitoring.svc.cluster.local:3100".to_string()
+            });
 
             tracing::info!("Loki logging enabled: {}", loki_url);
 
@@ -31,7 +32,10 @@ pub fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
                 url::Url::parse(&loki_url)?,
                 vec![
                     ("service".to_string(), "sveltehr-backend".to_string()),
-                    ("environment".to_string(), std::env::var("ENVIRONMENT").unwrap_or_else(|_| "production".to_string())),
+                    (
+                        "environment".to_string(),
+                        std::env::var("ENVIRONMENT").unwrap_or_else(|_| "production".to_string()),
+                    ),
                 ]
                 .into_iter()
                 .collect(),

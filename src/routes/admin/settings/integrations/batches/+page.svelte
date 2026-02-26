@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { Progress } from '$lib/components/ui/progress';
@@ -24,19 +23,66 @@
 		ArrowUpFromLine
 	} from '@lucide/svelte';
 	import { invalidate, goto } from '$app/navigation';
-	import { page } from '$app/stores';
 
-	let { data } = $props();
+	type EntityFilter = 'all' | 'employee' | 'department';
+
+	interface BatchFilters {
+		entityType?: string | null;
+	}
+
+	interface BatchOperation {
+		id: string;
+		operationType: string;
+		entityType: string;
+		direction: string;
+		status: string;
+		totalItems: number;
+		processedItems: number;
+		successfulItems: number;
+		failedItems: number;
+		skippedItems: number;
+		progressPercentage: string;
+		estimatedTimeRemaining: number | null;
+		triggeredByEmail: string | null;
+		errorMessage: string | null;
+		configuration: unknown;
+		metadata?: unknown;
+		startedAt: string | null;
+		completedAt: string | null;
+		durationMs: number | null;
+		createdAt: string;
+	}
+
+	interface BatchesPageData {
+		batches: BatchOperation[];
+		efficiency: {
+			totalBatches: number;
+			totalItems: number;
+			totalSuccessful: number;
+			totalFailed: number;
+			avgBatchSize: number;
+			apiCallsSaved: number;
+			apiCallReductionPercentage: number;
+		} | null;
+		selectedBatch: BatchOperation | null;
+		filters?: BatchFilters;
+		error?: string;
+	}
+
+	let { data }: { data: BatchesPageData } = $props();
 	let batches = $derived(data.batches);
 	let efficiency = $derived(data.efficiency);
 	let selectedBatch = $derived(data.selectedBatch);
 	let filters = $derived(data.filters || {});
 
 	let refreshing = $state(false);
-	let selectedEntityType = $state('all');
+	let selectedEntityType = $state<EntityFilter>('all');
 
 	$effect(() => {
-		if ((filters as any).entityType) selectedEntityType = (filters as any).entityType;
+		const entityType = filters.entityType;
+		if (entityType === 'employee' || entityType === 'department') {
+			selectedEntityType = entityType;
+		}
 	});
 
 	const entityTypes = [
@@ -100,6 +146,11 @@
 
 	function parseProgress(progressStr: string): number {
 		return parseFloat(progressStr) || 0;
+	}
+
+	function parseEntityType(value: string): EntityFilter {
+		if (value === 'employee' || value === 'department') return value;
+		return 'all';
 	}
 </script>
 
@@ -342,9 +393,9 @@
 					<p class="text-sm font-medium">Filter:</p>
 					<Select
 						type="single"
-						value={selectedEntityType as any}
-						onValueChange={(value: any) => {
-							selectedEntityType = value;
+						value={selectedEntityType}
+						onValueChange={(value: string) => {
+							selectedEntityType = parseEntityType(value);
 							applyFilters();
 						}}
 					>

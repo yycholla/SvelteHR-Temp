@@ -158,7 +158,8 @@ impl MigrationTrait for Migration {
         // Index for finding users modified since a specific time
         manager
             .create_index(
-                Index::create().if_not_exists()
+                Index::create()
+                    .if_not_exists()
                     .name("idx_users_last_modified_at")
                     .table((Schema::HrPublic, Users::Table))
                     .col(Users::LastModifiedAt)
@@ -169,7 +170,8 @@ impl MigrationTrait for Migration {
         // Index for finding users by last sync time (sync history queries)
         manager
             .create_index(
-                Index::create().if_not_exists()
+                Index::create()
+                    .if_not_exists()
                     .name("idx_users_last_synced_at")
                     .table((Schema::HrPublic, Users::Table))
                     .col(Users::LastSyncedAt)
@@ -180,7 +182,8 @@ impl MigrationTrait for Migration {
         // Index for filtering users by sync status (synced, pending, failed)
         manager
             .create_index(
-                Index::create().if_not_exists()
+                Index::create()
+                    .if_not_exists()
                     .name("idx_users_sync_status")
                     .table((Schema::HrPublic, Users::Table))
                     .col(Users::SyncStatus)
@@ -197,7 +200,8 @@ impl MigrationTrait for Migration {
         // Index for finding departments modified since a specific time
         manager
             .create_index(
-                Index::create().if_not_exists()
+                Index::create()
+                    .if_not_exists()
                     .name("idx_departments_last_modified_at")
                     .table((Schema::HrPublic, Departments::Table))
                     .col(Departments::LastModifiedAt)
@@ -208,7 +212,8 @@ impl MigrationTrait for Migration {
         // Index for finding departments by last sync time (sync history queries)
         manager
             .create_index(
-                Index::create().if_not_exists()
+                Index::create()
+                    .if_not_exists()
                     .name("idx_departments_last_synced_at")
                     .table((Schema::HrPublic, Departments::Table))
                     .col(Departments::LastSyncedAt)
@@ -219,7 +224,8 @@ impl MigrationTrait for Migration {
         // Index for filtering departments by sync status (synced, pending, failed)
         manager
             .create_index(
-                Index::create().if_not_exists()
+                Index::create()
+                    .if_not_exists()
                     .name("idx_departments_sync_status")
                     .table((Schema::HrPublic, Departments::Table))
                     .col(Departments::SyncStatus)
@@ -235,7 +241,8 @@ impl MigrationTrait for Migration {
         // Index for historical sync log queries (most recent syncs)
         manager
             .create_index(
-                Index::create().if_not_exists()
+                Index::create()
+                    .if_not_exists()
                     .name("idx_intuit_sync_log_created_at")
                     .table((Schema::HrPublic, IntuitSyncLog::Table))
                     .col(IntuitSyncLog::CreatedAt)
@@ -247,7 +254,8 @@ impl MigrationTrait for Migration {
         // Enables performance comparison between sync strategies
         manager
             .create_index(
-                Index::create().if_not_exists()
+                Index::create()
+                    .if_not_exists()
                     .name("idx_intuit_sync_log_sync_mode")
                     .table((Schema::HrPublic, IntuitSyncLog::Table))
                     .col(IntuitSyncLog::SyncMode)

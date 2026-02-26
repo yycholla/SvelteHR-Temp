@@ -2,10 +2,11 @@
 //!
 //! Groups sync operations into optimal batches for efficient API usage
 
-use crate::models::{batch_operations, batch_operation_items};
+use crate::models::{batch_operation_items, batch_operations};
 use chrono::Utc;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, Set,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,9 +16,9 @@ use uuid::Uuid;
 /// Batching configuration
 #[derive(Debug, Clone)]
 pub struct BatchConfig {
-    pub max_batch_size: usize,          // Max entities per batch (e.g., 25)
-    pub max_concurrent_batches: usize,  // Parallel batch limit (e.g., 3)
-    pub batch_timeout_ms: u64,          // Time to wait for more items (e.g., 5000)
+    pub max_batch_size: usize,         // Max entities per batch (e.g., 25)
+    pub max_concurrent_batches: usize, // Parallel batch limit (e.g., 3)
+    pub batch_timeout_ms: u64,         // Time to wait for more items (e.g., 5000)
 }
 
 impl Default for BatchConfig {
@@ -41,7 +42,7 @@ pub struct BatchingEngine {
 pub struct SyncChange {
     pub entity_type: String,
     pub entity_id: String,
-    pub operation: String,  // "create", "update", "delete"
+    pub operation: String, // "create", "update", "delete"
     pub data: serde_json::Value,
 }
 
@@ -134,10 +135,7 @@ impl BatchingEngine {
     }
 
     /// Group changes by entity type
-    fn group_by_entity_type(
-        &self,
-        changes: Vec<SyncChange>,
-    ) -> HashMap<String, Vec<SyncChange>> {
+    fn group_by_entity_type(&self, changes: Vec<SyncChange>) -> HashMap<String, Vec<SyncChange>> {
         let mut grouped: HashMap<String, Vec<SyncChange>> = HashMap::new();
 
         for change in changes {
@@ -151,10 +149,7 @@ impl BatchingEngine {
     }
 
     /// Group changes by operation
-    fn group_by_operation(
-        &self,
-        changes: Vec<SyncChange>,
-    ) -> HashMap<String, Vec<SyncChange>> {
+    fn group_by_operation(&self, changes: Vec<SyncChange>) -> HashMap<String, Vec<SyncChange>> {
         let mut grouped: HashMap<String, Vec<SyncChange>> = HashMap::new();
 
         for change in changes {
@@ -293,8 +288,6 @@ impl BatchingEngine {
     pub async fn get_efficiency_metrics(
         &self,
     ) -> Result<BatchingEfficiencyMetrics, sea_orm::DbErr> {
-        
-
         let batches = batch_operations::Entity::find()
             .filter(batch_operations::Column::Status.eq("completed"))
             .order_by_desc(batch_operations::Column::CreatedAt)

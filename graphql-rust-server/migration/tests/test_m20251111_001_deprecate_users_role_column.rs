@@ -22,9 +22,8 @@ mod tests {
 
     /// Set up test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/hr_test".to_string()
-        });
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
         Database::connect(&db_url)
             .await
             .expect("Failed to connect to test database")
@@ -131,10 +130,7 @@ mod tests {
         assert!(result.is_some(), "Query should return result");
         let row = result.unwrap();
         let count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(
-            count, 1,
-            "system_admin should be migrated to Admin role"
-        );
+        assert_eq!(count, 1, "system_admin should be migrated to Admin role");
     }
 
     #[tokio::test]
@@ -177,10 +173,7 @@ mod tests {
         assert!(result.is_some(), "Query should return result");
         let row = result.unwrap();
         let count: i64 = row.try_get("", "count").unwrap();
-        assert_eq!(
-            count, 1,
-            "hr_manager should be migrated to HR Manager role"
-        );
+        assert_eq!(count, 1, "hr_manager should be migrated to HR Manager role");
     }
 
     #[tokio::test]

@@ -45,6 +45,14 @@
 			handleJumpToPage();
 		}
 	}
+
+	function handlePageSizeChange(v: string) {
+		const nextPageSize = Number(v);
+		if (!Number.isNaN(nextPageSize)) {
+			onPageSizeChange(nextPageSize);
+			onPageChange(1);
+		}
+	}
 </script>
 
 <nav
@@ -150,18 +158,9 @@
 	<!-- Page size selector -->
 	<div class="flex items-center gap-2">
 		<label for="page-size" class="text-sm text-gray-600">Items per page:</label>
-		<Select.Root
-			type="single"
-			selected={{ value: String(pageSize), label: `${pageSize} / page` }}
-			onSelectedChange={(v) => {
-				if (v && v.value) {
-					onPageSizeChange(Number(v.value));
-					onPageChange(1); // Reset to page 1 when page size changes
-				}
-			}}
-		>
+		<Select.Root type="single" value={String(pageSize)} onValueChange={handlePageSizeChange}>
 			<Select.Trigger id="page-size" class="w-32">
-				<Select.Value placeholder={String(pageSize)} />
+				<Select.Value placeholder={`${pageSize} / page`} />
 			</Select.Trigger>
 			<Select.Content>
 				{#each pageSizeOptions as option}

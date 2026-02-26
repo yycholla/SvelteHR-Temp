@@ -122,42 +122,42 @@ impl MigrationTrait for Migration {
                             .name("fk_tasks_task_type_id")
                             .from((Schema::HrPublic, Tasks::Table), Tasks::TaskTypeId)
                             .to((Schema::HrPublic, TaskTypes::Table), TaskTypes::Id)
-                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_delete(ForeignKeyAction::SetNull),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_tasks_department_id")
                             .from((Schema::HrPublic, Tasks::Table), Tasks::DepartmentId)
                             .to((Schema::HrPublic, Departments::Table), Departments::Id)
-                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_delete(ForeignKeyAction::SetNull),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_tasks_created_by")
                             .from((Schema::HrPublic, Tasks::Table), Tasks::CreatedBy)
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_tasks_assignee_id")
                             .from((Schema::HrPublic, Tasks::Table), Tasks::AssigneeId)
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_delete(ForeignKeyAction::SetNull),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_tasks_parent_task_id")
                             .from((Schema::HrPublic, Tasks::Table), Tasks::ParentTaskId)
                             .to((Schema::HrPublic, Tasks::Table), Tasks::Id)
-                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_delete(ForeignKeyAction::SetNull),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_tasks_archived_by")
                             .from((Schema::HrPublic, Tasks::Table), Tasks::ArchivedBy)
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_delete(ForeignKeyAction::SetNull),
                     )
                     .to_owned(),
             )
@@ -235,23 +235,32 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_task_assignees_task_id")
-                            .from((Schema::HrPublic, TaskAssignees::Table), TaskAssignees::TaskId)
+                            .from(
+                                (Schema::HrPublic, TaskAssignees::Table),
+                                TaskAssignees::TaskId,
+                            )
                             .to((Schema::HrPublic, Tasks::Table), Tasks::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_task_assignees_user_id")
-                            .from((Schema::HrPublic, TaskAssignees::Table), TaskAssignees::UserId)
+                            .from(
+                                (Schema::HrPublic, TaskAssignees::Table),
+                                TaskAssignees::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_task_assignees_assigned_by")
-                            .from((Schema::HrPublic, TaskAssignees::Table), TaskAssignees::AssignedBy)
+                            .from(
+                                (Schema::HrPublic, TaskAssignees::Table),
+                                TaskAssignees::AssignedBy,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -285,7 +294,11 @@ impl MigrationTrait for Migration {
                             .extra("DEFAULT gen_random_uuid()"),
                     )
                     .col(ColumnDef::new(TaskDependencies::TaskId).uuid().not_null())
-                    .col(ColumnDef::new(TaskDependencies::DependsOnTaskId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(TaskDependencies::DependsOnTaskId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(TaskDependencies::DependencyType)
                             .string()
@@ -308,16 +321,22 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_task_dependencies_task_id")
-                            .from((Schema::HrPublic, TaskDependencies::Table), TaskDependencies::TaskId)
+                            .from(
+                                (Schema::HrPublic, TaskDependencies::Table),
+                                TaskDependencies::TaskId,
+                            )
                             .to((Schema::HrPublic, Tasks::Table), Tasks::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_task_dependencies_depends_on_task_id")
-                            .from((Schema::HrPublic, TaskDependencies::Table), TaskDependencies::DependsOnTaskId)
+                            .from(
+                                (Schema::HrPublic, TaskDependencies::Table),
+                                TaskDependencies::DependsOnTaskId,
+                            )
                             .to((Schema::HrPublic, Tasks::Table), Tasks::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -366,16 +385,22 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_task_audit_entries_task_id")
-                            .from((Schema::HrPublic, TaskAuditEntries::Table), TaskAuditEntries::TaskId)
+                            .from(
+                                (Schema::HrPublic, TaskAuditEntries::Table),
+                                TaskAuditEntries::TaskId,
+                            )
                             .to((Schema::HrPublic, Tasks::Table), Tasks::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_task_audit_entries_user_id")
-                            .from((Schema::HrPublic, TaskAuditEntries::Table), TaskAuditEntries::UserId)
+                            .from(
+                                (Schema::HrPublic, TaskAuditEntries::Table),
+                                TaskAuditEntries::UserId,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -398,23 +423,43 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, TaskAuditEntries::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, TaskAuditEntries::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, TaskDependencies::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, TaskDependencies::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, TaskAssignees::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, TaskAssignees::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Tasks::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Tasks::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, TaskTypes::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, TaskTypes::Table))
+                    .to_owned(),
+            )
             .await?;
 
         Ok(())

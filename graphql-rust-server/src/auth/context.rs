@@ -114,11 +114,7 @@ mod tests {
 
     #[test]
     fn test_admin_has_all_permissions() {
-        let ctx = UserContext::new(
-            Uuid::new_v4(),
-            vec!["Admin".to_string()],
-            vec![],
-        );
+        let ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
 
         assert!(ctx.has_permission("any:permission"));
         assert!(ctx.is_admin());

@@ -11,14 +11,14 @@
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Duration, Utc};
-use sea_orm::{DatabaseConnection, EntityTrait, ColumnTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 
 use crate::integrations::intuit::IntuitClient;
 use crate::models::{
-    intuit_connection::{Entity as IntuitConnectionEntity, Column as IntuitConnectionColumn},
-    user::{Entity as UserEntity, Column as UserColumn},
-    department::{Entity as DepartmentEntity, Column as DepartmentColumn},
+    department::{Column as DepartmentColumn, Entity as DepartmentEntity},
+    intuit_connection::{Column as IntuitConnectionColumn, Entity as IntuitConnectionEntity},
+    user::{Column as UserColumn, Entity as UserEntity},
 };
 
 use super::sync_tracker::{ChangeRecord, EntityType, SyncStatus};
@@ -93,7 +93,10 @@ impl IncrementalSyncService {
         let (sync_mode, reason) = if !metadata.should_use_incremental {
             (SyncMode::Full, metadata.reason.clone())
         } else {
-            (SyncMode::Incremental, "Conditions met for incremental sync".to_string())
+            (
+                SyncMode::Incremental,
+                "Conditions met for incremental sync".to_string(),
+            )
         };
 
         Ok(SyncDecision {
@@ -118,20 +121,22 @@ impl IncrementalSyncService {
 
         let (last_sync_at, sync_token) = match entity_type {
             EntityType::Employee => (
-                connection.last_employee_sync_at.map(|ts| ts.with_timezone(&Utc)),
+                connection
+                    .last_employee_sync_at
+                    .map(|ts| ts.with_timezone(&Utc)),
                 connection.employee_sync_token,
             ),
             EntityType::Department => (
-                connection.last_department_sync_at.map(|ts| ts.with_timezone(&Utc)),
+                connection
+                    .last_department_sync_at
+                    .map(|ts| ts.with_timezone(&Utc)),
                 connection.department_sync_token,
             ),
         };
 
         // Determine if incremental sync is viable
-        let (should_use_incremental, reason) = Self::check_incremental_viability(
-            last_sync_at,
-            sync_token.as_deref(),
-        );
+        let (should_use_incremental, reason) =
+            Self::check_incremental_viability(last_sync_at, sync_token.as_deref());
 
         Ok(SyncMetadata {
             entity_type,
@@ -149,7 +154,10 @@ impl IncrementalSyncService {
     ) -> (bool, String) {
         // Rule 1: No previous sync
         let Some(last_sync) = last_sync_at else {
-            return (false, "No previous sync exists - full sync required".to_string());
+            return (
+                false,
+                "No previous sync exists - full sync required".to_string(),
+            );
         };
 
         // Rule 2: Last sync was too long ago (> 7 days) - force full sync for integrity
@@ -158,7 +166,10 @@ impl IncrementalSyncService {
         if days_since_sync > 7 {
             return (
                 false,
-                format!("Last sync was {} days ago - full sync for integrity check", days_since_sync),
+                format!(
+                    "Last sync was {} days ago - full sync for integrity check",
+                    days_since_sync
+                ),
             );
         }
 
@@ -192,7 +203,7 @@ impl IncrementalSyncService {
                     // Never synced
                     .add(UserColumn::LastSyncedAt.is_null())
                     // Modified since the given timestamp
-                    .add(UserColumn::LastModifiedAt.gt(since))
+                    .add(UserColumn::LastModifiedAt.gt(since)),
             )
             .all(db)
             .await
@@ -224,7 +235,7 @@ impl IncrementalSyncService {
                     // Never synced
                     .add(DepartmentColumn::LastSyncedAt.is_null())
                     // Modified since the given timestamp
-                    .add(DepartmentColumn::LastModifiedAt.gt(since))
+                    .add(DepartmentColumn::LastModifiedAt.gt(since)),
             )
             .all(db)
             .await
@@ -257,7 +268,9 @@ impl IncrementalSyncService {
         match entity_type {
             EntityType::Employee => {
                 // Query QuickBooks for employees changed since timestamp
-                let qb_employees = client.list_employees_since(since).await
+                let qb_employees = client
+                    .list_employees_since(since)
+                    .await
                     .context("Failed to query incremental QuickBooks employees")?;
 
                 // Convert to ChangeRecords
@@ -278,7 +291,9 @@ impl IncrementalSyncService {
                         (String::new(), None)
                     };
 
-                    let last_updated = emp.base.meta_data
+                    let last_updated = emp
+                        .base
+                        .meta_data
                         .as_ref()
                         .map(|m| m.last_updated_time)
                         .unwrap_or_else(Utc::now);
@@ -298,7 +313,9 @@ impl IncrementalSyncService {
             }
             EntityType::Department => {
                 // Query QuickBooks for departments changed since timestamp
-                let qb_departments = client.query_departments_since(since).await
+                let qb_departments = client
+                    .query_departments_since(since)
+                    .await
                     .context("Failed to query incremental QuickBooks departments")?;
 
                 // Convert to ChangeRecords
@@ -319,7 +336,8 @@ impl IncrementalSyncService {
                         (String::new(), None)
                     };
 
-                    let last_updated = dept.meta_data
+                    let last_updated = dept
+                        .meta_data
                         .as_ref()
                         .map(|m| m.last_updated_time)
                         .unwrap_or_else(Utc::now);
@@ -347,8 +365,8 @@ impl IncrementalSyncService {
         sync_time: DateTime<Utc>,
         _sync_token: Option<String>,
     ) -> Result<()> {
-        use sea_orm::{ActiveModelTrait, Set};
         use crate::models::intuit_connection::ActiveModel;
+        use sea_orm::{ActiveModelTrait, Set};
 
         // Get the active connection
         let connection = IntuitConnectionEntity::find()
@@ -401,10 +419,8 @@ mod tests {
     #[test]
     fn test_check_incremental_viability_too_old() {
         let old_sync = Utc::now() - Duration::days(10);
-        let (should_use, reason) = IncrementalSyncService::check_incremental_viability(
-            Some(old_sync),
-            Some("token123"),
-        );
+        let (should_use, reason) =
+            IncrementalSyncService::check_incremental_viability(Some(old_sync), Some("token123"));
         assert!(!should_use);
         assert!(reason.contains("days ago"));
     }

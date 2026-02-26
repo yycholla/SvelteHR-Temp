@@ -57,8 +57,10 @@ impl MigrationTrait for Migration {
         // Data seeding operation - intentionally raw SQL
         // Add scoped read permissions (read:self, read:team, read:all) and standardized write/delete
         // for all resource categories
-        manager.get_connection().execute_unprepared(
-            "INSERT INTO hr_public.permissions (resource, action, description) VALUES
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "INSERT INTO hr_public.permissions (resource, action, description) VALUES
             -- Dashboard
             ('dashboard', 'read:self', 'View own dashboard'),
             ('dashboard', 'read:team', 'View team dashboard'),
@@ -197,8 +199,9 @@ impl MigrationTrait for Migration {
             ('admin', 'read:team', 'View team admin data'),
             ('admin', 'read:all', 'View all admin data'),
             ('admin', 'delete', 'Delete admin data')
-            ON CONFLICT (resource, action) DO NOTHING"
-        ).await?;
+            ON CONFLICT (resource, action) DO NOTHING",
+            )
+            .await?;
 
         Ok(())
     }

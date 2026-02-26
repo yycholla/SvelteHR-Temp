@@ -9,12 +9,17 @@
 //! 3. Error Handling Utilities (sanitization, error codes)
 //! 4. Authorization Utilities (role-based checks)
 
-use hr_graphql_server::middleware::{sanitize_string_input, validate_email_format, validate_phone_format};
-use hr_graphql_server::auth::{UserContext, authorization::{
-    require_admin, require_hr_manager, require_manager,
-    require_permission, require_role, require_owner_or_admin
-}};
+use hr_graphql_server::auth::{
+    authorization::{
+        require_admin, require_hr_manager, require_manager, require_owner_or_admin,
+        require_permission, require_role,
+    },
+    UserContext,
+};
 use hr_graphql_server::error::{AppError, ErrorCode};
+use hr_graphql_server::middleware::{
+    sanitize_string_input, validate_email_format, validate_phone_format,
+};
 use uuid::Uuid;
 
 // ============================================================================
@@ -146,15 +151,11 @@ fn test_user_context_system_has_all_permissions() {
 
 #[test]
 fn test_user_context_role_hierarchy_admin() {
-    let ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Admin".to_string()],
-        vec![],
-    );
+    let ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
 
     assert!(ctx.is_admin());
     assert!(ctx.is_hr_manager()); // Admin inherits HR_Manager
-    assert!(ctx.is_manager());    // Admin inherits Manager
+    assert!(ctx.is_manager()); // Admin inherits Manager
 }
 
 #[test]
@@ -185,11 +186,7 @@ fn test_user_context_role_hierarchy_manager() {
 
 #[test]
 fn test_user_context_has_role_case_insensitive() {
-    let ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["HR_Manager".to_string()],
-        vec![],
-    );
+    let ctx = UserContext::new(Uuid::new_v4(), vec!["HR_Manager".to_string()], vec![]);
 
     assert!(ctx.has_role("HR_Manager"));
     assert!(ctx.has_role("hr_manager"));
@@ -209,7 +206,10 @@ fn test_error_code_as_str() {
     assert_eq!(ErrorCode::NotFound.as_str(), "NOT_FOUND");
     assert_eq!(ErrorCode::Conflict.as_str(), "CONFLICT");
     assert_eq!(ErrorCode::InternalError.as_str(), "INTERNAL_ERROR");
-    assert_eq!(ErrorCode::ServiceUnavailable.as_str(), "SERVICE_UNAVAILABLE");
+    assert_eq!(
+        ErrorCode::ServiceUnavailable.as_str(),
+        "SERVICE_UNAVAILABLE"
+    );
     assert_eq!(ErrorCode::RateLimited.as_str(), "RATE_LIMITED");
 }
 
@@ -222,7 +222,10 @@ fn test_app_error_display_authentication() {
 #[test]
 fn test_app_error_display_authorization() {
     let error = AppError::Authorization("Insufficient permissions".to_string());
-    assert_eq!(error.to_string(), "Authorization error: Insufficient permissions");
+    assert_eq!(
+        error.to_string(),
+        "Authorization error: Insufficient permissions"
+    );
 }
 
 #[test]
@@ -245,18 +248,12 @@ fn test_app_error_display_variants() {
         AppError::Internal("Unexpected error".to_string()).to_string(),
         "Internal error: Unexpected error"
     );
-    assert_eq!(
-        AppError::SessionExpired.to_string(),
-        "Session expired"
-    );
+    assert_eq!(AppError::SessionExpired.to_string(), "Session expired");
     assert_eq!(
         AppError::AccountLocked.to_string(),
         "Account temporarily locked"
     );
-    assert_eq!(
-        AppError::RateLimited.to_string(),
-        "Too many requests"
-    );
+    assert_eq!(AppError::RateLimited.to_string(), "Too many requests");
 }
 
 // ============================================================================
@@ -265,21 +262,13 @@ fn test_app_error_display_variants() {
 
 #[test]
 fn test_require_admin_success() {
-    let admin_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Admin".to_string()],
-        vec![],
-    );
+    let admin_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
     assert!(require_admin(&admin_ctx).is_ok());
 }
 
 #[test]
 fn test_require_admin_failure() {
-    let user_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Employee".to_string()],
-        vec![],
-    );
+    let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Employee".to_string()], vec![]);
     let result = require_admin(&user_ctx);
     assert!(result.is_err());
     assert!(result.unwrap_err().message.contains("admin"));
@@ -287,29 +276,17 @@ fn test_require_admin_failure() {
 
 #[test]
 fn test_require_hr_manager_success() {
-    let hr_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["HR_Manager".to_string()],
-        vec![],
-    );
+    let hr_ctx = UserContext::new(Uuid::new_v4(), vec!["HR_Manager".to_string()], vec![]);
     assert!(require_hr_manager(&hr_ctx).is_ok());
 
     // Admin also satisfies HR Manager requirement
-    let admin_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Admin".to_string()],
-        vec![],
-    );
+    let admin_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
     assert!(require_hr_manager(&admin_ctx).is_ok());
 }
 
 #[test]
 fn test_require_hr_manager_failure() {
-    let user_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Employee".to_string()],
-        vec![],
-    );
+    let user_ctx = UserContext::new(Uuid::new_v4(), vec!["Employee".to_string()], vec![]);
     let result = require_hr_manager(&user_ctx);
     assert!(result.is_err());
     assert!(result.unwrap_err().message.contains("HR Manager"));
@@ -317,19 +294,11 @@ fn test_require_hr_manager_failure() {
 
 #[test]
 fn test_require_manager_success() {
-    let manager_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Manager".to_string()],
-        vec![],
-    );
+    let manager_ctx = UserContext::new(Uuid::new_v4(), vec!["Manager".to_string()], vec![]);
     assert!(require_manager(&manager_ctx).is_ok());
 
     // HR_Manager also satisfies Manager requirement
-    let hr_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["HR_Manager".to_string()],
-        vec![],
-    );
+    let hr_ctx = UserContext::new(Uuid::new_v4(), vec!["HR_Manager".to_string()], vec![]);
     assert!(require_manager(&hr_ctx).is_ok());
 }
 
@@ -347,21 +316,13 @@ fn test_require_permission_success_and_failure() {
     assert!(result.unwrap_err().message.contains("users:write"));
 
     // Admin bypasses permission checks
-    let admin_ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["Admin".to_string()],
-        vec![],
-    );
+    let admin_ctx = UserContext::new(Uuid::new_v4(), vec!["Admin".to_string()], vec![]);
     assert!(require_permission(&admin_ctx, "any:permission").is_ok());
 }
 
 #[test]
 fn test_require_role_success_and_failure() {
-    let ctx = UserContext::new(
-        Uuid::new_v4(),
-        vec!["HR_Manager".to_string()],
-        vec![],
-    );
+    let ctx = UserContext::new(Uuid::new_v4(), vec!["HR_Manager".to_string()], vec![]);
     assert!(require_role(&ctx, "HR_Manager").is_ok());
 
     let result = require_role(&ctx, "Admin");
@@ -372,11 +333,7 @@ fn test_require_role_success_and_failure() {
 #[test]
 fn test_require_owner_or_admin_owner_access() {
     let user_id = Uuid::new_v4();
-    let owner_ctx = UserContext::new(
-        user_id,
-        vec!["Employee".to_string()],
-        vec![],
-    );
+    let owner_ctx = UserContext::new(user_id, vec!["Employee".to_string()], vec![]);
 
     // Owner can access their own resource
     assert!(require_owner_or_admin(&owner_ctx, user_id).is_ok());
@@ -390,11 +347,7 @@ fn test_require_owner_or_admin_owner_access() {
 #[test]
 fn test_require_owner_or_admin_admin_access() {
     let user_id = Uuid::new_v4();
-    let admin_ctx = UserContext::new(
-        user_id,
-        vec!["Admin".to_string()],
-        vec![],
-    );
+    let admin_ctx = UserContext::new(user_id, vec!["Admin".to_string()], vec![]);
 
     // Admin can access any resource
     let other_id = Uuid::new_v4();

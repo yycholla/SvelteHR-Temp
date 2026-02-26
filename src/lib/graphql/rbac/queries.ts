@@ -10,8 +10,13 @@ export const GET_ROLE_BY_ID = gql`
 		role(id: $id) {
 			id
 			name
-			hierarchyLevel
-			permissions
+			level
+			permissions {
+				id
+				resource
+				action
+				fullPermission
+			}
 			description
 			createdAt
 			updatedAt
@@ -20,16 +25,21 @@ export const GET_ROLE_BY_ID = gql`
 `;
 
 /**
- * Query: Get all roles with optional filtering
- * Backend: Rust idiomatic pattern - uses RoleFilter input object
+ * Query: Get all roles
+ * Backend: roles(limit, offset) without RoleFilter input
  */
 export const GET_ALL_ROLES = gql`
-	query GetAllRoles($filter: RoleFilter) {
-		roles(filter: $filter) {
+	query GetAllRoles {
+		roles {
 			id
 			name
-			hierarchyLevel
-			permissions
+			level
+			permissions {
+				id
+				resource
+				action
+				fullPermission
+			}
 			description
 			createdAt
 			updatedAt
@@ -46,8 +56,13 @@ export const GET_USER_ROLES = gql`
 		userRoles(userId: $userId) {
 			id
 			name
-			hierarchyLevel
-			permissions
+			level
+			permissions {
+				id
+				resource
+				action
+				fullPermission
+			}
 			description
 			createdAt
 			updatedAt

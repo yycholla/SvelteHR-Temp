@@ -123,11 +123,7 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()".to_string()),
                     )
-                    .col(
-                        ColumnDef::new(FailedOperations::SyncLogId)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(FailedOperations::SyncLogId).uuid().null())
                     .col(
                         ColumnDef::new(FailedOperations::OperationType)
                             .string_len(100)
@@ -138,11 +134,7 @@ impl MigrationTrait for Migration {
                             .string_len(100)
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(FailedOperations::EntityId)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(FailedOperations::EntityId).uuid().null())
                     .col(
                         ColumnDef::new(FailedOperations::QuickbooksId)
                             .string_len(255)
@@ -239,11 +231,7 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(FailedOperations::ResolvedBy)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(FailedOperations::ResolvedBy).uuid().null())
                     .col(
                         ColumnDef::new(FailedOperations::ResolutionNotes)
                             .text()
@@ -301,11 +289,7 @@ impl MigrationTrait for Migration {
                             .string_len(50)
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(RetryHistory::ErrorMessage)
-                            .text()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(RetryHistory::ErrorMessage).text().null())
                     .col(
                         ColumnDef::new(RetryHistory::ErrorDetails)
                             .json_binary()
@@ -316,11 +300,7 @@ impl MigrationTrait for Migration {
                             .integer()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(RetryHistory::DurationMs)
-                            .integer()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(RetryHistory::DurationMs).integer().null())
                     .col(
                         ColumnDef::new(RetryHistory::CreatedAt)
                             .timestamp_with_time_zone()
@@ -339,7 +319,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_failed_operations_sync_log")
-                    .from((Schema::HrPublic, FailedOperations::Table), FailedOperations::SyncLogId)
+                    .from(
+                        (Schema::HrPublic, FailedOperations::Table),
+                        FailedOperations::SyncLogId,
+                    )
                     .to((Schema::HrPublic, IntuitSyncLog::Table), IntuitSyncLog::Id)
                     .on_delete(ForeignKeyAction::SetNull)
                     .to_owned(),
@@ -351,8 +334,14 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_retry_history_failed_operation")
-                    .from((Schema::HrPublic, RetryHistory::Table), RetryHistory::FailedOperationId)
-                    .to((Schema::HrPublic, FailedOperations::Table), FailedOperations::Id)
+                    .from(
+                        (Schema::HrPublic, RetryHistory::Table),
+                        RetryHistory::FailedOperationId,
+                    )
+                    .to(
+                        (Schema::HrPublic, FailedOperations::Table),
+                        FailedOperations::Id,
+                    )
                     .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),
             )

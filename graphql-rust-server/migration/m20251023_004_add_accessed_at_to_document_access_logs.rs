@@ -19,7 +19,7 @@ impl MigrationTrait for Migration {
                     .add_column(
                         ColumnDef::new(DocumentAccessLogs::AccessedAt)
                             .timestamp_with_time_zone()
-                            .null()  // Nullable - only set for actual accesses, not uploads
+                            .null(), // Nullable - only set for actual accesses, not uploads
                     )
                     .to_owned(),
             )
@@ -65,7 +65,9 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(Iden)]
-enum Schema { HrPublic }
+enum Schema {
+    HrPublic,
+}
 
 #[derive(Iden)]
 enum DocumentAccessLogs {

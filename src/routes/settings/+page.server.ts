@@ -7,6 +7,7 @@ import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { createSettingsOperations } from '$lib/graphql/settings-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { logger } from '$lib/utils/logger';
+import type { ActivityLogItem } from './types';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -77,7 +78,7 @@ export const load: PageServerLoad = async (event) => {
 		// TODO: Fetch activity log from activity-logs operations
 		// getUserActivityLog was removed from SettingsOperations during migration
 		// Activity logs should be fetched from ActivityLogsOperations instead
-		const activityLog: any[] = [];
+		const activityLog: ActivityLogItem[] = [];
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);

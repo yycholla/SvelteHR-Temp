@@ -4,8 +4,8 @@ use async_graphql::{Context, Object, Result};
 
 use crate::auth::UserContext;
 use crate::integrations::intuit::IntuitClientManager;
-use crate::services::reconciliation::ReconciliationService;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
+use crate::services::reconciliation::ReconciliationService;
 
 use std::sync::Arc;
 use uuid::Uuid;
@@ -66,7 +66,7 @@ impl ReconciliationMutations {
         let discrepancy_uuid = Uuid::parse_str(&discrepancy_id)?;
 
         // Get the report_id before resolving (to check for auto-deletion later)
-        use crate::models::reconciliation_discrepancies::{Entity as DiscrepancyEntity};
+        use crate::models::reconciliation_discrepancies::Entity as DiscrepancyEntity;
         use sea_orm::EntityTrait;
 
         let discrepancy = DiscrepancyEntity::find_by_id(discrepancy_uuid)
@@ -78,17 +78,11 @@ impl ReconciliationMutations {
 
         // Resolve the discrepancy
         service
-            .resolve_discrepancy(
-                discrepancy_uuid,
-                user_ctx.user_id,
-                resolution_notes,
-            )
+            .resolve_discrepancy(discrepancy_uuid, user_ctx.user_id, resolution_notes)
             .await?;
 
         // Check if all discrepancies in the report are now resolved, and delete if so
-        service
-            .check_and_delete_resolved_report(report_id)
-            .await?;
+        service.check_and_delete_resolved_report(report_id).await?;
 
         Ok(true)
     }
@@ -110,15 +104,33 @@ pub struct ReconciliationResult {
 
 #[Object]
 impl ReconciliationResult {
-    async fn report_id(&self) -> &str { &self.report_id }
-    async fn total_local(&self) -> i32 { self.total_local }
-    async fn total_remote(&self) -> i32 { self.total_remote }
-    async fn total_matched(&self) -> i32 { self.total_matched }
-    async fn total_discrepancies(&self) -> i32 { self.total_discrepancies }
-    async fn missing_in_local(&self) -> i32 { self.missing_in_local }
-    async fn missing_in_remote(&self) -> i32 { self.missing_in_remote }
-    async fn data_mismatches(&self) -> i32 { self.data_mismatches }
-    async fn duration_ms(&self) -> i32 { self.duration_ms }
+    async fn report_id(&self) -> &str {
+        &self.report_id
+    }
+    async fn total_local(&self) -> i32 {
+        self.total_local
+    }
+    async fn total_remote(&self) -> i32 {
+        self.total_remote
+    }
+    async fn total_matched(&self) -> i32 {
+        self.total_matched
+    }
+    async fn total_discrepancies(&self) -> i32 {
+        self.total_discrepancies
+    }
+    async fn missing_in_local(&self) -> i32 {
+        self.missing_in_local
+    }
+    async fn missing_in_remote(&self) -> i32 {
+        self.missing_in_remote
+    }
+    async fn data_mismatches(&self) -> i32 {
+        self.data_mismatches
+    }
+    async fn duration_ms(&self) -> i32 {
+        self.duration_ms
+    }
 }
 
 impl From<crate::services::reconciliation::ReconciliationResult> for ReconciliationResult {

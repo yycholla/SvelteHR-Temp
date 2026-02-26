@@ -62,13 +62,11 @@ describe('VehicleYear', () => {
 		});
 
 		it('should reject null', () => {
-			// @ts-expect-error - testing runtime validation
 			const result = VehicleYear.create(null);
 			expect(result.isError).toBe(true);
 		});
 
 		it('should reject undefined', () => {
-			// @ts-expect-error - testing runtime validation
 			const result = VehicleYear.create(undefined);
 			expect(result.isError).toBe(true);
 		});

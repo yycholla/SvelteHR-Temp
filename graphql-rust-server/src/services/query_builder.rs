@@ -3,12 +3,12 @@
 //! Provides type-safe query building utilities for complex filtering operations
 //! across all entities with consistent patterns and error handling.
 
+use chrono::{DateTime, Utc};
 use sea_orm::{
     entity::prelude::*,
-    sea_query::{Expr, extension::postgres::PgExpr},
+    sea_query::{extension::postgres::PgExpr, Expr},
     Condition, Order, QueryOrder, QuerySelect, Select,
 };
-use chrono::{DateTime, Utc};
 
 /// Filter operator for query building
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -71,7 +71,7 @@ impl FilterBuilder {
                     _ => value.to_string(),
                 };
                 self.condition.add(column.like(string_value))
-            },
+            }
             FilterOp::IsNull => self.condition.add(column.is_null()),
             FilterOp::IsNotNull => self.condition.add(column.is_not_null()),
             _ => self.condition,
@@ -126,9 +126,7 @@ pub struct QueryBuilder<E: EntityTrait> {
 
 impl<E: EntityTrait> QueryBuilder<E> {
     pub fn new() -> Self {
-        Self {
-            select: E::find(),
-        }
+        Self { select: E::find() }
     }
 
     pub fn filter(mut self, condition: Condition) -> Self {
@@ -178,16 +176,17 @@ impl TextSearchBuilder {
     }
 
     pub fn build_like_pattern(&self) -> String {
-        format!("%{}%", self.search_term.replace('%', "\\%").replace('_', "\\_"))
+        format!(
+            "%{}%",
+            self.search_term.replace('%', "\\%").replace('_', "\\_")
+        )
     }
 
     pub fn build_ilike_condition<C: ColumnTrait>(&self, columns: Vec<C>) -> Condition {
         let pattern = self.build_like_pattern();
         let mut condition = Condition::any();
         for column in columns {
-            condition = condition.add(
-                Expr::col(column.as_column_ref()).ilike(pattern.clone())
-            );
+            condition = condition.add(Expr::col(column.as_column_ref()).ilike(pattern.clone()));
         }
         condition
     }
@@ -219,11 +218,11 @@ impl DateRangeBuilder {
 
     pub fn build<C: ColumnTrait>(&self, column: C) -> Option<Condition> {
         match (&self.start, &self.end) {
-            (Some(start), Some(end)) => {
-                Some(Condition::all()
+            (Some(start), Some(end)) => Some(
+                Condition::all()
                     .add(column.gte(*start))
-                    .add(column.lte(*end)))
-            }
+                    .add(column.lte(*end)),
+            ),
             (Some(start), None) => Some(Condition::all().add(column.gte(*start))),
             (None, Some(end)) => Some(Condition::all().add(column.lte(*end))),
             (None, None) => None,

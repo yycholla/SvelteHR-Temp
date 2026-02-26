@@ -137,21 +137,27 @@ impl Model {
     /// The dependent task (the one that has a dependency)
     async fn task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Model>> {
         let db = get_db_from_context(ctx)?;
-        let task = super::task::Entity::find_by_id(self.task_id).one(&db).await?;
+        let task = super::task::Entity::find_by_id(self.task_id)
+            .one(&db)
+            .await?;
         Ok(task)
     }
 
     /// The prerequisite task (the one being depended on)
     async fn depends_on_task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Model>> {
         let db = get_db_from_context(ctx)?;
-        let task = super::task::Entity::find_by_id(self.depends_on_task_id).one(&db).await?;
+        let task = super::task::Entity::find_by_id(self.depends_on_task_id)
+            .one(&db)
+            .await?;
         Ok(task)
     }
 
     /// User who created the dependency
     async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.created_by).one(&db).await?;
+        let user = super::user::Entity::find_by_id(self.created_by)
+            .one(&db)
+            .await?;
         Ok(user)
     }
 

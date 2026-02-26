@@ -18,7 +18,7 @@ impl MigrationTrait for Migration {
                     .add_column(
                         ColumnDef::new(Documents::ExpiryDate)
                             .timestamp_with_time_zone()
-                            .null()
+                            .null(),
                     )
                     .to_owned(),
             )
@@ -33,7 +33,7 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(Documents::VersionNumber)
                             .integer()
                             .not_null()
-                            .default(1)
+                            .default(1),
                     )
                     .to_owned(),
             )
@@ -89,11 +89,13 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(Iden)]
-enum Schema { HrPublic }
+enum Schema {
+    HrPublic,
+}
 
 #[derive(Iden)]
 enum Documents {
     Table,
     ExpiryDate,
-    VersionNumber
+    VersionNumber,
 }

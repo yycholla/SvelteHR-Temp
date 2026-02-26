@@ -3,6 +3,7 @@ import { getGraphQLEndpoint } from './api-url';
 import type { Cookies } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 import { print, type DocumentNode } from 'graphql';
+import { getRequestContextAccessToken } from '$lib/server/request-context.js';
 
 export interface GraphQLError {
 	message: string;
@@ -53,6 +54,10 @@ export class GraphQLClient {
 
 	setCookies(cookies: Cookies): void {
 		this.cookies = cookies;
+		const accessToken = cookies.get('access_token');
+		if (accessToken) {
+			this.setToken(accessToken);
+		}
 	}
 
 	/**
@@ -83,6 +88,13 @@ export class GraphQLClient {
 		variables?: Record<string, any>
 	): Promise<GraphQLResponse<T>> {
 		return this.withRetry(async () => {
+			if (!this.token) {
+				const requestToken = getRequestContextAccessToken();
+				if (requestToken) {
+					this.setToken(requestToken);
+				}
+			}
+
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => controller.abort(), this.options.timeout);
 

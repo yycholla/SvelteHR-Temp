@@ -2,6 +2,7 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { DepartmentService } from '$services/DepartmentService';
 import { GraphQLDepartmentAdapter } from '$adapters/GraphQLDepartmentAdapter';
+import { GraphQLAdapter } from '$adapters/graphql/GraphQLAdapter';
 import { createUrqlClient } from '$lib/graphql/client';
 import type { Client } from '@urql/core';
 
@@ -35,10 +36,10 @@ export function createDepartmentService(event: RequestEvent): DepartmentService 
 	const cookieHeader = event.request.headers.get('cookie') || '';
 
 	// Create urql client with session cookies for authentication
-	const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
+	const client = createUrqlClient(event.fetch, event.locals.accessToken, undefined, cookieHeader);
 
-	// Create GraphQL repository adapter
-	const repository = new GraphQLDepartmentAdapter(client);
+	// Wrap urql client to match GraphQLPort contract expected by repository adapters
+	const repository = new GraphQLDepartmentAdapter(new GraphQLAdapter(client));
 
 	// Return configured service
 	return new DepartmentService(repository);
@@ -60,6 +61,6 @@ export function createDepartmentService(event: RequestEvent): DepartmentService 
  * ```
  */
 export function createDepartmentServiceWithClient(client: Client): DepartmentService {
-	const repository = new GraphQLDepartmentAdapter(client);
+	const repository = new GraphQLDepartmentAdapter(new GraphQLAdapter(client));
 	return new DepartmentService(repository);
 }

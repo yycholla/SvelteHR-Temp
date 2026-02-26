@@ -84,7 +84,8 @@ impl MigrationTrait for Migration {
                 "SELECT COUNT(*) as count FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'ancestor_ids'".to_string(),
+                 AND column_name = 'ancestor_ids'"
+                    .to_string(),
             ))
             .await?;
 
@@ -103,7 +104,7 @@ impl MigrationTrait for Migration {
                             ColumnDef::new(Departments::AncestorIds)
                                 .array(ColumnType::Uuid)
                                 .not_null()
-                                .default(Expr::cust("ARRAY[]::uuid[]"))
+                                .default(Expr::cust("ARRAY[]::uuid[]")),
                         )
                         .to_owned(),
                 )
@@ -172,7 +173,8 @@ impl MigrationTrait for Migration {
                 "SELECT COUNT(*) as count FROM pg_indexes
                  WHERE schemaname = 'hr_public'
                  AND tablename = 'departments'
-                 AND indexname = 'idx_departments_ancestor_ids'".to_string(),
+                 AND indexname = 'idx_departments_ancestor_ids'"
+                    .to_string(),
             ))
             .await?;
 
@@ -199,7 +201,8 @@ impl MigrationTrait for Migration {
                 "SELECT COUNT(*) as count FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'departments'
-                 AND column_name = 'ancestor_ids'".to_string(),
+                 AND column_name = 'ancestor_ids'"
+                    .to_string(),
             ))
             .await?;
 

@@ -97,7 +97,7 @@ description = "Verify backend container is healthy"
 hide = true
 run = """
 #!/usr/bin/env bash
-if ! docker ps --format {% raw %}'{{.Names}}'{% endraw %} | grep -qE 'sveltehr-graphql-rust|sveltehr-backend-dev'; then
+if ! docker ps --format {% raw %}'{{.Names}}'{% endraw %} | grep -q 'sveltehr-graphql-rust'; then
     echo "❌ Backend container is not running."
     echo "   Run: mise run backend:start"
     exit 1
@@ -171,7 +171,7 @@ depends = ["_docker_check"]
 run = """
 #!/usr/bin/env bash
 echo "🚀 Starting Docker services (PostgreSQL, Redis, Backend)..."
-cd dev-containers && docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev backend-dev
+cd dev-containers && docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev hr-graphql-rust
 
 echo ""
 mise run _backend_wait
@@ -333,7 +333,7 @@ echo "🔄 Resetting database..."
 cd dev-containers && docker compose -f docker-compose.dev.yml down -v
 docker volume rm sveltehr_postgres_dev_data sveltehr_redis_dev_data 2>/dev/null || true
 echo "⏳ Restarting containers..."
-cd dev-containers && docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev backend-dev
+cd dev-containers && docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev hr-graphql-rust
 echo "⏳ Waiting for database initialization..."
 sleep 10
 echo "✅ Database reset complete"
@@ -636,4 +636,3 @@ run = "npm run codegen:types"
 [tasks."schema:validate"]
 description = "Validate GraphQL schema"
 run = "npm run schema:validate"
-

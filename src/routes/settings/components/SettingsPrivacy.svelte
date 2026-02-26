@@ -5,10 +5,11 @@
 	import * as Switch from '$lib/components/ui/switch';
 	import { Activity, Download, Save, Shield } from '@lucide/svelte';
 	import { profileVisibilityOptions } from '$lib/graphql/settings-operations';
+	import type { ActivityLogItem, PrivacySettingsState } from '../types';
 
 	interface Props {
-		privacySettings: any;
-		activityLog: any[];
+		privacySettings: PrivacySettingsState;
+		activityLog: ActivityLogItem[];
 		canExportData: boolean;
 		isUpdating: boolean;
 		onUpdate: () => void;

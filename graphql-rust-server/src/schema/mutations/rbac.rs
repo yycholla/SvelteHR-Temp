@@ -30,8 +30,6 @@ pub struct SuccessResponse {
     pub message: String,
 }
 
-
-
 /// Bulk assign permissions input
 #[derive(Debug, Clone, InputObject)]
 pub struct BulkAssignPermissionsInput {

@@ -2,13 +2,25 @@
 	import { enhance } from '$app/forms';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
-	import type { Permission } from '$lib/types';
+
+	interface PermissionOption {
+		id: string;
+		resource?: string;
+		action?: string;
+		description?: string | null;
+	}
+
+	interface RoleWithPermissions {
+		id: string;
+		name: string;
+		permissions?: PermissionOption[];
+	}
 
 	interface Props {
 		open: boolean;
-		selectedRole: any;
+		selectedRole: RoleWithPermissions | null;
 		permissionsSelection: Set<string>;
-		permissionsByResource: Record<string, Permission[]>;
+		permissionsByResource: Record<string, PermissionOption[]>;
 		loading: boolean;
 		onClose: () => void;
 		onSubmit: () => void;
@@ -35,8 +47,8 @@
 		permissionsSelection = new Set(permissionsSelection);
 	}
 
-	function hasPermission(role: any, permissionId: string): boolean {
-		return role?.permissions?.some((p: any) => p.id === permissionId) || false;
+	function hasPermission(role: RoleWithPermissions | null, permissionId: string): boolean {
+		return role?.permissions?.some((permission) => permission.id === permissionId) || false;
 	}
 </script>
 
@@ -73,11 +85,10 @@
 
 			<div class="space-y-4">
 				{#each Object.entries(permissionsByResource) as [resource, permissions]}
-					{@const typedPermissions = permissions as Permission[]}
 					<div class="rounded-md border p-3">
 						<h4 class="mb-2 font-medium capitalize text-foreground">{resource}</h4>
 						<div class="space-y-2">
-							{#each typedPermissions as permission (permission.id)}
+							{#each permissions as permission (permission.id)}
 								<label class="flex items-center gap-2 cursor-pointer hover:bg-accent rounded p-2">
 									<input
 										type="checkbox"
@@ -87,7 +98,7 @@
 									/>
 									<div class="flex-1">
 										<span class="text-sm font-medium text-foreground">
-											{permission.resource}:{permission.action}
+											{permission.resource || 'general'}:{permission.action || 'read'}
 										</span>
 										{#if permission.description}
 											<p class="text-xs text-muted-foreground">{permission.description}</p>

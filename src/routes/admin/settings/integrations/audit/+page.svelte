@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Checkbox } from '$lib/components/ui/checkbox';
 	import {
 		Dialog,
 		DialogContent,
@@ -10,7 +9,6 @@
 		DialogHeader,
 		DialogTitle
 	} from '$lib/components/ui/dialog';
-	import { Label } from '$lib/components/ui/label';
 	import {
 		AlertCircle,
 		ChevronDown,
@@ -32,6 +30,73 @@
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import { createUrqlClient } from '$lib/graphql/client';
+
+	type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+	interface AuditLog {
+		id: string;
+		eventType: string;
+		eventCategory: string | null;
+		entityType: string | null;
+		entityId: string | null;
+		userId: string | null;
+		userEmail: string;
+		action: string | null;
+		description: string | null;
+		oldValues: string | null;
+		newValues: string | null;
+		changesSummary: string | null;
+		ipAddress: string | null;
+		userAgent: string | null;
+		sessionId: string | null;
+		syncDirection: string | null;
+		syncJobId: string | null;
+		source: string | null;
+		status: string | null;
+		errorMessage: string | null;
+		createdAt: string;
+	}
+
+	interface AuditFilters {
+		eventCategory?: string | null;
+		entityType?: string | null;
+	}
+
+	interface AuditVerificationResult {
+		valid: boolean;
+		totalEntries: number;
+		issuesFound: number;
+		issues: string[];
+		message?: string;
+		error?: string;
+	}
+
+	interface ComplianceActivity {
+		userEmail: string;
+		totalActions: number;
+		failedActions: number;
+		dataChanges: number;
+	}
+
+	interface ComplianceReport {
+		startDate: string;
+		endDate: string;
+		totalActions: number;
+		dataModifications: number;
+		failedOperations: number;
+		userActivity: ComplianceActivity[];
+		message?: string;
+		error?: string;
+	}
+
+	interface AuditPageData {
+		logs: AuditLog[];
+		total: number;
+		page: number;
+		limit: number;
+		filters?: AuditFilters;
+		error?: string;
+	}
 
 	// GraphQL queries
 	const VERIFY_AUDIT_INTEGRITY_QUERY = `
@@ -67,7 +132,7 @@
 		}
 	`;
 
-	let { data } = $props();
+	let { data }: { data: AuditPageData } = $props();
 	let logs = $derived(data.logs);
 	let total = $derived(data.total);
 	let currentPage = $derived(data.page);
@@ -79,8 +144,8 @@
 	let expandedLogs = $state<Set<string>>(new Set());
 	let verifying = $state(false);
 	let generatingReport = $state(false);
-	let verificationResult = $state<any>(null);
-	let complianceReport = $state<any>(null);
+	let verificationResult = $state<AuditVerificationResult | null>(null);
+	let complianceReport = $state<ComplianceReport | null>(null);
 	let showVerificationModal = $state(false);
 	let showComplianceModal = $state(false);
 
@@ -97,7 +162,7 @@
 	let filteredLogs = $derived(
 		searchQuery.trim()
 			? logs.filter(
-					(log: any) =>
+					(log) =>
 						log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
 						log.eventType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
 						log.action?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -138,12 +203,12 @@
 	// Calculate stats
 	let stats = $derived({
 		totalLogs: total,
-		successCount: logs.filter((l: any) => l.status === 'success').length,
-		failedCount: logs.filter((l: any) => l.status === 'failed').length,
-		partialCount: logs.filter((l: any) => l.status === 'partial').length,
+		successCount: logs.filter((log) => log.status === 'success').length,
+		failedCount: logs.filter((log) => log.status === 'failed').length,
+		partialCount: logs.filter((log) => log.status === 'partial').length,
 		successRate:
 			total > 0
-				? ((logs.filter((l: any) => l.status === 'success').length / total) * 100).toFixed(1)
+				? ((logs.filter((log) => log.status === 'success').length / total) * 100).toFixed(1)
 				: '0.0'
 	});
 
@@ -213,10 +278,10 @@
 		goto(`?${params.toString()}`);
 	}
 
-	function parseJsonSafely(jsonStr: string | null): any {
+	function parseJsonSafely(jsonStr: string | null): JsonValue | null {
 		if (!jsonStr) return null;
 		try {
-			return JSON.parse(jsonStr);
+			return JSON.parse(jsonStr) as JsonValue;
 		} catch {
 			return null;
 		}

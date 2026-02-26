@@ -1,15 +1,16 @@
-mod query;
 mod mutation;
 mod mutations;
 mod queries;
+mod query;
 pub mod types;
 
-pub use query::{QueryRoot, apply_user_rls_filter};
-pub use mutation::MutationRoot;
 use crate::middleware::ErrorLoggingExtension;
+pub use mutation::MutationRoot;
+pub use query::{apply_user_rls_filter, QueryRoot};
 
 /// Type alias for the GraphQL schema
-pub type GraphQLSchema = async_graphql::Schema<QueryRoot, MutationRoot, async_graphql::EmptySubscription>;
+pub type GraphQLSchema =
+    async_graphql::Schema<QueryRoot, MutationRoot, async_graphql::EmptySubscription>;
 
 /// Create a singleton GraphQL schema
 ///

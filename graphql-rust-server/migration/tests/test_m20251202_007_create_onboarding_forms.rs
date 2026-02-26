@@ -50,7 +50,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("UP migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("UP migration should succeed");
 
         assert!(table_exists(&db, "onboarding_forms").await);
         assert!(table_exists(&db, "onboarding_form_blocks").await);
@@ -64,7 +67,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         let result = db
             .query_all(Statement::from_string(
@@ -95,7 +101,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         let result = db
             .query_all(Statement::from_string(
@@ -128,7 +137,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         let result = db
             .query_all(Statement::from_string(
@@ -159,7 +171,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         let result = db
             .query_all(Statement::from_string(
@@ -187,7 +202,10 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("Migration should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Migration should succeed");
 
         let result = db
             .query_one(Statement::from_string(
@@ -213,8 +231,14 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         let _ = Migration.down(&manager).await;
-        Migration.up(&manager).await.expect("First UP should succeed");
-        Migration.up(&manager).await.expect("Second UP should succeed (idempotent)");
+        Migration
+            .up(&manager)
+            .await
+            .expect("First UP should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Second UP should succeed (idempotent)");
 
         assert!(table_exists(&db, "onboarding_forms").await);
         assert!(table_exists(&db, "onboarding_form_blocks").await);
@@ -243,8 +267,14 @@ mod tests {
         let manager = SchemaManager::new(&db);
 
         Migration.up(&manager).await.expect("UP should succeed");
-        Migration.down(&manager).await.expect("First DOWN should succeed");
-        Migration.down(&manager).await.expect("Second DOWN should succeed (idempotent)");
+        Migration
+            .down(&manager)
+            .await
+            .expect("First DOWN should succeed");
+        Migration
+            .down(&manager)
+            .await
+            .expect("Second DOWN should succeed (idempotent)");
 
         assert!(!table_exists(&db, "onboarding_forms").await);
     }
@@ -263,7 +293,10 @@ mod tests {
         Migration.down(&manager).await.expect("DOWN should succeed");
         assert!(!table_exists(&db, "onboarding_forms").await);
 
-        Migration.up(&manager).await.expect("Second UP should succeed");
+        Migration
+            .up(&manager)
+            .await
+            .expect("Second UP should succeed");
         assert!(table_exists(&db, "onboarding_forms").await);
     }
 }

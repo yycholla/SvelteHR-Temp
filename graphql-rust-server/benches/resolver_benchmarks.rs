@@ -12,15 +12,17 @@
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use hr_graphql_server::testing::{TestContext, TestUserRole};
-use tokio::runtime::Runtime;
 use std::sync::Arc;
+use tokio::runtime::Runtime;
 
 /// Benchmark: Simple user query resolution
 fn bench_user_query(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
     let ctx = rt.block_on(async {
-        TestContext::new().await.expect("Failed to create test context")
+        TestContext::new()
+            .await
+            .expect("Failed to create test context")
     });
 
     let user = ctx.user(TestUserRole::Employee);
@@ -53,7 +55,9 @@ fn bench_users_list_query(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
     let ctx = rt.block_on(async {
-        TestContext::new().await.expect("Failed to create test context")
+        TestContext::new()
+            .await
+            .expect("Failed to create test context")
     });
 
     let mut group = c.benchmark_group("users_list_query");
@@ -93,7 +97,9 @@ fn bench_nested_query(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
     let ctx = rt.block_on(async {
-        TestContext::new().await.expect("Failed to create test context")
+        TestContext::new()
+            .await
+            .expect("Failed to create test context")
     });
 
     let user = ctx.user(TestUserRole::Employee);
@@ -135,7 +141,9 @@ fn bench_user_update_mutation(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
     let ctx = rt.block_on(async {
-        TestContext::new().await.expect("Failed to create test context")
+        TestContext::new()
+            .await
+            .expect("Failed to create test context")
     });
 
     let admin = ctx.user(TestUserRole::Admin);
@@ -173,7 +181,9 @@ fn bench_departments_query(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
     let ctx = rt.block_on(async {
-        TestContext::new().await.expect("Failed to create test context")
+        TestContext::new()
+            .await
+            .expect("Failed to create test context")
     });
 
     let query = r#"
@@ -199,7 +209,9 @@ fn bench_auth_overhead(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
     let ctx = rt.block_on(async {
-        TestContext::new().await.expect("Failed to create test context")
+        TestContext::new()
+            .await
+            .expect("Failed to create test context")
     });
 
     let user = ctx.user(TestUserRole::Employee);
@@ -237,7 +249,9 @@ fn bench_query_complexity(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
     let ctx = rt.block_on(async {
-        TestContext::new().await.expect("Failed to create test context")
+        TestContext::new()
+            .await
+            .expect("Failed to create test context")
     });
 
     let mut group = c.benchmark_group("query_complexity");
@@ -287,7 +301,9 @@ fn bench_concurrent_queries(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
 
     let ctx = Arc::new(rt.block_on(async {
-        TestContext::new().await.expect("Failed to create test context")
+        TestContext::new()
+            .await
+            .expect("Failed to create test context")
     }));
 
     let query = r#"

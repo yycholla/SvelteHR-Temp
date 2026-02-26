@@ -9,13 +9,16 @@
 		DELETE_TASK_TYPE,
 		UPDATE_TASK_TYPE
 	} from '$lib/graphql/tasks-operations';
-	import type { CreateTaskTypeInput, TaskType, UpdateTaskTypeInput } from '$lib/types/task';
+	import type { PageData } from './$types';
+	import type { CreateTaskTypeInput, UpdateTaskTypeInput } from '$lib/types/task';
 
-	const { data } = $props();
+	type TaskTypeRecord = PageData['taskTypes'][number];
+
+	const { data }: { data: PageData } = $props();
 
 	let showCreateModal = $state(false);
 	let showEditModal = $state(false);
-	let selectedTaskType = $state<TaskType | null>(null);
+	let selectedTaskType = $state<TaskTypeRecord | null>(null);
 	let searchQuery = $state('');
 	let loading = $state(false);
 	let errorMessage = $state('');
@@ -30,7 +33,7 @@
 
 	// Filtered task types based on search query
 	const filteredTaskTypes = $derived(
-		data.taskTypes.filter((taskType: { name?: string; description?: string }) => {
+		data.taskTypes.filter((taskType) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();
 			return (
@@ -51,7 +54,7 @@
 		errorMessage = '';
 	}
 
-	function openEditModal(taskType: TaskType) {
+	function openEditModal(taskType: TaskTypeRecord) {
 		selectedTaskType = taskType;
 		formData = {
 			name: taskType.name,
@@ -159,7 +162,7 @@
 		}
 	}
 
-	async function toggleTaskTypeStatus(taskType: TaskType) {
+	async function toggleTaskTypeStatus(taskType: TaskTypeRecord) {
 		loading = true;
 		try {
 			const client = createUrqlClient();

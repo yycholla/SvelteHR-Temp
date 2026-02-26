@@ -12,20 +12,23 @@
 //! Run with: cargo test --test rls_integration_tests
 
 use chrono::Utc;
-use sea_orm::{
-    entity::prelude::*, EntityTrait, QueryFilter, Set, DatabaseConnection,
-};
+use sea_orm::{entity::prelude::*, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 // Import test infrastructure
-use hr_graphql_server::testing::database::TestDatabase;
 use hr_graphql_server::models::{
-    user::{Entity as UserEntity, Column as UserColumn, ActiveModel as UserActiveModel},
-    department::{Entity as DepartmentEntity, Column as DepartmentColumn, ActiveModel as DepartmentActiveModel},
-    task::{Entity as TaskEntity, Column as TaskColumn, ActiveModel as TaskActiveModel},
-    role::{Entity as RoleEntity, Column as RoleColumn},
-    user_role_assignment::{Entity as UserRoleAssignmentEntity, ActiveModel as UserRoleAssignmentActiveModel},
+    department::{
+        ActiveModel as DepartmentActiveModel, Column as DepartmentColumn,
+        Entity as DepartmentEntity,
+    },
+    role::{Column as RoleColumn, Entity as RoleEntity},
+    task::{ActiveModel as TaskActiveModel, Column as TaskColumn, Entity as TaskEntity},
+    user::{ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity},
+    user_role_assignment::{
+        ActiveModel as UserRoleAssignmentActiveModel, Entity as UserRoleAssignmentEntity,
+    },
 };
+use hr_graphql_server::testing::database::TestDatabase;
 
 /// Test fixture: Multi-tenant database with isolated organizations
 struct MultiTenantFixture {
@@ -104,7 +107,8 @@ impl MultiTenantFixture {
             "Manager",
             "hr_manager",
             Some(org1_dept.id),
-        ).await?;
+        )
+        .await?;
 
         let org1_employee1 = Self::create_user(
             &db,
@@ -113,7 +117,8 @@ impl MultiTenantFixture {
             "Employee",
             "hr_employee",
             Some(org1_dept.id),
-        ).await?;
+        )
+        .await?;
 
         let org1_employee2 = Self::create_user(
             &db,
@@ -122,7 +127,8 @@ impl MultiTenantFixture {
             "Employee",
             "hr_employee",
             Some(org1_dept.id),
-        ).await?;
+        )
+        .await?;
 
         // Create Org2 Users
         let org2_manager = Self::create_user(
@@ -132,7 +138,8 @@ impl MultiTenantFixture {
             "Manager",
             "hr_manager",
             Some(org2_dept.id),
-        ).await?;
+        )
+        .await?;
 
         let org2_employee1 = Self::create_user(
             &db,
@@ -141,7 +148,8 @@ impl MultiTenantFixture {
             "Employee",
             "hr_employee",
             Some(org2_dept.id),
-        ).await?;
+        )
+        .await?;
 
         let org2_employee2 = Self::create_user(
             &db,
@@ -150,7 +158,8 @@ impl MultiTenantFixture {
             "Employee",
             "hr_employee",
             Some(org2_dept.id),
-        ).await?;
+        )
+        .await?;
 
         // Create System Admin (no department restriction)
         let admin = Self::create_user(
@@ -160,7 +169,8 @@ impl MultiTenantFixture {
             "Admin",
             "system_admin",
             None,
-        ).await?;
+        )
+        .await?;
 
         // Create Org1 Tasks
         let org1_task1 = Self::create_task(
@@ -169,7 +179,8 @@ impl MultiTenantFixture {
             Some(org1_dept.id),
             org1_manager.id,
             Some(org1_employee1.id),
-        ).await?;
+        )
+        .await?;
 
         let org1_task2 = Self::create_task(
             &db,
@@ -177,7 +188,8 @@ impl MultiTenantFixture {
             Some(org1_dept.id),
             org1_manager.id,
             Some(org1_employee2.id),
-        ).await?;
+        )
+        .await?;
 
         // Create Org2 Tasks
         let org2_task1 = Self::create_task(
@@ -186,7 +198,8 @@ impl MultiTenantFixture {
             Some(org2_dept.id),
             org2_manager.id,
             Some(org2_employee1.id),
-        ).await?;
+        )
+        .await?;
 
         let org2_task2 = Self::create_task(
             &db,
@@ -194,7 +207,8 @@ impl MultiTenantFixture {
             Some(org2_dept.id),
             org2_manager.id,
             Some(org2_employee2.id),
-        ).await?;
+        )
+        .await?;
 
         Ok(Self {
             _test_db: test_db,
@@ -367,7 +381,9 @@ impl MultiTenantFixture {
 
 #[tokio::test]
 async fn test_employee_sees_only_own_organization_employees() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Query as Org1 Employee (should only see Org1 users)
     let org1_user = UserEntity::find_by_id(fixture.org1_employee1_id)
@@ -388,19 +404,31 @@ async fn test_employee_sees_only_own_organization_employees() {
     .expect("Failed to query users");
 
     // Assert: Should see 3 Org1 users, not Org2 users
-    assert_eq!(visible_users.len(), 3, "Org1 employee should see exactly 3 users from own org");
+    assert_eq!(
+        visible_users.len(),
+        3,
+        "Org1 employee should see exactly 3 users from own org"
+    );
 
     let visible_ids: Vec<Uuid> = visible_users.iter().map(|u| u.id).collect();
     assert!(visible_ids.contains(&fixture.org1_employee1_id));
     assert!(visible_ids.contains(&fixture.org1_employee2_id));
     assert!(visible_ids.contains(&fixture.org1_manager_id));
-    assert!(!visible_ids.contains(&fixture.org2_employee1_id), "Should NOT see Org2 users");
-    assert!(!visible_ids.contains(&fixture.org2_employee2_id), "Should NOT see Org2 users");
+    assert!(
+        !visible_ids.contains(&fixture.org2_employee1_id),
+        "Should NOT see Org2 users"
+    );
+    assert!(
+        !visible_ids.contains(&fixture.org2_employee2_id),
+        "Should NOT see Org2 users"
+    );
 }
 
 #[tokio::test]
 async fn test_employee_cannot_query_other_org_by_id() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Org1 employee tries to access Org2 employee by ID
     let org1_user = UserEntity::find_by_id(fixture.org1_employee1_id)
@@ -421,12 +449,17 @@ async fn test_employee_cannot_query_other_org_by_id() {
     let result = blocked_query.one(&fixture.db).await.expect("Query failed");
 
     // Assert: Should return None (blocked by RLS)
-    assert!(result.is_none(), "Org1 employee should NOT be able to access Org2 employee by ID");
+    assert!(
+        result.is_none(),
+        "Org1 employee should NOT be able to access Org2 employee by ID"
+    );
 }
 
 #[tokio::test]
 async fn test_employee_sees_only_own_department_tasks() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     let org1_user = UserEntity::find_by_id(fixture.org1_employee1_id)
         .one(&fixture.db)
@@ -445,17 +478,26 @@ async fn test_employee_sees_only_own_department_tasks() {
     .expect("Failed to query tasks");
 
     // Assert: Should see 2 Org1 tasks only
-    assert_eq!(visible_tasks.len(), 2, "Org1 employee should see exactly 2 tasks from own org");
+    assert_eq!(
+        visible_tasks.len(),
+        2,
+        "Org1 employee should see exactly 2 tasks from own org"
+    );
 
     let visible_task_ids: Vec<Uuid> = visible_tasks.iter().map(|t| t.id).collect();
     assert!(visible_task_ids.contains(&fixture.org1_task1_id));
     assert!(visible_task_ids.contains(&fixture.org1_task2_id));
-    assert!(!visible_task_ids.contains(&fixture.org2_task1_id), "Should NOT see Org2 tasks");
+    assert!(
+        !visible_task_ids.contains(&fixture.org2_task1_id),
+        "Should NOT see Org2 tasks"
+    );
 }
 
 #[tokio::test]
 async fn test_manager_sees_team_data_but_not_other_teams() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     let org1_manager = UserEntity::find_by_id(fixture.org1_manager_id)
         .one(&fixture.db)
@@ -477,12 +519,17 @@ async fn test_manager_sees_team_data_but_not_other_teams() {
     assert_eq!(visible_users.len(), 3);
 
     let visible_ids: Vec<Uuid> = visible_users.iter().map(|u| u.id).collect();
-    assert!(!visible_ids.contains(&fixture.org2_manager_id), "Manager should NOT see other org's manager");
+    assert!(
+        !visible_ids.contains(&fixture.org2_manager_id),
+        "Manager should NOT see other org's manager"
+    );
 }
 
 #[tokio::test]
 async fn test_department_filtering_enforced_at_db_level() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Verify that department_id filter is actually applied in query
     let org1_users = UserEntity::find()
@@ -492,7 +539,11 @@ async fn test_department_filtering_enforced_at_db_level() {
         .await
         .expect("Failed to query users");
 
-    assert_eq!(org1_users.len(), 3, "Department filter should return exactly 3 Org1 users");
+    assert_eq!(
+        org1_users.len(),
+        3,
+        "Department filter should return exactly 3 Org1 users"
+    );
 
     let org2_users = UserEntity::find()
         .filter(UserColumn::DepartmentId.eq(fixture.org2_dept_id))
@@ -501,12 +552,18 @@ async fn test_department_filtering_enforced_at_db_level() {
         .await
         .expect("Failed to query users");
 
-    assert_eq!(org2_users.len(), 3, "Department filter should return exactly 3 Org2 users");
+    assert_eq!(
+        org2_users.len(),
+        3,
+        "Department filter should return exactly 3 Org2 users"
+    );
 }
 
 #[tokio::test]
 async fn test_organization_filtering_enforced_at_db_level() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Verify department isolation at database level
     let org1_tasks = TaskEntity::find()
@@ -530,7 +587,9 @@ async fn test_organization_filtering_enforced_at_db_level() {
 
 #[tokio::test]
 async fn test_aggregate_queries_respect_rls_count() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Count users in Org1 department
     let org1_count = UserEntity::find()
@@ -559,12 +618,18 @@ async fn test_aggregate_queries_respect_rls_count() {
         .await
         .expect("Failed to count all users");
 
-    assert!(total_count >= 7, "Total user count should be at least 7 (6 employees + 1 admin), got {}", total_count);
+    assert!(
+        total_count >= 7,
+        "Total user count should be at least 7 (6 employees + 1 admin), got {}",
+        total_count
+    );
 }
 
 #[tokio::test]
 async fn test_join_queries_maintain_rls_across_tables() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Query tasks with user joins (ensure department boundary is maintained)
     let org1_tasks_with_assignees = TaskEntity::find()
@@ -578,8 +643,11 @@ async fn test_join_queries_maintain_rls_across_tables() {
 
     // Verify that all tasks belong to Org1 department
     for task in &org1_tasks_with_assignees {
-        assert_eq!(task.department_id, Some(fixture.org1_dept_id),
-            "All tasks should belong to Org1 department");
+        assert_eq!(
+            task.department_id,
+            Some(fixture.org1_dept_id),
+            "All tasks should belong to Org1 department"
+        );
 
         // Verify assignee is from same org (if assigned)
         if let Some(assignee_id) = task.assignee_id {
@@ -589,8 +657,11 @@ async fn test_join_queries_maintain_rls_across_tables() {
                 .expect("Failed to fetch assignee")
                 .expect("Assignee should exist");
 
-            assert_eq!(assignee.department_id, Some(fixture.org1_dept_id),
-                "Task assignee should be from same department");
+            assert_eq!(
+                assignee.department_id,
+                Some(fixture.org1_dept_id),
+                "Task assignee should be from same department"
+            );
         }
     }
 }
@@ -601,7 +672,9 @@ async fn test_join_queries_maintain_rls_across_tables() {
 
 #[tokio::test]
 async fn test_direct_id_access_to_other_tenant_fails() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     let org1_user = UserEntity::find_by_id(fixture.org1_employee1_id)
         .one(&fixture.db)
@@ -619,12 +692,17 @@ async fn test_direct_id_access_to_other_tenant_fails() {
     .await
     .expect("Query failed");
 
-    assert!(blocked_access.is_none(), "Direct ID access to other tenant should return None");
+    assert!(
+        blocked_access.is_none(),
+        "Direct ID access to other tenant should return None"
+    );
 }
 
 #[tokio::test]
 async fn test_search_queries_dont_leak_cross_tenant_data() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     let org1_user = UserEntity::find_by_id(fixture.org1_employee1_id)
         .one(&fixture.db)
@@ -645,15 +723,29 @@ async fn test_search_queries_dont_leak_cross_tenant_data() {
     .expect("Failed to search users");
 
     // Should only see Alice and Carol from Org1 (not Eve or Dave from Org2)
-    let names: Vec<String> = search_results.iter().map(|u| u.first_name.clone()).collect();
-    assert!(names.contains(&"Alice".to_string()), "Should see Alice (Org1)");
-    assert!(!names.contains(&"Eve".to_string()), "Should NOT see Eve (Org2)");
-    assert!(!names.contains(&"Dave".to_string()), "Should NOT see Dave (Org2)");
+    let names: Vec<String> = search_results
+        .iter()
+        .map(|u| u.first_name.clone())
+        .collect();
+    assert!(
+        names.contains(&"Alice".to_string()),
+        "Should see Alice (Org1)"
+    );
+    assert!(
+        !names.contains(&"Eve".to_string()),
+        "Should NOT see Eve (Org2)"
+    );
+    assert!(
+        !names.contains(&"Dave".to_string()),
+        "Should NOT see Dave (Org2)"
+    );
 }
 
 #[tokio::test]
 async fn test_batch_operations_respect_tenant_boundaries() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Batch query for multiple users (mix of Org1 and Org2)
     let mixed_ids = vec![
@@ -681,17 +773,26 @@ async fn test_batch_operations_respect_tenant_boundaries() {
     .expect("Failed to query batch users");
 
     // Should only return 2 users (Org1), not the Org2 user
-    assert_eq!(results.len(), 2, "Batch query should only return 2 Org1 users");
+    assert_eq!(
+        results.len(),
+        2,
+        "Batch query should only return 2 Org1 users"
+    );
 
     let result_ids: Vec<Uuid> = results.iter().map(|u| u.id).collect();
     assert!(result_ids.contains(&fixture.org1_employee1_id));
     assert!(result_ids.contains(&fixture.org1_employee2_id));
-    assert!(!result_ids.contains(&fixture.org2_employee1_id), "Should NOT include Org2 user in batch");
+    assert!(
+        !result_ids.contains(&fixture.org2_employee1_id),
+        "Should NOT include Org2 user in batch"
+    );
 }
 
 #[tokio::test]
 async fn test_relation_loading_isolated() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Load task with assignee (should only succeed for same-org tasks)
     let org1_task = TaskEntity::find_by_id(fixture.org1_task1_id)
@@ -708,14 +809,19 @@ async fn test_relation_loading_isolated() {
             .expect("Failed to fetch assignee")
             .expect("Assignee should exist");
 
-        assert_eq!(assignee.department_id, Some(fixture.org1_dept_id),
-            "Task assignee must be from same organization");
+        assert_eq!(
+            assignee.department_id,
+            Some(fixture.org1_dept_id),
+            "Task assignee must be from same organization"
+        );
     }
 }
 
 #[tokio::test]
 async fn test_graphql_nested_queries_maintain_isolation() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Simulate nested GraphQL query: user -> department -> employees
     let org1_user = UserEntity::find_by_id(fixture.org1_employee1_id)
@@ -747,13 +853,17 @@ async fn test_graphql_nested_queries_maintain_isolation() {
     assert_eq!(dept_employees.len(), 3);
 
     let employee_ids: Vec<Uuid> = dept_employees.iter().map(|e| e.id).collect();
-    assert!(!employee_ids.contains(&fixture.org2_employee1_id),
-        "Nested query should not leak Org2 employees");
+    assert!(
+        !employee_ids.contains(&fixture.org2_employee1_id),
+        "Nested query should not leak Org2 employees"
+    );
 }
 
 #[tokio::test]
 async fn test_filter_bypass_attempts_blocked() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     let org1_user = UserEntity::find_by_id(fixture.org1_employee1_id)
         .one(&fixture.db)
@@ -765,8 +875,9 @@ async fn test_filter_bypass_attempts_blocked() {
     let bypass_attempt = MultiTenantFixture::apply_rls_filter(
         UserEntity::find()
             .filter(
-                UserColumn::DepartmentId.eq(fixture.org1_dept_id)
-                    .or(UserColumn::DepartmentId.eq(fixture.org2_dept_id))
+                UserColumn::DepartmentId
+                    .eq(fixture.org1_dept_id)
+                    .or(UserColumn::DepartmentId.eq(fixture.org2_dept_id)),
             )
             .filter(UserColumn::DeletedAt.is_null()),
         org1_user.department_id,
@@ -777,15 +888,24 @@ async fn test_filter_bypass_attempts_blocked() {
     .expect("Failed to query users");
 
     // RLS filter should override the OR condition
-    assert_eq!(bypass_attempt.len(), 3, "Filter bypass should still respect RLS");
+    assert_eq!(
+        bypass_attempt.len(),
+        3,
+        "Filter bypass should still respect RLS"
+    );
 
     let ids: Vec<Uuid> = bypass_attempt.iter().map(|u| u.id).collect();
-    assert!(!ids.contains(&fixture.org2_employee1_id), "Should NOT bypass RLS with OR condition");
+    assert!(
+        !ids.contains(&fixture.org2_employee1_id),
+        "Should NOT bypass RLS with OR condition"
+    );
 }
 
 #[tokio::test]
 async fn test_sql_injection_via_filters_sanitized() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Attempt SQL injection via email filter (SeaORM should sanitize)
     let injection_attempt = "eve@globex.com' OR '1'='1";
@@ -798,7 +918,11 @@ async fn test_sql_injection_via_filters_sanitized() {
         .expect("Query should not fail");
 
     // Should return 0 results (injection blocked)
-    assert_eq!(results.len(), 0, "SQL injection should be sanitized by SeaORM");
+    assert_eq!(
+        results.len(),
+        0,
+        "SQL injection should be sanitized by SeaORM"
+    );
 }
 
 // ============================================================================
@@ -807,7 +931,9 @@ async fn test_sql_injection_via_filters_sanitized() {
 
 #[tokio::test]
 async fn test_system_admin_sees_all_organizations() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     let admin_user = UserEntity::find_by_id(fixture.admin_id)
         .one(&fixture.db)
@@ -826,7 +952,11 @@ async fn test_system_admin_sees_all_organizations() {
     .expect("Failed to query users");
 
     // Admin should see all users (minimum 7: 3 Org1 + 3 Org2 + 1 Admin)
-    assert!(all_users.len() >= 7, "Admin should see at least 7 users across organizations, got {}", all_users.len());
+    assert!(
+        all_users.len() >= 7,
+        "Admin should see at least 7 users across organizations, got {}",
+        all_users.len()
+    );
 
     let user_ids: Vec<Uuid> = all_users.iter().map(|u| u.id).collect();
     assert!(user_ids.contains(&fixture.org1_employee1_id));
@@ -835,7 +965,9 @@ async fn test_system_admin_sees_all_organizations() {
 
 #[tokio::test]
 async fn test_system_admin_can_query_any_employee_by_id() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Admin directly queries Org2 employee
     let org2_employee = MultiTenantFixture::apply_rls_filter(
@@ -854,7 +986,9 @@ async fn test_system_admin_can_query_any_employee_by_id() {
 
 #[tokio::test]
 async fn test_hr_admin_sees_all_employees_in_organization() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // HR Manager query (same org, but can see all in department)
     let org1_manager = UserEntity::find_by_id(fixture.org1_manager_id)
@@ -876,13 +1010,17 @@ async fn test_hr_admin_sees_all_employees_in_organization() {
     assert_eq!(visible_users.len(), 3);
 
     let ids: Vec<Uuid> = visible_users.iter().map(|u| u.id).collect();
-    assert!(!ids.contains(&fixture.org2_employee1_id),
-        "HR Manager should NOT see other organization's employees");
+    assert!(
+        !ids.contains(&fixture.org2_employee1_id),
+        "HR Manager should NOT see other organization's employees"
+    );
 }
 
 #[tokio::test]
 async fn test_hr_admin_cannot_see_other_organizations() {
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     let org1_manager = UserEntity::find_by_id(fixture.org1_manager_id)
         .one(&fixture.db)
@@ -903,8 +1041,11 @@ async fn test_hr_admin_cannot_see_other_organizations() {
     .expect("Query failed");
 
     // Should return 0 users (blocked by RLS)
-    assert_eq!(org2_dept_query.len(), 0,
-        "HR Manager should NOT access other organization's department");
+    assert_eq!(
+        org2_dept_query.len(),
+        0,
+        "HR Manager should NOT access other organization's department"
+    );
 }
 
 // ============================================================================
@@ -915,10 +1056,12 @@ async fn test_hr_admin_cannot_see_other_organizations() {
 async fn test_graphql_query_with_user_context() {
     use async_graphql::{EmptySubscription, Request, Schema};
     use hr_graphql_server::auth::context::UserContext;
-    use hr_graphql_server::schema::{QueryRoot, MutationRoot};
+    use hr_graphql_server::schema::{MutationRoot, QueryRoot};
 
     // Create multi-tenant fixture
-    let fixture = MultiTenantFixture::new().await.expect("Failed to create fixture");
+    let fixture = MultiTenantFixture::new()
+        .await
+        .expect("Failed to create fixture");
 
     // Fetch Org1 employee to get their department_id
     let org1_employee = UserEntity::find_by_id(fixture.org1_employee1_id)
@@ -945,7 +1088,7 @@ async fn test_graphql_query_with_user_context() {
         vec!["hr_employee".to_string()],
         vec!["employees:read".to_string()],
         org1_employee.department_id, // This is the key: include department_id for RLS
-        None, // organization_id not used yet
+        None,                        // organization_id not used yet
     );
 
     // Execute GraphQL query as Org1 employee
@@ -964,7 +1107,11 @@ async fn test_graphql_query_with_user_context() {
 
     // Extract response data
     let errors: Vec<String> = response.errors.iter().map(|e| e.message.clone()).collect();
-    assert!(errors.is_empty(), "GraphQL query should not have errors: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "GraphQL query should not have errors: {:?}",
+        errors
+    );
 
     let data = &response.data;
     let data_str = data.to_string();
@@ -973,7 +1120,10 @@ async fn test_graphql_query_with_user_context() {
     // Only users from the same department should be visible
 
     // Check if response contains user data
-    assert!(data_str.contains("users"), "Response should contain 'users' field");
+    assert!(
+        data_str.contains("users"),
+        "Response should contain 'users' field"
+    );
 
     // CRITICAL SECURITY ASSERTIONS:
     // These assertions validate that RLS filtering is applied correctly
@@ -981,15 +1131,18 @@ async fn test_graphql_query_with_user_context() {
     // Assert: Should contain Org1 users (same department)
     assert!(
         data_str.contains(&fixture.org1_employee1_id.to_string()),
-        "Should see own user ID ({})", fixture.org1_employee1_id
+        "Should see own user ID ({})",
+        fixture.org1_employee1_id
     );
     assert!(
         data_str.contains(&fixture.org1_employee2_id.to_string()),
-        "Should see Org1 colleague ({})", fixture.org1_employee2_id
+        "Should see Org1 colleague ({})",
+        fixture.org1_employee2_id
     );
     assert!(
         data_str.contains(&fixture.org1_manager_id.to_string()),
-        "Should see Org1 manager ({})", fixture.org1_manager_id
+        "Should see Org1 manager ({})",
+        fixture.org1_manager_id
     );
 
     // Assert: Should NOT contain Org2 users (cross-tenant data leak!)

@@ -62,19 +62,15 @@ impl ConflictResolver {
         match strategy {
             ConflictStrategy::LocalWins => {
                 // Keep all local changes, discard remote
-                let local: Vec<ChangeRecord> = conflicts
-                    .into_iter()
-                    .map(|c| c.local_change)
-                    .collect();
+                let local: Vec<ChangeRecord> =
+                    conflicts.into_iter().map(|c| c.local_change).collect();
                 Ok((local, Vec::new()))
             }
 
             ConflictStrategy::RemoteWins => {
                 // Keep all remote changes, discard local
-                let remote: Vec<ChangeRecord> = conflicts
-                    .into_iter()
-                    .map(|c| c.remote_change)
-                    .collect();
+                let remote: Vec<ChangeRecord> =
+                    conflicts.into_iter().map(|c| c.remote_change).collect();
                 Ok((Vec::new(), remote))
             }
 
@@ -99,17 +95,13 @@ impl ConflictResolver {
             ConflictStrategy::ManualReview => {
                 // Mark all as requiring manual review
                 for conflict in &conflicts {
-                    SyncTracker::mark_conflict(
-                        db,
-                        conflict.entity_type,
-                        &conflict.entity_id,
-                    )
-                    .await
-                    .context(format!(
-                        "Failed to mark conflict for {} {}",
-                        format!("{:?}", conflict.entity_type),
-                        conflict.entity_id
-                    ))?;
+                    SyncTracker::mark_conflict(db, conflict.entity_type, &conflict.entity_id)
+                        .await
+                        .context(format!(
+                            "Failed to mark conflict for {} {}",
+                            format!("{:?}", conflict.entity_type),
+                            conflict.entity_id
+                        ))?;
                 }
 
                 Err(anyhow::anyhow!(
@@ -157,8 +149,8 @@ impl ConflictResolver {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::sync_tracker::SyncStatus;
+    use super::*;
 
     fn create_test_conflict(
         entity_id: &str,
@@ -194,11 +186,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_local_wins_strategy() {
-        let conflicts = vec![create_test_conflict(
-            "1",
-            Utc::now(),
-            Utc::now(),
-        )];
+        let conflicts = vec![create_test_conflict("1", Utc::now(), Utc::now())];
 
         // Note: This test doesn't actually use the database, so we're testing the logic only
         // In a real scenario, you'd need a test database connection
@@ -218,17 +206,13 @@ mod tests {
         ) -> (Vec<ChangeRecord>, Vec<ChangeRecord>) {
             match strategy {
                 ConflictStrategy::LocalWins => {
-                    let local: Vec<ChangeRecord> = conflicts
-                        .into_iter()
-                        .map(|c| c.local_change)
-                        .collect();
+                    let local: Vec<ChangeRecord> =
+                        conflicts.into_iter().map(|c| c.local_change).collect();
                     (local, Vec::new())
                 }
                 ConflictStrategy::RemoteWins => {
-                    let remote: Vec<ChangeRecord> = conflicts
-                        .into_iter()
-                        .map(|c| c.remote_change)
-                        .collect();
+                    let remote: Vec<ChangeRecord> =
+                        conflicts.into_iter().map(|c| c.remote_change).collect();
                     (Vec::new(), remote)
                 }
                 ConflictStrategy::LastWriteWins => {
@@ -255,11 +239,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remote_wins_strategy() {
-        let conflicts = vec![create_test_conflict(
-            "1",
-            Utc::now(),
-            Utc::now(),
-        )];
+        let conflicts = vec![create_test_conflict("1", Utc::now(), Utc::now())];
 
         let result = ConflictResolver::resolve_without_db(conflicts, ConflictStrategy::RemoteWins);
 
@@ -274,7 +254,8 @@ mod tests {
 
         let conflicts = vec![create_test_conflict("1", now, earlier)];
 
-        let result = ConflictResolver::resolve_without_db(conflicts, ConflictStrategy::LastWriteWins);
+        let result =
+            ConflictResolver::resolve_without_db(conflicts, ConflictStrategy::LastWriteWins);
 
         assert_eq!(result.0.len(), 1); // Local is newer, so keep local
         assert_eq!(result.1.len(), 0);
@@ -287,7 +268,8 @@ mod tests {
 
         let conflicts = vec![create_test_conflict("1", earlier, now)];
 
-        let result = ConflictResolver::resolve_without_db(conflicts, ConflictStrategy::LastWriteWins);
+        let result =
+            ConflictResolver::resolve_without_db(conflicts, ConflictStrategy::LastWriteWins);
 
         assert_eq!(result.0.len(), 0);
         assert_eq!(result.1.len(), 1); // Remote is newer, so keep remote
@@ -295,14 +277,22 @@ mod tests {
 
     #[test]
     fn test_describe_strategy() {
-        assert!(ConflictResolver::describe_strategy(ConflictStrategy::LocalWins)
-            .contains("Local changes"));
-        assert!(ConflictResolver::describe_strategy(ConflictStrategy::RemoteWins)
-            .contains("QuickBooks changes"));
-        assert!(ConflictResolver::describe_strategy(ConflictStrategy::LastWriteWins)
-            .contains("most recently"));
-        assert!(ConflictResolver::describe_strategy(ConflictStrategy::ManualReview)
-            .contains("manual review"));
+        assert!(
+            ConflictResolver::describe_strategy(ConflictStrategy::LocalWins)
+                .contains("Local changes")
+        );
+        assert!(
+            ConflictResolver::describe_strategy(ConflictStrategy::RemoteWins)
+                .contains("QuickBooks changes")
+        );
+        assert!(
+            ConflictResolver::describe_strategy(ConflictStrategy::LastWriteWins)
+                .contains("most recently")
+        );
+        assert!(
+            ConflictResolver::describe_strategy(ConflictStrategy::ManualReview)
+                .contains("manual review")
+        );
     }
 
     #[test]

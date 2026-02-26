@@ -15,12 +15,12 @@ use uuid::Uuid;
 use crate::{
     auth::UserContext,
     database::get_db_from_context,
+    integrations::intuit::IntuitClientManager,
     models::time::{
-        time_entry, project, CreateTimeEntryInput, UpdateTimeEntryInput,
-        ApproveTimeEntryInput, CreateProjectInput, UpdateProjectInput,
+        project, time_entry, ApproveTimeEntryInput, CreateProjectInput, CreateTimeEntryInput,
+        UpdateProjectInput, UpdateTimeEntryInput,
     },
     services::time_tracking_sync::TimeTrackingSync,
-    integrations::intuit::IntuitClientManager,
 };
 
 /// Result of a sync operation
@@ -116,7 +116,8 @@ impl TimeEntryMutations {
             active_entry.entry_date = Set(date);
         }
         if let Some(hours) = input.hours {
-            active_entry.hours = Set(rust_decimal::Decimal::from_f64_retain(hours).unwrap_or_default());
+            active_entry.hours =
+                Set(rust_decimal::Decimal::from_f64_retain(hours).unwrap_or_default());
         }
         if input.project_id.is_some() {
             active_entry.project_id = Set(input.project_id);
@@ -135,11 +136,7 @@ impl TimeEntryMutations {
     }
 
     /// Delete a time entry (soft delete)
-    async fn delete_time_entry(
-        &self,
-        ctx: &Context<'_>,
-        id: Uuid,
-    ) -> Result<bool> {
+    async fn delete_time_entry(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
         let user_ctx = ctx.data::<UserContext>()?;
 
@@ -170,11 +167,7 @@ impl TimeEntryMutations {
     }
 
     /// Submit time entry for approval
-    async fn submit_time_entry(
-        &self,
-        ctx: &Context<'_>,
-        id: Uuid,
-    ) -> Result<time_entry::Model> {
+    async fn submit_time_entry(&self, ctx: &Context<'_>, id: Uuid) -> Result<time_entry::Model> {
         let db = get_db_from_context(ctx)?;
         let user_ctx = ctx.data::<UserContext>()?;
 
@@ -326,11 +319,7 @@ impl TimeEntryMutations {
     }
 
     /// Delete a project (soft delete)
-    async fn delete_project(
-        &self,
-        ctx: &Context<'_>,
-        id: Uuid,
-    ) -> Result<bool> {
+    async fn delete_project(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
         let user_ctx = ctx.data::<UserContext>()?;
 
@@ -386,10 +375,7 @@ impl TimeEntryMutations {
 
         Ok(TimeSyncResult {
             success: result.failed == 0,
-            message: format!(
-                "Synced {} of {} time entries",
-                result.synced, result.total
-            ),
+            message: format!("Synced {} of {} time entries", result.synced, result.total),
             total: result.total as i32,
             synced: result.synced as i32,
             failed: result.failed as i32,

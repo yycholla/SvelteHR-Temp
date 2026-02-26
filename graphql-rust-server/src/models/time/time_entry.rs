@@ -4,8 +4,8 @@
 
 use async_graphql::{Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, NaiveDate, Utc};
-use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -99,7 +99,7 @@ pub struct Model {
     pub rejected_reason: Option<String>,
     pub quickbooks_time_activity_id: Option<String>,
     #[sea_orm(column_name = "sync_state")]
-    pub sync_status: String,  // NOTE: Column renamed to sync_state in DB
+    pub sync_status: String, // NOTE: Column renamed to sync_state in DB
     pub synced_at: Option<DateTime<Utc>>,
     pub sync_error: Option<String>,
     pub last_modified_at: DateTime<Utc>,
@@ -275,7 +275,10 @@ impl Model {
     }
 
     /// Approver relationship (lazy-loaded)
-    async fn approver(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
+    async fn approver(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<Option<crate::models::User>> {
         if let Some(approver_id) = self.approved_by {
             let db = get_db_from_context(ctx)?;
             let approver = crate::models::user::Entity::find_by_id(approver_id)
@@ -288,7 +291,10 @@ impl Model {
     }
 
     /// Project relationship (lazy-loaded)
-    async fn project(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<super::project::Model>> {
+    async fn project(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<Option<super::project::Model>> {
         if let Some(project_id) = self.project_id {
             let db = get_db_from_context(ctx)?;
             let project = super::project::Entity::find_by_id(project_id)

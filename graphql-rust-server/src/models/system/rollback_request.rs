@@ -254,7 +254,10 @@ impl Model {
     }
 
     /// Requester relationship (simple name for frontend compatibility)
-    async fn requester(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+    async fn requester(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::user::Model> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.requested_by)
             .one(&db)
@@ -266,12 +269,18 @@ impl Model {
 
     /// PostGraphile-style alias for requester
     #[graphql(name = "userByRequestedBy")]
-    async fn user_by_requested_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
+    async fn user_by_requested_by(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<crate::models::User> {
         self.requester(ctx).await?
     }
 
     /// Reviewer relationship (simple name for frontend compatibility)
-    async fn reviewer(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::user::Model>> {
+    async fn reviewer(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<Option<crate::models::user::Model>> {
         let Some(approved_by) = self.approved_by else {
             return Ok(None);
         };
@@ -286,13 +295,19 @@ impl Model {
 
     /// PostGraphile-style alias for reviewer
     #[graphql(name = "userByReviewedBy")]
-    async fn user_by_reviewed_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
+    async fn user_by_reviewed_by(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<Option<crate::models::User>> {
         self.reviewer(ctx).await?
     }
 
     /// PostGraphile-style alias for approver
     #[graphql(name = "userByApprovedBy")]
-    async fn user_by_approved_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
+    async fn user_by_approved_by(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<Option<crate::models::User>> {
         self.reviewer(ctx).await?
     }
 }

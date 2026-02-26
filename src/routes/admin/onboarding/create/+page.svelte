@@ -10,7 +10,7 @@
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import { AlertCircle, ChevronLeft, Loader2 } from '@lucide/svelte';
 
-	const { form, data } = $props();
+	const { form } = $props();
 
 	let submitting = $state(false);
 	let isActive = $state(true);

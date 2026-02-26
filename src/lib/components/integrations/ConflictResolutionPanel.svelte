@@ -21,7 +21,7 @@
 		ChevronDown,
 		ChevronUp,
 		Info
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import type { ConflictStrategy } from '$lib/types/sync';
 
 	interface ConflictData {

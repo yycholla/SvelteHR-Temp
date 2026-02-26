@@ -19,9 +19,8 @@ mod tests {
 
     /// Set up test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/hr_test".to_string()
-        });
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/hr_test".to_string());
         Database::connect(&db_url)
             .await
             .expect("Failed to connect to test database")
@@ -262,10 +261,7 @@ mod tests {
         // Run down migration (no-op)
         let result = Migration.down(&schema_manager).await;
 
-        assert!(
-            result.is_ok(),
-            "Migration down should succeed (no-op)"
-        );
+        assert!(result.is_ok(), "Migration down should succeed (no-op)");
     }
 
     #[tokio::test]

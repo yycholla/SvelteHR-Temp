@@ -5,13 +5,13 @@
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use sea_orm::*;
 use sea_orm::sea_query::Expr;
+use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::department::{Entity as DepartmentEntity, Column as DepartmentColumn};
-use crate::models::user::{Entity as UserEntity, Column as UserColumn};
+use crate::models::department::{Column as DepartmentColumn, Entity as DepartmentEntity};
+use crate::models::user::{Column as UserColumn, Entity as UserEntity};
 
 /// Entity type for sync operations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,10 +99,13 @@ impl SyncTracker {
                     .add(
                         Condition::all()
                             .add(UserColumn::LastSyncedAt.is_not_null())
-                            .add(Expr::col(UserColumn::LastModifiedAt).gt(Expr::col(UserColumn::LastSyncedAt)))
+                            .add(
+                                Expr::col(UserColumn::LastModifiedAt)
+                                    .gt(Expr::col(UserColumn::LastSyncedAt)),
+                            ),
                     )
                     // Status indicates local change
-                    .add(UserColumn::SyncStatus.ne("synced"))
+                    .add(UserColumn::SyncStatus.ne("synced")),
             )
             .filter(UserColumn::DeletedAt.is_null())
             .all(db)
@@ -134,10 +137,13 @@ impl SyncTracker {
                     .add(
                         Condition::all()
                             .add(DepartmentColumn::LastSyncedAt.is_not_null())
-                            .add(Expr::col(DepartmentColumn::LastModifiedAt).gt(Expr::col(DepartmentColumn::LastSyncedAt)))
+                            .add(
+                                Expr::col(DepartmentColumn::LastModifiedAt)
+                                    .gt(Expr::col(DepartmentColumn::LastSyncedAt)),
+                            ),
                     )
                     // Status indicates local change
-                    .add(DepartmentColumn::SyncStatus.ne("synced"))
+                    .add(DepartmentColumn::SyncStatus.ne("synced")),
             )
             .filter(DepartmentColumn::DeletedAt.is_null())
             .all(db)
@@ -168,7 +174,7 @@ impl SyncTracker {
         db: &DatabaseConnection,
         entity_type: EntityType,
     ) -> Result<Vec<ChangeRecord>> {
-        use crate::integrations::intuit::{EmployeeExtended, Department};
+        use crate::integrations::intuit::{Department, EmployeeExtended};
 
         match entity_type {
             EntityType::Employee => {
@@ -184,7 +190,9 @@ impl SyncTracker {
                     .into_iter()
                     .filter_map(|emp| {
                         // Only include employees with ID and SyncToken
-                        if let (Some(id), Some(sync_token)) = (emp.base.id.clone(), emp.base.sync_token.clone()) {
+                        if let (Some(id), Some(sync_token)) =
+                            (emp.base.id.clone(), emp.base.sync_token.clone())
+                        {
                             // Extract last_updated_time from MetaData
                             // If MetaData is not available, use current time as fallback
                             let last_updated_time = emp
@@ -219,7 +227,9 @@ impl SyncTracker {
                     .into_iter()
                     .filter_map(|dept| {
                         // Only include departments with ID and SyncToken
-                        if let (Some(id), Some(sync_token)) = (dept.id.clone(), dept.sync_token.clone()) {
+                        if let (Some(id), Some(sync_token)) =
+                            (dept.id.clone(), dept.sync_token.clone())
+                        {
                             // Extract last_updated_time from MetaData
                             // If MetaData is not available, use current time as fallback
                             let last_updated_time = dept
@@ -261,12 +271,8 @@ impl SyncTracker {
         for qb_record in qb_records {
             // Find corresponding local record and get both last_synced and entity_id
             let (local_last_synced, local_entity_id) = match entity_type {
-                EntityType::Employee => {
-                    Self::get_employee_sync_info(db, &qb_record.id).await?
-                }
-                EntityType::Department => {
-                    Self::get_department_sync_info(db, &qb_record.id).await?
-                }
+                EntityType::Employee => Self::get_employee_sync_info(db, &qb_record.id).await?,
+                EntityType::Department => Self::get_department_sync_info(db, &qb_record.id).await?,
             };
 
             // Check if QB record is newer than last sync
@@ -346,22 +352,21 @@ impl SyncTracker {
                 UserEntity::update_many()
                     .col_expr(UserColumn::LastSyncedAt, Expr::value(now))
                     .col_expr(UserColumn::SyncStatus, Expr::value("synced"))
-                    .col_expr(
-                        UserColumn::QuickbooksSyncToken,
-                        Expr::value(sync_token)
-                    )
+                    .col_expr(UserColumn::QuickbooksSyncToken, Expr::value(sync_token))
                     .filter(UserColumn::Id.eq(uuid_id))
                     .exec(db)
                     .await?;
             }
             EntityType::Department => {
-                let uuid_id = entity_id.parse::<Uuid>().context("Invalid department UUID")?;
+                let uuid_id = entity_id
+                    .parse::<Uuid>()
+                    .context("Invalid department UUID")?;
                 DepartmentEntity::update_many()
                     .col_expr(DepartmentColumn::LastSyncedAt, Expr::value(now))
                     .col_expr(DepartmentColumn::SyncStatus, Expr::value("synced"))
                     .col_expr(
                         DepartmentColumn::QuickbooksSyncToken,
-                        Expr::value(sync_token)
+                        Expr::value(sync_token),
                     )
                     .filter(DepartmentColumn::Id.eq(uuid_id))
                     .exec(db)
@@ -388,7 +393,9 @@ impl SyncTracker {
                     .await?;
             }
             EntityType::Department => {
-                let uuid_id = entity_id.parse::<Uuid>().context("Invalid department UUID")?;
+                let uuid_id = entity_id
+                    .parse::<Uuid>()
+                    .context("Invalid department UUID")?;
                 DepartmentEntity::update_many()
                     .col_expr(DepartmentColumn::SyncStatus, Expr::value("conflict"))
                     .filter(DepartmentColumn::Id.eq(uuid_id))
@@ -416,7 +423,9 @@ impl SyncTracker {
                     .await?;
             }
             EntityType::Department => {
-                let uuid_id = entity_id.parse::<Uuid>().context("Invalid department UUID")?;
+                let uuid_id = entity_id
+                    .parse::<Uuid>()
+                    .context("Invalid department UUID")?;
                 DepartmentEntity::update_many()
                     .col_expr(DepartmentColumn::SyncStatus, Expr::value("error"))
                     .filter(DepartmentColumn::Id.eq(uuid_id))

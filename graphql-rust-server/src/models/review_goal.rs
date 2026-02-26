@@ -133,7 +133,9 @@ impl Model {
         ctx: &Context<'_>,
     ) -> GqlResult<Option<super::performance_review::Model>> {
         let db = get_db_from_context(ctx)?;
-        let review = super::performance_review::Entity::find_by_id(self.review_id).one(&db).await?;
+        let review = super::performance_review::Entity::find_by_id(self.review_id)
+            .one(&db)
+            .await?;
         Ok(review)
     }
 
@@ -145,9 +147,7 @@ impl Model {
     /// Whether the goal is overdue
     async fn is_overdue(&self) -> bool {
         if let Some(target) = self.target_date {
-            if self.completion_status != "completed"
-                && self.completion_status != "cancelled"
-            {
+            if self.completion_status != "completed" && self.completion_status != "cancelled" {
                 return Utc::now() > target;
             }
         }
@@ -174,10 +174,7 @@ impl Model {
 
     /// Whether goal is active (not completed or cancelled)
     async fn is_active(&self) -> bool {
-        !matches!(
-            self.completion_status.as_str(),
-            "completed" | "cancelled"
-        )
+        !matches!(self.completion_status.as_str(), "completed" | "cancelled")
     }
 }
 

@@ -129,18 +129,46 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
-                    .col(ColumnDef::new(SyncHealthMetrics::SyncDurationMs).integer().null())
-                    .col(ColumnDef::new(SyncHealthMetrics::RecordsProcessed).integer().null())
-                    .col(ColumnDef::new(SyncHealthMetrics::ErrorsCount).integer().default(0))
-                    .col(ColumnDef::new(SyncHealthMetrics::ApiCallsUsed).integer().default(0))
+                    .col(
+                        ColumnDef::new(SyncHealthMetrics::SyncDurationMs)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(SyncHealthMetrics::RecordsProcessed)
+                            .integer()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(SyncHealthMetrics::ErrorsCount)
+                            .integer()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(SyncHealthMetrics::ApiCallsUsed)
+                            .integer()
+                            .default(0),
+                    )
                     .col(
                         ColumnDef::new(SyncHealthMetrics::ConnectionStatus)
                             .string()
                             .null(),
                     )
-                    .col(ColumnDef::new(SyncHealthMetrics::EntityType).string().null())
-                    .col(ColumnDef::new(SyncHealthMetrics::SyncDirection).string().null())
-                    .col(ColumnDef::new(SyncHealthMetrics::Metadata).json_binary().null())
+                    .col(
+                        ColumnDef::new(SyncHealthMetrics::EntityType)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(SyncHealthMetrics::SyncDirection)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(SyncHealthMetrics::Metadata)
+                            .json_binary()
+                            .null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -208,7 +236,11 @@ impl MigrationTrait for Migration {
                             .array(ColumnType::Uuid)
                             .null(),
                     )
-                    .col(ColumnDef::new(SyncHealthAlerts::Metadata).json_binary().null())
+                    .col(
+                        ColumnDef::new(SyncHealthAlerts::Metadata)
+                            .json_binary()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(SyncHealthAlerts::CreatedAt)
                             .timestamp_with_time_zone()

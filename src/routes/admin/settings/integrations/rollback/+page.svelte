@@ -25,7 +25,46 @@
 		ChevronUp
 	} from '@lucide/svelte';
 
-	let { data } = $props();
+	interface RollbackRequest {
+		id: string;
+		status: string;
+		verificationStatus?: string | null;
+		entityType: string;
+		entityId: string;
+		requestedByEmail?: string | null;
+		affectedRecordsCount?: number | null;
+		createdAt: string;
+		approvedBy?: string | null;
+		approvedByEmail?: string | null;
+		rejectedBy?: string | null;
+		rejectedByEmail?: string | null;
+		executedAt?: string | null;
+		executionDurationMs?: number | null;
+		reason?: string | null;
+		rejectionReason?: string | null;
+		executionError?: string | null;
+		verificationErrors?: string[];
+		rollbackPlan?: unknown;
+		rollbackSnapshot?: unknown;
+		processedAt?: string | null;
+	}
+
+	interface RollbackStatistics {
+		totalRequests: number;
+		pendingRequests: number;
+		successRate?: number;
+		avgExecutionTimeMs?: number;
+	}
+
+	interface RollbackPageData {
+		requests?: RollbackRequest[];
+		statistics?: RollbackStatistics | null;
+		selectedRequest?: RollbackRequest | null;
+		filters?: { status?: string };
+		error?: string;
+	}
+
+	let { data }: { data: RollbackPageData } = $props();
 
 	let selectedStatus = $state(data.filters?.status || '');
 	let refreshing = $state(false);
@@ -78,12 +117,12 @@
 		}
 	}
 
-	function formatDate(dateStr: string): string {
+	function formatDate(dateStr: string | null | undefined): string {
 		if (!dateStr) return 'N/A';
 		return new Date(dateStr).toLocaleString();
 	}
 
-	function formatDuration(ms: number): string {
+	function formatDuration(ms: number | null | undefined): string {
 		if (!ms) return 'N/A';
 		if (ms < 1000) return `${ms}ms`;
 		return `${(ms / 1000).toFixed(2)}s`;
@@ -325,8 +364,8 @@
 				<div class="flex-1">
 					<Select
 						type="single"
-						value={selectedStatus as any}
-						onValueChange={(v: any) => handleStatusChange(v)}
+						value={selectedStatus}
+						onValueChange={(v: string) => handleStatusChange(v)}
 					>
 						<SelectTrigger class="w-full">
 							<SelectValue placeholder="Select status" />

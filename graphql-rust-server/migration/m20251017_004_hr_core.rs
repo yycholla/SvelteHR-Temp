@@ -54,7 +54,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_departments_parent_department_id")
-                    .from((Schema::HrPublic, Departments::Table), Departments::ParentDepartmentId)
+                    .from(
+                        (Schema::HrPublic, Departments::Table),
+                        Departments::ParentDepartmentId,
+                    )
                     .to((Schema::HrPublic, Departments::Table), Departments::Id)
                     .on_delete(ForeignKeyAction::SetNull)
                     .to_owned(),
@@ -66,7 +69,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_departments_manager_id")
-                    .from((Schema::HrPublic, Departments::Table), Departments::ManagerId)
+                    .from(
+                        (Schema::HrPublic, Departments::Table),
+                        Departments::ManagerId,
+                    )
                     .to((Schema::HrPublic, Users::Table), Users::Id)
                     .on_delete(ForeignKeyAction::SetNull)
                     .to_owned(),
@@ -174,7 +180,11 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(TimeOffPolicies::Name).string().not_null())
                     .col(ColumnDef::new(TimeOffPolicies::Description).string())
-                    .col(ColumnDef::new(TimeOffPolicies::LeaveTypeId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(TimeOffPolicies::LeaveTypeId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(TimeOffPolicies::AccrualRate)
                             .decimal()
@@ -209,9 +219,12 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_time_off_policies_leave_type_id")
-                            .from((Schema::HrPublic, TimeOffPolicies::Table), TimeOffPolicies::LeaveTypeId)
+                            .from(
+                                (Schema::HrPublic, TimeOffPolicies::Table),
+                                TimeOffPolicies::LeaveTypeId,
+                            )
                             .to((Schema::HrPublic, LeaveTypes::Table), LeaveTypes::Id)
-                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -232,15 +245,27 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, TimeOffPolicies::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, TimeOffPolicies::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, LeaveTypes::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, LeaveTypes::Table))
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, Departments::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, Departments::Table))
+                    .to_owned(),
+            )
             .await?;
 
         Ok(())

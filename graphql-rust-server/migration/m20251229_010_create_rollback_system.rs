@@ -118,21 +118,13 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()".to_string()),
                     )
-                    .col(
-                        ColumnDef::new(SyncSnapshots::SyncLogId)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(SyncSnapshots::SyncLogId).uuid().null())
                     .col(
                         ColumnDef::new(SyncSnapshots::EntityType)
                             .string_len(100)
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(SyncSnapshots::EntityId)
-                            .uuid()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(SyncSnapshots::EntityId).uuid().not_null())
                     .col(
                         ColumnDef::new(SyncSnapshots::OperationType)
                             .string_len(50)
@@ -165,21 +157,13 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(true),
                     )
-                    .col(
-                        ColumnDef::new(SyncSnapshots::RollbackReason)
-                            .text()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(SyncSnapshots::RollbackReason).text().null())
                     .col(
                         ColumnDef::new(SyncSnapshots::ExpiresAt)
                             .timestamp_with_time_zone()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(SyncSnapshots::Metadata)
-                            .json_binary()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(SyncSnapshots::Metadata).json_binary().null())
                     .col(
                         ColumnDef::new(SyncSnapshots::CreatedAt)
                             .timestamp_with_time_zone()
@@ -211,11 +195,7 @@ impl MigrationTrait for Migration {
                             .uuid()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(RollbackOperations::SyncLogId)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(RollbackOperations::SyncLogId).uuid().null())
                     .col(
                         ColumnDef::new(RollbackOperations::RollbackType)
                             .string_len(50)
@@ -245,11 +225,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
-                    .col(
-                        ColumnDef::new(RollbackOperations::Reason)
-                            .text()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(RollbackOperations::Reason).text().not_null())
                     .col(
                         ColumnDef::new(RollbackOperations::TriggeredBy)
                             .uuid()
@@ -308,7 +284,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_sync_snapshots_sync_log")
-                    .from((Schema::HrPublic, SyncSnapshots::Table), SyncSnapshots::SyncLogId)
+                    .from(
+                        (Schema::HrPublic, SyncSnapshots::Table),
+                        SyncSnapshots::SyncLogId,
+                    )
                     .to((Schema::HrPublic, IntuitSyncLog::Table), IntuitSyncLog::Id)
                     .on_delete(ForeignKeyAction::SetNull)
                     .to_owned(),
@@ -320,7 +299,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_rollback_operations_snapshot")
-                    .from((Schema::HrPublic, RollbackOperations::Table), RollbackOperations::SnapshotId)
+                    .from(
+                        (Schema::HrPublic, RollbackOperations::Table),
+                        RollbackOperations::SnapshotId,
+                    )
                     .to((Schema::HrPublic, SyncSnapshots::Table), SyncSnapshots::Id)
                     .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),
@@ -332,7 +314,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_rollback_operations_sync_log")
-                    .from((Schema::HrPublic, RollbackOperations::Table), RollbackOperations::SyncLogId)
+                    .from(
+                        (Schema::HrPublic, RollbackOperations::Table),
+                        RollbackOperations::SyncLogId,
+                    )
                     .to((Schema::HrPublic, IntuitSyncLog::Table), IntuitSyncLog::Id)
                     .on_delete(ForeignKeyAction::SetNull)
                     .to_owned(),

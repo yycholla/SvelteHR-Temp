@@ -56,7 +56,13 @@ pub async fn seed_events(
         let title: String = Sentence(3..6).fake();
 
         // Event types and statuses
-        let event_types = vec!["meeting", "training", "social", "company_event", "team_building"];
+        let event_types = vec![
+            "meeting",
+            "training",
+            "social",
+            "company_event",
+            "team_building",
+        ];
         let event_type = event_types[i % event_types.len()];
         let status = if final_offset < -7 {
             "completed"
@@ -118,7 +124,10 @@ pub async fn seed_documents(
     context: &SeedContext,
 ) -> Result<EntitySeedResult> {
     let mut result = EntitySeedResult::new("documents");
-    let target_count = context.config.get_target_count(EntityType::Documents).min(40);
+    let target_count = context
+        .config
+        .get_target_count(EntityType::Documents)
+        .min(40);
 
     // Get all active users
     let users = crate::models::user::Entity::find()
@@ -237,7 +246,10 @@ pub async fn seed_tasks(
             id: Set(task_id),
             title: Set(title.clone()),
             description: Set(Some(if is_department_task {
-                format!("Department-level task {} - requires team coordination", i + 1)
+                format!(
+                    "Department-level task {} - requires team coordination",
+                    i + 1
+                )
             } else {
                 format!("Individual task {}", i + 1)
             })),
@@ -301,7 +313,10 @@ pub async fn seed_time_entries(
     context: &SeedContext,
 ) -> Result<EntitySeedResult> {
     let mut result = EntitySeedResult::new("attendance_records");
-    let target_count = context.config.get_target_count(EntityType::TimeEntries).min(150);
+    let target_count = context
+        .config
+        .get_target_count(EntityType::TimeEntries)
+        .min(150);
 
     // Get all active users
     let users = crate::models::user::Entity::find()

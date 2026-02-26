@@ -124,7 +124,9 @@ async fn test_migration_compiles() {
 
 #[tokio::test]
 async fn test_up_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
 
     // Run up migration
     let schema_manager = SchemaManager::new(&db);
@@ -152,7 +154,9 @@ async fn test_up_migration() {
 
 #[tokio::test]
 async fn test_sync_health_metrics_columns() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     Migration.up(&schema_manager).await.unwrap();
 
@@ -186,10 +190,9 @@ async fn test_sync_health_metrics_columns() {
         .unwrap();
     assert_eq!(id_type, Some("uuid".to_string()));
 
-    let recorded_at_type =
-        get_column_type(&db, "hr_public", "sync_health_metrics", "recorded_at")
-            .await
-            .unwrap();
+    let recorded_at_type = get_column_type(&db, "hr_public", "sync_health_metrics", "recorded_at")
+        .await
+        .unwrap();
     assert_eq!(
         recorded_at_type,
         Some("timestamp with time zone".to_string())
@@ -203,7 +206,9 @@ async fn test_sync_health_metrics_columns() {
 
 #[tokio::test]
 async fn test_sync_health_alerts_columns() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     Migration.up(&schema_manager).await.unwrap();
 
@@ -254,7 +259,9 @@ async fn test_sync_health_alerts_columns() {
 
 #[tokio::test]
 async fn test_sync_health_metrics_indexes() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     let migration = Migration;
 
@@ -278,7 +285,9 @@ async fn test_sync_health_metrics_indexes() {
 
 #[tokio::test]
 async fn test_sync_health_alerts_indexes() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     let migration = Migration;
 
@@ -309,7 +318,9 @@ async fn test_sync_health_alerts_indexes() {
 
 #[tokio::test]
 async fn test_idempotent_up_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Run migration twice
@@ -323,25 +334,22 @@ async fn test_idempotent_up_migration() {
         .expect("Second up migration should succeed (idempotent)");
 
     // Tables should still exist
-    assert!(
-        table_exists(&db, "hr_public", "sync_health_metrics")
-            .await
-            .unwrap()
-    );
-    assert!(
-        table_exists(&db, "hr_public", "sync_health_alerts")
-            .await
-            .unwrap()
-    );
+    assert!(table_exists(&db, "hr_public", "sync_health_metrics")
+        .await
+        .unwrap());
+    assert!(table_exists(&db, "hr_public", "sync_health_alerts")
+        .await
+        .unwrap());
 }
 
 #[tokio::test]
 async fn test_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
-
 
     // Run up then down migration
     migration.up(&schema_manager).await.unwrap();
@@ -365,25 +373,22 @@ async fn test_down_migration() {
     );
 
     // Indexes should not exist
-    assert!(
-        !index_exists(&db, "idx_sync_health_metrics_recorded_at")
-            .await
-            .unwrap()
-    );
-    assert!(
-        !index_exists(&db, "idx_sync_health_alerts_severity")
-            .await
-            .unwrap()
-    );
+    assert!(!index_exists(&db, "idx_sync_health_metrics_recorded_at")
+        .await
+        .unwrap());
+    assert!(!index_exists(&db, "idx_sync_health_alerts_severity")
+        .await
+        .unwrap());
 }
 
 #[tokio::test]
 async fn test_idempotent_down_migration() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     let migration = Migration;
-
 
     // Run up, then down twice
     migration.up(&schema_manager).await.unwrap();
@@ -407,7 +412,9 @@ async fn test_idempotent_down_migration() {
 
 #[tokio::test]
 async fn test_full_migration_cycle() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
     // Up migration
@@ -449,7 +456,9 @@ async fn test_full_migration_cycle() {
 
 #[tokio::test]
 async fn test_column_defaults() {
-    let db = get_test_db().await.expect("Failed to connect to test database");
+    let db = get_test_db()
+        .await
+        .expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
     let migration = Migration;
 

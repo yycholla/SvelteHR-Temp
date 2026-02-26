@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
                     'system_admin',
                     true,
                     NOW()
-                ) ON CONFLICT (email) DO NOTHING"
+                ) ON CONFLICT (email) DO NOTHING",
             )
             .await?;
 
@@ -37,7 +37,7 @@ impl MigrationTrait for Migration {
                 (gen_random_uuid(), 'HR Manager', 'HR management access', 75),
                 (gen_random_uuid(), 'Manager', 'Team management access', 50),
                 (gen_random_uuid(), 'Employee', 'Basic employee access', 25)
-                ON CONFLICT (name) DO NOTHING"
+                ON CONFLICT (name) DO NOTHING",
             )
             .await?;
 
@@ -73,7 +73,7 @@ impl MigrationTrait for Migration {
                 (gen_random_uuid(), 'reports', 'generate', 'Generate custom reports'),
                 (gen_random_uuid(), 'teams', 'read', 'View teams and team information'),
                 (gen_random_uuid(), 'teams', 'write', 'Create and manage teams')
-                ON CONFLICT (resource, action) DO NOTHING"
+                ON CONFLICT (resource, action) DO NOTHING",
             )
             .await?;
 
@@ -86,7 +86,7 @@ impl MigrationTrait for Migration {
                 FROM hr_public.roles r
                 CROSS JOIN hr_public.permissions p
                 WHERE r.name = 'Admin'
-                ON CONFLICT DO NOTHING"
+                ON CONFLICT DO NOTHING",
             )
             .await?;
 
@@ -99,7 +99,7 @@ impl MigrationTrait for Migration {
                 FROM hr_public.users u
                 CROSS JOIN hr_public.roles r
                 WHERE u.email = 'admin@mountainhr.dev' AND r.name = 'Admin'
-                ON CONFLICT DO NOTHING"
+                ON CONFLICT DO NOTHING",
             )
             .await?;
 

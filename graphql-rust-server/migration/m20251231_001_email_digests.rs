@@ -253,7 +253,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_email_digest_log_digest_id")
-                    .from((Schema::HrPublic, EmailDigestLog::Table), EmailDigestLog::DigestId)
+                    .from(
+                        (Schema::HrPublic, EmailDigestLog::Table),
+                        EmailDigestLog::DigestId,
+                    )
                     .to((Schema::HrPublic, EmailDigests::Table), EmailDigests::Id)
                     .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),
@@ -266,7 +269,10 @@ impl MigrationTrait for Migration {
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_email_digests_created_by")
-                    .from((Schema::HrPublic, EmailDigests::Table), EmailDigests::CreatedBy)
+                    .from(
+                        (Schema::HrPublic, EmailDigests::Table),
+                        EmailDigests::CreatedBy,
+                    )
                     .to((Schema::HrPublic, Users::Table), Users::Id)
                     .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),

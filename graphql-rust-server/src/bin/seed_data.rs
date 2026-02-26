@@ -13,7 +13,7 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
         )
         .init();
 
@@ -43,16 +43,17 @@ async fn main() {
     tracing::info!("Configuration: {:?}", config);
 
     // Initialize seed context
-    let context = match hr_graphql_server::seed_data::context::initialize_seed_context(&db, config).await {
-        Ok(ctx) => {
-            tracing::info!("Seed context initialized with batch_id: {}", ctx.batch_id);
-            ctx
-        }
-        Err(e) => {
-            eprintln!("Failed to initialize seed context: {}", e);
-            process::exit(3);
-        }
-    };
+    let context =
+        match hr_graphql_server::seed_data::context::initialize_seed_context(&db, config).await {
+            Ok(ctx) => {
+                tracing::info!("Seed context initialized with batch_id: {}", ctx.batch_id);
+                ctx
+            }
+            Err(e) => {
+                eprintln!("Failed to initialize seed context: {}", e);
+                process::exit(3);
+            }
+        };
 
     // Execute seeding in dependency order
     let mut overall_result = SeedResult::new(context.batch_id);
@@ -60,55 +61,115 @@ async fn main() {
 
     // Phase 1: Foundation entities (no dependencies)
     tracing::info!("=== Phase 1: Foundation Entities ===");
-    execute_and_aggregate(&mut overall_result, "roles",
-        hr_graphql_server::seed_data::builders::seed_roles(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "permissions",
-        hr_graphql_server::seed_data::builders::seed_permissions(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "role_permissions",
-        hr_graphql_server::seed_data::builders::seed_role_permissions(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "leave_types",
-        hr_graphql_server::seed_data::builders::seed_leave_types(&db, &context).await);
+    execute_and_aggregate(
+        &mut overall_result,
+        "roles",
+        hr_graphql_server::seed_data::builders::seed_roles(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "permissions",
+        hr_graphql_server::seed_data::builders::seed_permissions(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "role_permissions",
+        hr_graphql_server::seed_data::builders::seed_role_permissions(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "leave_types",
+        hr_graphql_server::seed_data::builders::seed_leave_types(&db, &context).await,
+    );
 
     // Phase 2: Core entities (Department ↔ User circular dependency)
     tracing::info!("=== Phase 2: Core Entities ===");
-    execute_and_aggregate(&mut overall_result, "departments",
-        hr_graphql_server::seed_data::builders::seed_departments(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "users",
-        hr_graphql_server::seed_data::builders::seed_users(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "department_managers",
-        hr_graphql_server::seed_data::builders::update_department_managers(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "user_managers",
-        hr_graphql_server::seed_data::builders::assign_user_managers(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "user_role_assignments",
-        hr_graphql_server::seed_data::builders::seed_user_role_assignments(&db, &context).await);
+    execute_and_aggregate(
+        &mut overall_result,
+        "departments",
+        hr_graphql_server::seed_data::builders::seed_departments(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "users",
+        hr_graphql_server::seed_data::builders::seed_users(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "department_managers",
+        hr_graphql_server::seed_data::builders::update_department_managers(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "user_managers",
+        hr_graphql_server::seed_data::builders::assign_user_managers(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "user_role_assignments",
+        hr_graphql_server::seed_data::builders::seed_user_role_assignments(&db, &context).await,
+    );
 
     // Phase 3: Extended entities (depend on users)
     tracing::info!("=== Phase 3: Extended Entities ===");
-    execute_and_aggregate(&mut overall_result, "leave_balances",
-        hr_graphql_server::seed_data::builders::seed_leave_balances(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "employee_skills",
-        hr_graphql_server::seed_data::builders::seed_employee_skills(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "employee_certifications",
-        hr_graphql_server::seed_data::builders::seed_employee_certifications(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "emergency_contacts",
-        hr_graphql_server::seed_data::builders::seed_emergency_contacts(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "user_addresses",
-        hr_graphql_server::seed_data::builders::seed_user_addresses(&db, &context).await);
+    execute_and_aggregate(
+        &mut overall_result,
+        "leave_balances",
+        hr_graphql_server::seed_data::builders::seed_leave_balances(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "employee_skills",
+        hr_graphql_server::seed_data::builders::seed_employee_skills(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "employee_certifications",
+        hr_graphql_server::seed_data::builders::seed_employee_certifications(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "emergency_contacts",
+        hr_graphql_server::seed_data::builders::seed_emergency_contacts(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "user_addresses",
+        hr_graphql_server::seed_data::builders::seed_user_addresses(&db, &context).await,
+    );
 
     // Phase 4: Operational entities (depend on multiple entities)
     tracing::info!("=== Phase 4: Operational Entities ===");
-    execute_and_aggregate(&mut overall_result, "leave_requests",
-        hr_graphql_server::seed_data::builders::seed_leave_requests(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "events",
-        hr_graphql_server::seed_data::builders::seed_events(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "documents",
-        hr_graphql_server::seed_data::builders::seed_documents(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "task_types",
-        hr_graphql_server::seed_data::builders::seed_task_types(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "tasks",
-        hr_graphql_server::seed_data::builders::seed_tasks(&db, &context).await);
-    execute_and_aggregate(&mut overall_result, "time_entries",
-        hr_graphql_server::seed_data::builders::seed_time_entries(&db, &context).await);
+    execute_and_aggregate(
+        &mut overall_result,
+        "leave_requests",
+        hr_graphql_server::seed_data::builders::seed_leave_requests(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "events",
+        hr_graphql_server::seed_data::builders::seed_events(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "documents",
+        hr_graphql_server::seed_data::builders::seed_documents(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "task_types",
+        hr_graphql_server::seed_data::builders::seed_task_types(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "tasks",
+        hr_graphql_server::seed_data::builders::seed_tasks(&db, &context).await,
+    );
+    execute_and_aggregate(
+        &mut overall_result,
+        "time_entries",
+        hr_graphql_server::seed_data::builders::seed_time_entries(&db, &context).await,
+    );
 
     let duration = start_time.elapsed();
 
@@ -120,7 +181,10 @@ async fn main() {
     tracing::info!("Total failures: {}", overall_result.total_failed());
 
     if overall_result.total_failed() > 0 {
-        tracing::warn!("Seeding completed with {} failures", overall_result.total_failed());
+        tracing::warn!(
+            "Seeding completed with {} failures",
+            overall_result.total_failed()
+        );
         tracing::warn!("Continuing server startup despite seed data failures");
         process::exit(0); // Changed from exit(3) - allow server to start
     } else {

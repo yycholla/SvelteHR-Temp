@@ -7,7 +7,9 @@ use uuid::Uuid;
 use crate::database::get_db_from_context;
 
 /// RSVP status for event attendees
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, EnumIter, DeriveActiveEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, EnumIter, DeriveActiveEnum,
+)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 #[graphql(rename_items = "lowercase")]
 pub enum RsvpStatus {
@@ -22,7 +24,9 @@ pub enum RsvpStatus {
 }
 
 /// RSVP scope for recurring events
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, EnumIter, DeriveActiveEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, EnumIter, DeriveActiveEnum,
+)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 #[graphql(rename_items = "lowercase")]
 pub enum RsvpScope {

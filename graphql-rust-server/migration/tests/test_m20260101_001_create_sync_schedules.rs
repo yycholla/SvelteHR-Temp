@@ -11,15 +11,18 @@
 
 #[cfg(test)]
 mod tests {
+    use hr_graphql_server::migration::m20260101_001_create_sync_schedules::Migration;
     use sea_orm::{Database, DatabaseConnection, DbBackend, Statement};
     use sea_orm_migration::prelude::*;
-    use hr_graphql_server::migration::m20260101_001_create_sync_schedules::Migration;
 
     /// Setup a test database connection
     async fn setup_test_db() -> DatabaseConnection {
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://postgres:postgres123@localhost:5433/hr_test".to_string());
-        Database::connect(&db_url).await.expect("Failed to connect to test database")
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres123@localhost:5433/hr_test".to_string()
+        });
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     /// Clean up test data after test runs
@@ -63,7 +66,8 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'sync_schedules'".to_string(),
+                 AND table_name = 'sync_schedules'"
+                    .to_string(),
             ))
             .await;
 
@@ -76,11 +80,15 @@ mod tests {
                 DbBackend::Postgres,
                 "SELECT table_name FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name = 'sync_schedule_history'".to_string(),
+                 AND table_name = 'sync_schedule_history'"
+                    .to_string(),
             ))
             .await;
 
-        assert!(table_result.is_ok(), "sync_schedule_history table should exist");
+        assert!(
+            table_result.is_ok(),
+            "sync_schedule_history table should exist"
+        );
         assert!(table_result.unwrap().is_some());
 
         cleanup_test_data(&db).await;
@@ -94,11 +102,21 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         let columns = vec![
-            "id", "name", "cron_expression", "entity_type", "sync_direction",
-            "enabled", "business_hours_only", "timezone", "created_by",
+            "id",
+            "name",
+            "cron_expression",
+            "entity_type",
+            "sync_direction",
+            "enabled",
+            "business_hours_only",
+            "timezone",
+            "created_by",
         ];
 
         for column_name in columns {
@@ -130,7 +148,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Verify foreign key for created_by
         let fk_result = db
@@ -140,7 +161,8 @@ mod tests {
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'sync_schedules'
                  AND constraint_name = 'fk_sync_schedules_created_by'
-                 AND constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
@@ -155,7 +177,8 @@ mod tests {
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'sync_schedule_history'
                  AND constraint_name = 'fk_sync_schedule_history_schedule_id'
-                 AND constraint_type = 'FOREIGN KEY'".to_string(),
+                 AND constraint_type = 'FOREIGN KEY'"
+                    .to_string(),
             ))
             .await;
 
@@ -173,7 +196,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         let indexes = vec![
             ("sync_schedules", "idx_sync_schedules_enabled"),
@@ -209,7 +235,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         let constraints = vec![
             "valid_cron_expression",
@@ -232,7 +261,11 @@ mod tests {
                 ))
                 .await;
 
-            assert!(constraint_result.is_ok(), "Constraint {} should exist", constraint_name);
+            assert!(
+                constraint_result.is_ok(),
+                "Constraint {} should exist",
+                constraint_name
+            );
             assert!(constraint_result.unwrap().is_some());
         }
 
@@ -247,20 +280,31 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         let table_result = db
             .query_one(Statement::from_string(
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name IN ('sync_schedules', 'sync_schedule_history')".to_string(),
+                 AND table_name IN ('sync_schedules', 'sync_schedule_history')"
+                    .to_string(),
             ))
             .await;
 
         assert!(table_result.is_ok());
-        let count: i64 = table_result.unwrap().unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = table_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 0, "Both tables should be dropped");
 
         cleanup_test_data(&db).await;
@@ -274,8 +318,14 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("First migration up should succeed");
-        migration.up(&schema_manager).await.expect("Second migration up should succeed (idempotent)");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("First migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Second migration up should succeed (idempotent)");
 
         cleanup_test_data(&db).await;
     }
@@ -288,9 +338,18 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
-        migration.down(&schema_manager).await.expect("First migration down should succeed");
-        migration.down(&schema_manager).await.expect("Second migration down should succeed (idempotent)");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("First migration down should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Second migration down should succeed (idempotent)");
 
         cleanup_test_data(&db).await;
     }
@@ -303,30 +362,46 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         let table_check = db
             .query_one(Statement::from_string(
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name IN ('sync_schedules', 'sync_schedule_history')".to_string(),
+                 AND table_name IN ('sync_schedules', 'sync_schedule_history')"
+                    .to_string(),
             ))
             .await;
-        let count: i64 = table_check.unwrap().unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = table_check
+            .unwrap()
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 2, "Both tables should exist after up");
 
-        migration.down(&schema_manager).await.expect("Migration down should succeed");
+        migration
+            .down(&schema_manager)
+            .await
+            .expect("Migration down should succeed");
 
         let table_check = db
             .query_one(Statement::from_string(
                 DbBackend::Postgres,
                 "SELECT COUNT(*) as count FROM information_schema.tables
                  WHERE table_schema = 'hr_public'
-                 AND table_name IN ('sync_schedules', 'sync_schedule_history')".to_string(),
+                 AND table_name IN ('sync_schedules', 'sync_schedule_history')"
+                    .to_string(),
             ))
             .await;
-        let count: i64 = table_check.unwrap().unwrap().try_get("", "count").expect("Should get count");
+        let count: i64 = table_check
+            .unwrap()
+            .unwrap()
+            .try_get("", "count")
+            .expect("Should get count");
         assert_eq!(count, 0, "Tables should be dropped after down");
 
         cleanup_test_data(&db).await;
@@ -340,7 +415,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         // Verify enabled column default
         let default_result = db
@@ -349,12 +427,17 @@ mod tests {
                 "SELECT column_default FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'sync_schedules'
-                 AND column_name = 'enabled'".to_string(),
+                 AND column_name = 'enabled'"
+                    .to_string(),
             ))
             .await;
 
         assert!(default_result.is_ok());
-        let default_val: Option<String> = default_result.unwrap().unwrap().try_get("", "column_default").ok();
+        let default_val: Option<String> = default_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "column_default")
+            .ok();
         assert!(default_val.is_some());
         assert!(default_val.unwrap().contains("true"));
 
@@ -365,12 +448,17 @@ mod tests {
                 "SELECT column_default FROM information_schema.columns
                  WHERE table_schema = 'hr_public'
                  AND table_name = 'sync_schedules'
-                 AND column_name = 'timezone'".to_string(),
+                 AND column_name = 'timezone'"
+                    .to_string(),
             ))
             .await;
 
         assert!(default_result.is_ok());
-        let default_val: Option<String> = default_result.unwrap().unwrap().try_get("", "column_default").ok();
+        let default_val: Option<String> = default_result
+            .unwrap()
+            .unwrap()
+            .try_get("", "column_default")
+            .ok();
         assert!(default_val.is_some());
         assert!(default_val.unwrap().contains("UTC"));
 
@@ -385,7 +473,10 @@ mod tests {
         cleanup_test_data(&db).await;
 
         let migration = Migration;
-        migration.up(&schema_manager).await.expect("Migration up should succeed");
+        migration
+            .up(&schema_manager)
+            .await
+            .expect("Migration up should succeed");
 
         let metric_columns = vec![
             "records_synced",
@@ -411,8 +502,14 @@ mod tests {
 
             assert!(column_result.is_ok(), "Column {} should exist", column_name);
             let column = column_result.unwrap().unwrap();
-            let data_type: String = column.try_get("", "data_type").expect("Should get data_type");
-            assert_eq!(data_type, "integer", "{} should be integer type", column_name);
+            let data_type: String = column
+                .try_get("", "data_type")
+                .expect("Should get data_type");
+            assert_eq!(
+                data_type, "integer",
+                "{} should be integer type",
+                column_name
+            );
         }
 
         cleanup_test_data(&db).await;

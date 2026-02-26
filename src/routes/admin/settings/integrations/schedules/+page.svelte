@@ -32,7 +32,7 @@
 		Zap
 	} from '@lucide/svelte';
 	import { invalidate, goto } from '$app/navigation';
-	import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
+	import { createUrqlClient } from '$lib/graphql/client';
 	import {
 		CREATE_SYNC_SCHEDULE,
 		UPDATE_SYNC_SCHEDULE,
@@ -41,24 +41,87 @@
 	} from '$lib/graphql/operations/sync-schedule';
 	import { browser } from '$app/environment';
 
-	let { data } = $props();
-	let schedules = $derived(data.schedules);
+	type ScheduleEntityType = 'Employee' | 'Department' | 'Both';
+	type ScheduleSyncDirection = 'Pull' | 'Push' | 'Bidirectional';
+	type ScheduleFrequency = 'daily' | 'every6h' | 'weekdays' | 'weekly' | 'custom';
+	type EnabledFilter = 'all' | 'true';
+
+	interface SyncSchedule {
+		id: string;
+		name: string;
+		description: string | null;
+		cronExpression: string;
+		entityType: ScheduleEntityType;
+		syncDirection: ScheduleSyncDirection;
+		enabled: boolean;
+		businessHoursOnly: boolean;
+		timezone: string;
+		lastRunAt: string | null;
+		nextRunAt: string | null;
+		lastRunStatus: string | null;
+		lastRunError: string | null;
+	}
+
+	interface ScheduleRunHistory {
+		id: string;
+		startedAt: string;
+		completedAt: string | null;
+		status: string;
+		recordsSynced: number | null;
+		recordsPushed: number | null;
+		recordsPulled: number | null;
+		errorsCount: number | null;
+		errorMessage: string | null;
+		executionTimeMs: number | null;
+	}
+
+	interface ScheduleFilters {
+		enabled?: boolean;
+		entityType?: ScheduleEntityType;
+	}
+
+	interface ScheduleFormData {
+		name: string;
+		description: string;
+		cronExpression: string;
+		entityType: ScheduleEntityType;
+		syncDirection: ScheduleSyncDirection;
+		enabled: boolean;
+		businessHoursOnly: boolean;
+		timezone: string;
+		scheduleType: ScheduleFrequency;
+		hour: number;
+		minute: number;
+		dayOfWeek: number;
+	}
+
+	interface SchedulesPageData {
+		schedules: SyncSchedule[];
+		selectedSchedule: SyncSchedule | null;
+		history: ScheduleRunHistory[];
+		filters?: ScheduleFilters;
+		total: number;
+		error?: string;
+	}
+
+	let { data }: { data: SchedulesPageData } = $props();
+	let schedules = $derived(data.schedules || []);
 	let selectedSchedule = $derived(data.selectedSchedule);
-	let history = $derived(data.history);
+	let history = $derived(data.history || []);
 	let filters = $derived(data.filters || {});
 
 	let refreshing = $state(false);
-	let selectedEnabled = $state('all');
-	let selectedEntityType = $state('all');
+	let selectedEnabled = $state<EnabledFilter>('all');
+	let selectedEntityType = $state<'all' | ScheduleEntityType>('all');
 	let showCreateDialog = $state(false);
 	let showEditDialog = $state(false);
 	let showDeleteDialog = $state(false);
-	let scheduleToEdit = $state<any>(null);
-	let scheduleToDelete = $state<any>(null);
+	let scheduleToEdit = $state<SyncSchedule | null>(null);
+	let scheduleToDelete = $state<SyncSchedule | null>(null);
 	let submitting = $state(false);
 
 	// Form state for create/edit
-	let formData = $state({
+	let formData = $state<ScheduleFormData>({
 		name: '',
 		description: '',
 		cronExpression: '0 0 2 * * *', // Default: 2 AM daily
@@ -75,7 +138,7 @@
 	});
 
 	$effect(() => {
-		const f = filters as any;
+		const f = filters;
 		if (f.enabled !== undefined) selectedEnabled = f.enabled ? 'true' : 'all';
 		if (f.entityType) selectedEntityType = f.entityType;
 	});
@@ -93,7 +156,7 @@
 		{ value: 'Pull', label: 'Pull from QuickBooks' },
 		{ value: 'Push', label: 'Push to QuickBooks' },
 		{ value: 'Bidirectional', label: 'Bidirectional Sync' }
-	];
+	] as const;
 
 	// Schedule types
 	const scheduleTypes = [
@@ -114,7 +177,41 @@
 			label: 'Custom cron expression',
 			description: 'Enter a custom cron expression'
 		}
-	];
+	] as const;
+
+	function parseEntityType(value: string): ScheduleEntityType {
+		return value === 'Department' || value === 'Both' ? value : 'Employee';
+	}
+
+	function parseEntityTypeFilter(value: string): 'all' | ScheduleEntityType {
+		return value === 'all' ? 'all' : parseEntityType(value);
+	}
+
+	function parseSyncDirection(value: string): ScheduleSyncDirection {
+		return value === 'Push' || value === 'Bidirectional' ? value : 'Pull';
+	}
+
+	function parseScheduleFrequency(value: string): ScheduleFrequency {
+		return value === 'every6h' || value === 'weekdays' || value === 'weekly' || value === 'custom'
+			? value
+			: 'daily';
+	}
+
+	function parseIntSafe(value: string, fallback: number): number {
+		const parsed = Number.parseInt(value, 10);
+		return Number.isNaN(parsed) ? fallback : parsed;
+	}
+
+	function hasNextRunAt(schedule: SyncSchedule): schedule is SyncSchedule & { nextRunAt: string } {
+		return schedule.enabled && typeof schedule.nextRunAt === 'string';
+	}
+
+	const nextScheduledRun = $derived.by(() => {
+		const upcoming = schedules
+			.filter(hasNextRunAt)
+			.sort((a, b) => new Date(a.nextRunAt).getTime() - new Date(b.nextRunAt).getTime());
+		return upcoming[0]?.nextRunAt ?? null;
+	});
 
 	// Hours (0-23)
 	const hours = Array.from({ length: 24 }, (_, i) => ({
@@ -249,13 +346,13 @@
 		showCreateDialog = true;
 	}
 
-	function openEditDialog(schedule: any) {
+	function openEditDialog(schedule: SyncSchedule) {
 		scheduleToEdit = schedule;
 
 		// Parse cron expression to determine schedule type and time
 		const cronParts = schedule.cronExpression.split(' ');
-		const minute = parseInt(cronParts[1]);
-		const hour = parseInt(cronParts[2]);
+		const minute = parseIntSafe(cronParts[1], 0);
+		const hour = parseIntSafe(cronParts[2], 2);
 		const dayOfMonth = cronParts[3];
 		const month = cronParts[4];
 		const dayOfWeek = cronParts[5];
@@ -268,9 +365,9 @@
 				scheduleType = 'daily';
 			} else if (dayOfWeek === '1-5') {
 				scheduleType = 'weekdays';
-			} else if (!isNaN(parseInt(dayOfWeek))) {
+			} else if (!Number.isNaN(Number.parseInt(dayOfWeek, 10))) {
 				scheduleType = 'weekly';
-				parsedDayOfWeek = parseInt(dayOfWeek);
+				parsedDayOfWeek = parseIntSafe(dayOfWeek, 0);
 			}
 		} else if (cronParts[2] === '*/6') {
 			scheduleType = 'every6h';
@@ -285,15 +382,15 @@
 			enabled: schedule.enabled,
 			businessHoursOnly: schedule.businessHoursOnly,
 			timezone: schedule.timezone,
-			scheduleType,
-			hour: isNaN(hour) ? 2 : hour,
-			minute: isNaN(minute) ? 0 : minute,
+			scheduleType: parseScheduleFrequency(scheduleType),
+			hour,
+			minute,
 			dayOfWeek: parsedDayOfWeek
 		};
 		showEditDialog = true;
 	}
 
-	function openDeleteDialog(schedule: any) {
+	function openDeleteDialog(schedule: SyncSchedule) {
 		scheduleToDelete = schedule;
 		showDeleteDialog = true;
 	}
@@ -405,7 +502,7 @@
 		}
 	}
 
-	async function toggleSchedule(schedule: any) {
+	async function toggleSchedule(schedule: SyncSchedule) {
 		if (!browser) return;
 
 		try {
@@ -710,7 +807,7 @@
 						<div class="flex items-center gap-2">
 							<CheckCircle2 class="h-6 w-6 text-green-600" />
 							<p class="text-3xl font-bold tracking-tight">
-								{schedules.filter((s: any) => s.enabled).length}
+								{schedules.filter((s) => s.enabled).length}
 							</p>
 						</div>
 					</div>
@@ -724,7 +821,7 @@
 						<div class="flex items-center gap-2">
 							<PowerOff class="h-6 w-6 text-muted-foreground" />
 							<p class="text-3xl font-bold tracking-tight">
-								{schedules.filter((s: any) => !s.enabled).length}
+								{schedules.filter((s) => !s.enabled).length}
 							</p>
 						</div>
 					</div>
@@ -738,15 +835,8 @@
 						<div class="flex items-center gap-2">
 							<Zap class="h-6 w-6 text-purple-600" />
 							<p class="text-xs font-medium">
-								{#if schedules.filter((s: any) => s.enabled && s.nextRunAt).length > 0}
-									{formatDate(
-										schedules
-											.filter((s: any) => s.enabled && s.nextRunAt)
-											.sort(
-												(a: any, b: any) =>
-													new Date(a.nextRunAt).getTime() - new Date(b.nextRunAt).getTime()
-											)[0]?.nextRunAt
-									).split(',')[0]}
+								{#if nextScheduledRun}
+									{formatDate(nextScheduledRun).split(',')[0]}
 								{:else}
 									None scheduled
 								{/if}
@@ -767,9 +857,9 @@
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 							<Select
 								type="single"
-								value={selectedEnabled as any}
-								onValueChange={(value: any) => {
-									selectedEnabled = value;
+								value={selectedEnabled}
+								onValueChange={(value: string) => {
+									selectedEnabled = value === 'true' ? 'true' : 'all';
 									applyFilters();
 								}}
 							>
@@ -784,9 +874,9 @@
 
 							<Select
 								type="single"
-								value={selectedEntityType as any}
-								onValueChange={(value: any) => {
-									selectedEntityType = value;
+								value={selectedEntityType}
+								onValueChange={(value: string) => {
+									selectedEntityType = parseEntityTypeFilter(value);
 									applyFilters();
 								}}
 							>
@@ -959,9 +1049,9 @@
 					<Label for="entityType">Entity Type *</Label>
 					<Select
 						type="single"
-						value={formData.entityType as any}
-						onValueChange={(value: any) => {
-							formData.entityType = value;
+						value={formData.entityType}
+						onValueChange={(value: string) => {
+							formData.entityType = parseEntityType(value);
 						}}
 					>
 						<SelectTrigger id="entityType">
@@ -979,9 +1069,9 @@
 					<Label for="syncDirection">Sync Direction *</Label>
 					<Select
 						type="single"
-						value={formData.syncDirection as any}
-						onValueChange={(value: any) => {
-							formData.syncDirection = value;
+						value={formData.syncDirection}
+						onValueChange={(value: string) => {
+							formData.syncDirection = parseSyncDirection(value);
 						}}
 					>
 						<SelectTrigger id="syncDirection">
@@ -1002,9 +1092,9 @@
 				<Label for="scheduleType">Schedule Type *</Label>
 				<Select
 					type="single"
-					value={formData.scheduleType as any}
-					onValueChange={(value: any) => {
-						formData.scheduleType = value;
+					value={formData.scheduleType}
+					onValueChange={(value: string) => {
+						formData.scheduleType = parseScheduleFrequency(value);
 					}}
 				>
 					<SelectTrigger id="scheduleType">
@@ -1031,8 +1121,8 @@
 						<Select
 							type="single"
 							value={formData.hour.toString()}
-							onValueChange={(value: any) => {
-								formData.hour = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.hour = parseIntSafe(value, 2);
 							}}
 						>
 							<SelectTrigger id="hour">
@@ -1050,8 +1140,8 @@
 						<Select
 							type="single"
 							value={formData.minute.toString()}
-							onValueChange={(value: any) => {
-								formData.minute = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.minute = parseIntSafe(value, 0);
 							}}
 						>
 							<SelectTrigger id="minute">
@@ -1074,8 +1164,8 @@
 						<Select
 							type="single"
 							value={formData.dayOfWeek.toString()}
-							onValueChange={(value: any) => {
-								formData.dayOfWeek = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.dayOfWeek = parseIntSafe(value, 0);
 							}}
 						>
 							<SelectTrigger id="dayOfWeek">
@@ -1093,8 +1183,8 @@
 						<Select
 							type="single"
 							value={formData.hour.toString()}
-							onValueChange={(value: any) => {
-								formData.hour = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.hour = parseIntSafe(value, 2);
 							}}
 						>
 							<SelectTrigger id="weeklyHour">
@@ -1112,8 +1202,8 @@
 						<Select
 							type="single"
 							value={formData.minute.toString()}
-							onValueChange={(value: any) => {
-								formData.minute = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.minute = parseIntSafe(value, 0);
 							}}
 						>
 							<SelectTrigger id="weeklyMinute">
@@ -1156,8 +1246,8 @@
 				<Label for="timezone">Timezone *</Label>
 				<Select
 					type="single"
-					value={formData.timezone as any}
-					onValueChange={(value: any) => {
+					value={formData.timezone}
+					onValueChange={(value: string) => {
 						formData.timezone = value;
 					}}
 				>
@@ -1225,9 +1315,9 @@
 					<Label for="edit-entityType">Entity Type *</Label>
 					<Select
 						type="single"
-						value={formData.entityType as any}
-						onValueChange={(value: any) => {
-							formData.entityType = value;
+						value={formData.entityType}
+						onValueChange={(value: string) => {
+							formData.entityType = parseEntityType(value);
 						}}
 					>
 						<SelectTrigger id="edit-entityType">
@@ -1245,9 +1335,9 @@
 					<Label for="edit-syncDirection">Sync Direction *</Label>
 					<Select
 						type="single"
-						value={formData.syncDirection as any}
-						onValueChange={(value: any) => {
-							formData.syncDirection = value;
+						value={formData.syncDirection}
+						onValueChange={(value: string) => {
+							formData.syncDirection = parseSyncDirection(value);
 						}}
 					>
 						<SelectTrigger id="edit-syncDirection">
@@ -1268,9 +1358,9 @@
 				<Label for="edit-scheduleType">Schedule Type *</Label>
 				<Select
 					type="single"
-					value={formData.scheduleType as any}
-					onValueChange={(value: any) => {
-						formData.scheduleType = value;
+					value={formData.scheduleType}
+					onValueChange={(value: string) => {
+						formData.scheduleType = parseScheduleFrequency(value);
 					}}
 				>
 					<SelectTrigger id="edit-scheduleType">
@@ -1297,8 +1387,8 @@
 						<Select
 							type="single"
 							value={formData.hour.toString()}
-							onValueChange={(value: any) => {
-								formData.hour = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.hour = parseIntSafe(value, 2);
 							}}
 						>
 							<SelectTrigger id="edit-hour">
@@ -1316,8 +1406,8 @@
 						<Select
 							type="single"
 							value={formData.minute.toString()}
-							onValueChange={(value: any) => {
-								formData.minute = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.minute = parseIntSafe(value, 0);
 							}}
 						>
 							<SelectTrigger id="edit-minute">
@@ -1340,8 +1430,8 @@
 						<Select
 							type="single"
 							value={formData.dayOfWeek.toString()}
-							onValueChange={(value: any) => {
-								formData.dayOfWeek = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.dayOfWeek = parseIntSafe(value, 0);
 							}}
 						>
 							<SelectTrigger id="edit-dayOfWeek">
@@ -1359,8 +1449,8 @@
 						<Select
 							type="single"
 							value={formData.hour.toString()}
-							onValueChange={(value: any) => {
-								formData.hour = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.hour = parseIntSafe(value, 2);
 							}}
 						>
 							<SelectTrigger id="edit-weeklyHour">
@@ -1378,8 +1468,8 @@
 						<Select
 							type="single"
 							value={formData.minute.toString()}
-							onValueChange={(value: any) => {
-								formData.minute = parseInt(value);
+							onValueChange={(value: string) => {
+								formData.minute = parseIntSafe(value, 0);
 							}}
 						>
 							<SelectTrigger id="edit-weeklyMinute">
@@ -1422,8 +1512,8 @@
 				<Label for="edit-timezone">Timezone *</Label>
 				<Select
 					type="single"
-					value={formData.timezone as any}
-					onValueChange={(value: any) => {
+					value={formData.timezone}
+					onValueChange={(value: string) => {
 						formData.timezone = value;
 					}}
 				>

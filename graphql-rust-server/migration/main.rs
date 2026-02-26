@@ -10,7 +10,7 @@
 //!   - status: Check migration status
 //!   - validate: Validate migration files for idempotency issues
 
-use hr_graphql_server::migration::{Migrator, MigrationValidator};
+use hr_graphql_server::migration::{MigrationValidator, Migrator};
 use sea_orm_migration::prelude::*;
 use std::env;
 

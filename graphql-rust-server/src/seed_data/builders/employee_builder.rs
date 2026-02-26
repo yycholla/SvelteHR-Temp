@@ -11,7 +11,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Qu
 use uuid::Uuid;
 
 use crate::models::employee::{
-    employee_certification, employee_skill, emergency_contact, user_address,
+    emergency_contact, employee_certification, employee_skill, user_address,
 };
 use crate::seed_data::audit::log_seed_creation;
 use crate::seed_data::context::{EntitySeedResult, SeedContext};
@@ -45,11 +45,17 @@ const SKILLS: &[(&str, &str)] = &[
 const CERTIFICATIONS: &[(&str, &str)] = &[
     ("AWS Certified Solutions Architect", "Amazon Web Services"),
     ("Certified Scrum Master", "Scrum Alliance"),
-    ("PMP (Project Management Professional)", "Project Management Institute"),
+    (
+        "PMP (Project Management Professional)",
+        "Project Management Institute",
+    ),
     ("Google Analytics Certification", "Google"),
     ("Certified Public Accountant (CPA)", "State Board"),
     ("Professional in Human Resources (PHR)", "HRCI"),
-    ("Certified Information Systems Security Professional (CISSP)", "ISC2"),
+    (
+        "Certified Information Systems Security Professional (CISSP)",
+        "ISC2",
+    ),
     ("Microsoft Certified: Azure Administrator", "Microsoft"),
     ("Six Sigma Green Belt", "ASQ"),
     ("Certified Ethical Hacker (CEH)", "EC-Council"),
@@ -57,13 +63,7 @@ const CERTIFICATIONS: &[(&str, &str)] = &[
 
 /// Relationship types for emergency contacts
 const RELATIONSHIPS: &[&str] = &[
-    "Spouse",
-    "Parent",
-    "Sibling",
-    "Child",
-    "Partner",
-    "Friend",
-    "Relative",
+    "Spouse", "Parent", "Sibling", "Child", "Partner", "Friend", "Relative",
 ];
 
 /// Seed employee skills (2-5 skills per user)
@@ -83,7 +83,9 @@ pub async fn seed_employee_skills(
         .await?;
 
     if users.is_empty() {
-        result.errors.push("No users found for skill assignment".to_string());
+        result
+            .errors
+            .push("No users found for skill assignment".to_string());
         return Ok(result);
     }
 
@@ -167,7 +169,9 @@ pub async fn seed_employee_certifications(
         .await?;
 
     if users.is_empty() {
-        result.errors.push("No users found for certification assignment".to_string());
+        result
+            .errors
+            .push("No users found for certification assignment".to_string());
         return Ok(result);
     }
 
@@ -235,7 +239,9 @@ pub async fn seed_employee_certifications(
                 }
                 Err(e) => {
                     result.failed_count += 1;
-                    result.errors.push(format!("Failed to create certification: {}", e));
+                    result
+                        .errors
+                        .push(format!("Failed to create certification: {}", e));
                 }
             }
         }
@@ -262,7 +268,9 @@ pub async fn seed_emergency_contacts(
         .await?;
 
     if users.is_empty() {
-        result.errors.push("No users found for emergency contact creation".to_string());
+        result
+            .errors
+            .push("No users found for emergency contact creation".to_string());
         return Ok(result);
     }
 
@@ -350,7 +358,9 @@ pub async fn seed_user_addresses(
         .await?;
 
     if users.is_empty() {
-        result.errors.push("No users found for address creation".to_string());
+        result
+            .errors
+            .push("No users found for address creation".to_string());
         return Ok(result);
     }
 
@@ -368,7 +378,16 @@ pub async fn seed_user_addresses(
 
         // Generate realistic address
         let street_number = 100 + (rand::random::<u32>() % 9900);
-        let street_names = vec!["Main", "Oak", "Elm", "Maple", "Cedar", "Pine", "Washington", "Park"];
+        let street_names = vec![
+            "Main",
+            "Oak",
+            "Elm",
+            "Maple",
+            "Cedar",
+            "Pine",
+            "Washington",
+            "Park",
+        ];
         let street_types = vec!["St", "Ave", "Blvd", "Rd", "Dr", "Ln"];
         let street_name = street_names[rand::random::<usize>() % street_names.len()];
         let street_type = street_types[rand::random::<usize>() % street_types.len()];
@@ -409,7 +428,9 @@ pub async fn seed_user_addresses(
             }
             Err(e) => {
                 result.failed_count += 1;
-                result.errors.push(format!("Failed to create address: {}", e));
+                result
+                    .errors
+                    .push(format!("Failed to create address: {}", e));
             }
         }
     }

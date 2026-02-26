@@ -7,7 +7,6 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import * as Card from '$lib/components/ui/card';
 	import * as Alert from '$lib/components/ui/alert';
-	import * as Select from '$lib/components/ui/select';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import RecurrencePatternInput from '$lib/components/ui/recurrence-pattern-input.svelte';
 	import {
@@ -27,7 +26,7 @@
 		rruleString?: string;
 	}
 
-	const { form, data } = $props();
+	const { form } = $props();
 
 	let submitting = $state(false);
 	let isActive = $state(true);
@@ -35,13 +34,6 @@
 	const selectedAuthor = $state<string>(''); // Default to current user in logic if empty
 	let recurrencePattern = $state<RecurrencePattern | null>(null);
 	let startDate = $state<string>('');
-
-	// Authors options (mock for now, ideally passed from load function)
-	const authorOptions = [
-		{ value: 'me', label: 'Current User (Me)' },
-		{ value: 'hr', label: 'HR Department' },
-		{ value: 'it', label: 'IT Department' }
-	];
 </script>
 
 <div class="container mx-auto py-10 max-w-5xl px-4">

@@ -19,7 +19,7 @@ describe('AuthService', () => {
 
 		mockGraphQL = {
 			query: vi.fn(),
-			mutate: vi.fn()
+			mutation: vi.fn()
 		};
 
 		authService = new AuthService(mockSession, mockGraphQL);
@@ -27,7 +27,7 @@ describe('AuthService', () => {
 
 	describe('login', () => {
 		it('creates session on successful authentication', async () => {
-			vi.mocked(mockGraphQL.mutate).mockResolvedValue({
+			vi.mocked(mockGraphQL.mutation).mockResolvedValue({
 				login: { userId: '123', token: 'abc' }
 			});
 
@@ -39,7 +39,7 @@ describe('AuthService', () => {
 		});
 
 		it('throws UnauthorizedError on invalid credentials', async () => {
-			vi.mocked(mockGraphQL.mutate).mockResolvedValue({
+			vi.mocked(mockGraphQL.mutation).mockResolvedValue({
 				login: null
 			});
 
@@ -49,7 +49,7 @@ describe('AuthService', () => {
 		});
 
 		it('includes email in session data', async () => {
-			vi.mocked(mockGraphQL.mutate).mockResolvedValue({
+			vi.mocked(mockGraphQL.mutation).mockResolvedValue({
 				login: { userId: '123', token: 'abc' }
 			});
 
@@ -84,7 +84,7 @@ describe('AuthService', () => {
 		});
 
 		it('accepts valid email and password', async () => {
-			vi.mocked(mockGraphQL.mutate).mockResolvedValue({
+			vi.mocked(mockGraphQL.mutation).mockResolvedValue({
 				login: { userId: '123', token: 'abc' }
 			});
 

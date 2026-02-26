@@ -1,60 +1,45 @@
-import { logger } from '$lib/utils/logger';
-// Logout endpoint - Clear session with Rust GraphQL API
 import type { RequestHandler } from './$types';
-import { json } from '@sveltejs/kit';
-import { getApiBaseUrl } from '$lib/server/api-url.js';
+import { json, type Cookies } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
+import { logoutWithBackend } from '$lib/server/auth/jwt-backend.js';
 
-export const POST: RequestHandler = async ({ cookies, request }) => {
-	try {
-		logger.info('[Logout] === LOGOUT REQUEST START ===');
+function getCookieSecurity(url: URL): { secure: boolean; sameSite: 'lax' } {
+	return {
+		secure: url.protocol === 'https:',
+		sameSite: 'lax'
+	};
+}
 
-		// Call Rust GraphQL API logout endpoint to clear session server-side
-		const apiBaseUrl = getApiBaseUrl();
-		const logoutUrl = `${apiBaseUrl}/auth/logout`;
-		logger.info('[Logout] Calling Rust API logout', { logoutUrl });
-
-		// Forward cookies to backend for session clearing
-		const cookieHeader = request.headers.get('cookie') || '';
-
-		const logoutResponse = await fetch(logoutUrl, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Cookie: cookieHeader
-			}
+function clearAuthCookies(cookies: Cookies, url: URL): void {
+	const cookieSecurity = getCookieSecurity(url);
+	for (const name of ['access_token', 'refresh_token', 'refresh_token_plaintext']) {
+		cookies.set(name, '', {
+			path: '/',
+			maxAge: 0,
+			httpOnly: true,
+			secure: cookieSecurity.secure,
+			sameSite: cookieSecurity.sameSite
 		});
-
-		logger.info('[Logout] API response status', { status: logoutResponse.status });
-
-		// Clear all session cookies on the frontend
-		const cookieNames = ['hr_token', 'auth-token', 'session', 'id.session'];
-		for (const name of cookieNames) {
-			cookies.delete(name, { path: '/' });
-			logger.info('[Logout] Cleared cookie', { name });
-		}
-
-		// Return success even if backend logout fails (frontend cleanup is sufficient)
-		logger.info('[Logout] === LOGOUT SUCCESSFUL ===');
-		return json({
-			success: true,
-			message: 'Logged out successfully'
-		});
-	} catch (error) {
-		logger.error('[Logout] Error during logout:', error as Error);
-
-		// Still clear frontend cookies even if backend fails
-		const cookieNames = ['hr_token', 'auth-token', 'session', 'id.session'];
-		for (const name of cookieNames) {
-			cookies.delete(name, { path: '/' });
-		}
-
-		return json(
-			{
-				success: true, // Return success to allow frontend to clear state
-				message: 'Logged out (with warnings)',
-				warning: 'Server-side logout may have failed, but local session cleared'
-			},
-			{ status: 200 }
-		);
 	}
+}
+
+export const POST: RequestHandler = async ({ cookies, url }) => {
+	const accessToken = cookies.get('access_token');
+
+	try {
+		if (accessToken) {
+			await logoutWithBackend(accessToken);
+		}
+	} catch (error) {
+		logger.warn('[Auth Logout] Backend logout failed', {
+			message: error instanceof Error ? error.message : String(error)
+		});
+	} finally {
+		clearAuthCookies(cookies, url);
+	}
+
+	return json({
+		success: true,
+		message: 'Logged out successfully'
+	});
 };

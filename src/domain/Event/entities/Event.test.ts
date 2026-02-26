@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Event, EventProps } from './Event';
+import { Event, type EventProps } from './Event';
 import { EventStatus } from '../value-objects/EventStatus';
 import { EventType } from '../value-objects/EventType';
 import { EventTitle } from '../value-objects/EventTitle';

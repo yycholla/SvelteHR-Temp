@@ -34,31 +34,15 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .extra("DEFAULT gen_random_uuid()"),
                     )
-                    .col(
-                        ColumnDef::new(MediaAssets::Filename)
-                            .text()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(MediaAssets::StoragePath)
-                            .text()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(MediaAssets::MimeType)
-                            .text()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(MediaAssets::Filename).text().not_null())
+                    .col(ColumnDef::new(MediaAssets::StoragePath).text().not_null())
+                    .col(ColumnDef::new(MediaAssets::MimeType).text().not_null())
                     .col(
                         ColumnDef::new(MediaAssets::SizeBytes)
                             .big_integer()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(MediaAssets::UploadedBy)
-                            .uuid()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(MediaAssets::UploadedBy).uuid().null())
                     .col(
                         ColumnDef::new(MediaAssets::CreatedAt)
                             .timestamp_with_time_zone()
@@ -74,7 +58,10 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_media_assets_uploaded_by")
-                            .from((Schema::HrPublic, MediaAssets::Table), MediaAssets::UploadedBy)
+                            .from(
+                                (Schema::HrPublic, MediaAssets::Table),
+                                MediaAssets::UploadedBy,
+                            )
                             .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::SetNull),
                     )

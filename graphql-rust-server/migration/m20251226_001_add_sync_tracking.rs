@@ -110,10 +110,10 @@ impl MigrationTrait for Migration {
             manager,
             "hr_public.users",
             &[
-                "last_synced_at TIMESTAMPTZ",                          // Nullable: NULL means never synced
+                "last_synced_at TIMESTAMPTZ", // Nullable: NULL means never synced
                 "last_modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW()", // Auto-tracks changes
-                "quickbooks_sync_token TEXT",                          // QB optimistic lock token
-                "sync_status TEXT NOT NULL DEFAULT 'synced'",          // synced/pending/error/conflict
+                "quickbooks_sync_token TEXT", // QB optimistic lock token
+                "sync_status TEXT NOT NULL DEFAULT 'synced'", // synced/pending/error/conflict
             ],
         )
         .await?;
@@ -202,11 +202,8 @@ impl MigrationTrait for Migration {
         MigrationHelpers::drop_index_if_exists(manager, "hr_public.idx_departments_sync_status")
             .await?;
 
-        MigrationHelpers::drop_index_if_exists(
-            manager,
-            "hr_public.idx_departments_last_synced_at",
-        )
-        .await?;
+        MigrationHelpers::drop_index_if_exists(manager, "hr_public.idx_departments_last_synced_at")
+            .await?;
 
         // Drop user indexes
         MigrationHelpers::drop_index_if_exists(
@@ -215,8 +212,7 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
-        MigrationHelpers::drop_index_if_exists(manager, "hr_public.idx_users_sync_status")
-            .await?;
+        MigrationHelpers::drop_index_if_exists(manager, "hr_public.idx_users_sync_status").await?;
 
         MigrationHelpers::drop_index_if_exists(manager, "hr_public.idx_users_last_synced_at")
             .await?;

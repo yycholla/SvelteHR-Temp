@@ -1,18 +1,15 @@
 <script lang="ts">
 	import {
 		AlertCircle,
-		CheckCircle2,
-		Eye,
 		ArrowRight,
-		ArrowLeft,
-		ArrowLeftRight,
-		Plus,
+		CheckCircle2,
 		Edit,
-		Trash2,
+		Eye,
 		Clock,
 		AlertTriangle,
 		FileWarning,
-		Info,
+		Plus,
+		Trash2,
 		Play
 	} from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
@@ -20,16 +17,52 @@
 	import { browser } from '$app/environment';
 	import { SvelteSet } from 'svelte/reactivity';
 
-	let { data } = $props();
+	interface FieldChange {
+		fieldName: string;
+		newValue?: string | null;
+		currentValue?: string | null;
+		hasConflict?: boolean;
+	}
+
+	interface PreviewChange {
+		displayName: string;
+		entityType: string;
+		quickbooksId?: string | null;
+		localId?: string | null;
+		warnings?: string[];
+		fieldChanges?: FieldChange[];
+	}
+
+	interface PreviewSummary {
+		totalCreates: number;
+		totalUpdates: number;
+		totalDeletes: number;
+		totalConflicts: number;
+		totalWarnings: number;
+		estimatedDurationSeconds?: number | null;
+	}
+
+	interface SyncPreviewData {
+		totalChanges: number;
+		summary: PreviewSummary;
+		creates: PreviewChange[];
+		updates: PreviewChange[];
+		deletes: PreviewChange[];
+	}
 
 	let entityType = $state('Employee');
 	let syncDirection = $state('Pull');
 	let includeFieldChanges = $state(true);
 	let loading = $state(false);
-	let previewData = $state<any>(null);
+	let previewData = $state<SyncPreviewData | null>(null);
 	let error = $state<string | null>(null);
 	let selectedTab = $state<'creates' | 'updates' | 'deletes'>('updates');
 	let expandedChanges = new SvelteSet<string>();
+
+	function getErrorMessage(errorValue: unknown): string {
+		if (errorValue instanceof Error) return errorValue.message;
+		return 'An error occurred while generating preview';
+	}
 
 	// Entity types
 	const entityTypes = [
@@ -40,9 +73,9 @@
 
 	// Sync directions
 	const syncDirections = [
-		{ value: 'Pull', label: 'Pull from QuickBooks', icon: ArrowLeft },
-		{ value: 'Push', label: 'Push to QuickBooks', icon: ArrowRight },
-		{ value: 'Bidirectional', label: 'Bidirectional Sync', icon: ArrowLeftRight }
+		{ value: 'Pull', label: 'Pull from QuickBooks' },
+		{ value: 'Push', label: 'Push to QuickBooks' },
+		{ value: 'Bidirectional', label: 'Bidirectional Sync' }
 	];
 
 	async function runPreview() {
@@ -80,8 +113,8 @@
 					}
 				}
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while generating preview';
+		} catch (e: unknown) {
+			error = getErrorMessage(e);
 		} finally {
 			loading = false;
 		}
@@ -92,32 +125,6 @@
 			expandedChanges.delete(id);
 		} else {
 			expandedChanges.add(id);
-		}
-	}
-
-	function getChangeIcon(changeType: string) {
-		switch (changeType) {
-			case 'create':
-				return Plus;
-			case 'update':
-				return Edit;
-			case 'delete':
-				return Trash2;
-			default:
-				return Info;
-		}
-	}
-
-	function getChangeColor(changeType: string) {
-		switch (changeType) {
-			case 'create':
-				return 'text-green-600 bg-green-50 border-green-200';
-			case 'update':
-				return 'text-blue-600 bg-blue-50 border-blue-200';
-			case 'delete':
-				return 'text-red-600 bg-red-50 border-red-200';
-			default:
-				return 'text-gray-600 bg-gray-50 border-gray-200';
 		}
 	}
 

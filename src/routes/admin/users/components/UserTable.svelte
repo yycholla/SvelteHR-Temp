@@ -1,11 +1,20 @@
 <script lang="ts">
 	import { Edit, Trash2, UserCheck, UserX } from '@lucide/svelte';
 
+	interface UserTableRecord {
+		id: string;
+		email: string;
+		displayName?: string | null;
+		role?: string | null;
+		department?: { name: string } | null;
+		isActive: boolean;
+	}
+
 	interface Props {
-		filteredUsers: any[];
+		filteredUsers: UserTableRecord[];
 		loading: boolean;
-		onToggleStatus: (user: any) => void;
-		onEditUser: (user: any) => void;
+		onToggleStatus: (user: UserTableRecord) => void;
+		onEditUser: (user: UserTableRecord) => void;
 		onDeleteUser: (userId: string) => void;
 	}
 

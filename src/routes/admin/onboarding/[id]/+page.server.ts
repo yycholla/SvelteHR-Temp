@@ -105,7 +105,7 @@ export const load: PageServerLoad = async (event) => {
 			contentBlocks: response.data?.onboardingContentBlocks || [],
 			assignments: response.data?.onboardingAssignments || [],
 			allUsers,
-			departments: departmentsResponse.data?.departments || []
+			departments: departmentsResponse.data?.departments?.items || []
 		};
 	} catch (err) {
 		if (err && typeof err === 'object' && 'status' in err) {

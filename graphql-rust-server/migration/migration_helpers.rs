@@ -47,7 +47,11 @@ impl MigrationHelpers {
         Self::execute_idempotent(
             manager,
             &sql,
-            &format!("Add column to {}: {}", table, column_def.split_whitespace().next().unwrap_or("")),
+            &format!(
+                "Add column to {}: {}",
+                table,
+                column_def.split_whitespace().next().unwrap_or("")
+            ),
         )
         .await
     }
@@ -63,8 +67,7 @@ impl MigrationHelpers {
             "CREATE INDEX IF NOT EXISTS {} ON {} ({})",
             index_name, table, columns
         );
-        Self::execute_idempotent(manager, &sql, &format!("Create index {}", index_name))
-            .await
+        Self::execute_idempotent(manager, &sql, &format!("Create index {}", index_name)).await
     }
 
     /// Drop index with IF EXISTS guard
@@ -73,8 +76,7 @@ impl MigrationHelpers {
         index_name: &str,
     ) -> Result<(), DbErr> {
         let sql = format!("DROP INDEX IF EXISTS {}", index_name);
-        Self::execute_idempotent(manager, &sql, &format!("Drop index {}", index_name))
-            .await
+        Self::execute_idempotent(manager, &sql, &format!("Drop index {}", index_name)).await
     }
 
     /// Drop column with IF EXISTS guard

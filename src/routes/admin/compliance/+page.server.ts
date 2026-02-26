@@ -6,8 +6,13 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
 
+interface ComplianceUserRecord {
+	isActive: boolean;
+	updatedAt: string;
+}
+
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies } = event;
+	const { cookies } = event;
 
 	// Check authentication and permissions
 	PermissionChecks.adminRead(event);
@@ -27,15 +32,17 @@ export const load: PageServerLoad = async (event) => {
 					updatedAt
 				}
 				departments(limit: $limit) {
-					id
-					name
+					items {
+						id
+						name
+					}
 				}
 			}
 		`;
 
 		const result = await client.query(complianceQuery, { limit: 1000 });
 
-		const users = result.data?.users || [];
+		const users: ComplianceUserRecord[] = result.data?.users || [];
 		const totalUsers = users.length;
 
 		// Calculate compliance metrics
@@ -43,10 +50,12 @@ export const load: PageServerLoad = async (event) => {
 		const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 		const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-		const activeUsers = users.filter((u: any) => u.isActive).length;
+		const activeUsers = users.filter((user) => user.isActive).length;
 		const inactiveUsers = totalUsers - activeUsers;
-		const recentlyUpdated = users.filter((u: any) => new Date(u.updatedAt) >= thirtyDaysAgo).length;
-		const staleUsers = users.filter((u: any) => new Date(u.updatedAt) < ninetyDaysAgo).length;
+		const recentlyUpdated = users.filter(
+			(user) => new Date(user.updatedAt) >= thirtyDaysAgo
+		).length;
+		const staleUsers = users.filter((user) => new Date(user.updatedAt) < ninetyDaysAgo).length;
 
 		const complianceMetrics = {
 			dataAccuracy: {

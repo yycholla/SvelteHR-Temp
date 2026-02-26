@@ -16,8 +16,6 @@ export const load: PageServerLoad = async (event) => {
 
 	return loader.loadWithClient(async (client) => {
 		const params = new QueryParamExtractor(event.url);
-		const { page, limit } = params.getPagination(20);
-
 		// Get filter parameters
 		const filters = params.getFilters(['role', 'department', 'status']);
 
@@ -45,8 +43,10 @@ export const load: PageServerLoad = async (event) => {
 					`
 					query GetAllDepartments($limit: Int!, $offset: Int!) {
 						departments(limit: $limit, offset: $offset) {
-							id
-							name
+							items {
+								id
+								name
+							}
 						}
 					}
 				`,
@@ -60,7 +60,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 
 			const employeeEntities = employeesResult.value.employees;
-			const departments = departmentsData?.departments || [];
+			const departments = departmentsData?.departments?.items || [];
 
 			// Build roles list from employee data (collect unique role objects with proper UUIDs)
 			const roleMap = new Map<string, { id: string; name: string }>();

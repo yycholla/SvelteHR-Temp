@@ -87,9 +87,11 @@ export const load: PageServerLoad = async (event) => {
 			`
 				query GetDepartments($limit: Int) {
 					departments(limit: $limit) {
-						id
-						name
-						description
+						items {
+							id
+							name
+							description
+						}
 					}
 				}
 			`,
@@ -100,7 +102,7 @@ export const load: PageServerLoad = async (event) => {
 		const departmentsData = await departmentsResponse.json();
 		logger.info('[Task Create] Departments GraphQL response:', {
 			hasData: !!departmentsData.data,
-			nodesLength: departmentsData.data?.departments?.length || 0,
+			nodesLength: departmentsData.data?.departments?.items?.length || 0,
 			errors: departmentsData.errors
 		});
 
@@ -163,7 +165,6 @@ export const load: PageServerLoad = async (event) => {
 							priority
 							assigneeId
 							taskTypeId
-							organizationId
 						}
 					}
 				`,
@@ -182,7 +183,7 @@ export const load: PageServerLoad = async (event) => {
 		const allUsers = assigneesData?.data?.users || [];
 		// Filter to only active users client-side
 		const assignees = allUsers.filter((user: any) => user.isActive === true);
-		const departments = departmentsData?.data?.departments || [];
+		const departments = departmentsData?.data?.departments?.items || [];
 		const taskTypes = taskTypesData?.data?.taskTypes || [];
 		const parentTasks = parentTasksData?.data?.tasks || [];
 
