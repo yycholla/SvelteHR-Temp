@@ -5,7 +5,7 @@ import { logger } from '$lib/utils/logger';
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth, AccessTier } from '$lib/server/rbac-utils';
 
 interface LogUser {
 	id: string;
@@ -37,12 +37,10 @@ export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
 	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: ['audit:read']
-	});
+	requireAuth(event, { minTier: AccessTier.ALL });
 
 	try {
-		// Step 3: Parse URL query parameters for filtering and pagination
+		// Parse URL query parameters for filtering and pagination
 		const page = parseInt(url.searchParams.get('page') || '1', 10);
 		const pageSize = parseInt(url.searchParams.get('limit') || '50', 10);
 		const userId = url.searchParams.get('userId') || null;
@@ -50,7 +48,7 @@ export const load: PageServerLoad = async (event) => {
 		const resourceType = url.searchParams.get('resourceType') || '';
 		const searchTerm = url.searchParams.get('search') || '';
 
-		// Step 4: Initialize GraphQL client with session auth
+		// Initialize GraphQL client with session auth
 		const { authenticatedGraphQLRequest, getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
@@ -62,7 +60,7 @@ export const load: PageServerLoad = async (event) => {
 			resourceType
 		});
 
-		// Step 5: Fetch activity logs from Rust GraphQL backend
+		// Fetch activity logs from Rust GraphQL backend
 		const logsResponse = await authenticatedGraphQLRequest(
 			graphqlEndpoint,
 			`
@@ -108,7 +106,7 @@ export const load: PageServerLoad = async (event) => {
 
 		const logs: ActivityLog[] = logsData?.data?.activityLogs || [];
 
-		// Step 6: Client-side filtering (for search and additional filters)
+		// Client-side filtering
 		let filteredLogs: ActivityLog[] = logs;
 
 		if (action) {
@@ -136,8 +134,7 @@ export const load: PageServerLoad = async (event) => {
 			});
 		}
 
-		// Step 6.5: Group logs by resource ID and resource type
-		// Keep only the most recent log per resource, but track total count
+		// Group logs by resource ID and resource type
 		const groupedLogsMap = new Map<
 			string,
 			{
@@ -148,8 +145,6 @@ export const load: PageServerLoad = async (event) => {
 		>();
 
 		for (const log of filteredLogs) {
-			// Create a composite key from resource type and resource ID
-			// Logs without resource IDs (like login_failed) won't be grouped
 			const resourceKey = log.resourceId
 				? `${log.resourceType}:${log.resourceId}`
 				: `ungrouped:${log.id}`;
@@ -157,43 +152,37 @@ export const load: PageServerLoad = async (event) => {
 			const existing = groupedLogsMap.get(resourceKey);
 
 			if (!existing) {
-				// First log for this resource
 				groupedLogsMap.set(resourceKey, {
 					log,
 					totalEdits: 1,
 					allLogIds: [log.id]
 				});
 			} else {
-				// Compare timestamps to keep the most recent
 				const existingTime = new Date(existing.log.createdAt).getTime();
 				const currentTime = new Date(log.createdAt).getTime();
 
 				if (currentTime > existingTime) {
-					// Current log is more recent, replace it but keep the count
 					groupedLogsMap.set(resourceKey, {
 						log,
 						totalEdits: existing.totalEdits + 1,
 						allLogIds: [...existing.allLogIds, log.id]
 					});
 				} else {
-					// Existing log is more recent, just increment count
 					existing.totalEdits += 1;
 					existing.allLogIds.push(log.id);
 				}
 			}
 		}
 
-		// Extract grouped logs array from map
 		const groupedLogs = Array.from(groupedLogsMap.values()).map((group) => ({
 			...group.log,
 			totalEdits: group.totalEdits,
 			allLogIds: group.allLogIds
 		}));
 
-		// Sort grouped logs by most recent first
 		groupedLogs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-		// Step 7: Calculate statistics from filtered logs (matching Rust backend action types)
+		// Calculate statistics
 		const stats = {
 			total: filteredLogs.length,
 			creates: filteredLogs.filter((l) => l.action === 'CREATE').length,
@@ -208,7 +197,6 @@ export const load: PageServerLoad = async (event) => {
 			rollbacks: filteredLogs.filter((l) => Boolean(l.isRollback)).length
 		};
 
-		// Step 8: Get unique values for filter dropdowns
 		const uniqueActions = [...new Set(logs.map((log) => log.action))].filter(Boolean).sort();
 		const uniqueResourceTypes = [...new Set(logs.map((log) => log.resourceType))]
 			.filter(Boolean)
@@ -222,10 +210,8 @@ export const load: PageServerLoad = async (event) => {
 			).values()
 		];
 
-		// Step 9: Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
-		// Step 10: Return data for audit logs page
 		return {
 			...userPermissions,
 			logs: groupedLogs,
@@ -255,7 +241,6 @@ export const load: PageServerLoad = async (event) => {
 	} catch (err) {
 		logger.error('[Audit Logs Load Error]', err as Error);
 
-		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
 			throw err;
 		}

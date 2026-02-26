@@ -51,7 +51,6 @@ export const load: PageServerLoad = async (event) => {
 			// If backend is not ready, return error state but don't crash
 			if (!backendReady) {
 				logger.warn('Backend not ready for main dashboard');
-				// Return minimal structure compatible with the new pattern
 				return {
 					user: {
 						id: userId,
@@ -102,10 +101,10 @@ export const load: PageServerLoad = async (event) => {
 			}
 
 			// Determine user roles for conditional queries
-			const userRoles = locals.roles || [];
-			const isAdmin = userRoles.includes('Admin') || false;
-			const isSuperAdmin = userRoles.includes('Admin') || false; // Assuming Admin is SuperAdmin for now
-			const isManager = userRoles.includes('manager') || false;
+			const userRoles = (locals.roles || []).map((r: string) => r.toLowerCase().replace(/[\s-]+/g,'_'));
+			const isAdmin = userRoles.includes('admin') || userRoles.includes('super_admin') || false;
+			const isSuperAdmin = userRoles.includes('super_admin') || userRoles.includes('admin') || false;
+			const isManager = userRoles.includes('manager') || userRoles.includes('hr_manager') || false;
 			const isHR = userRoles.includes('hr_manager') || false;
 
 			// Fetch data via service

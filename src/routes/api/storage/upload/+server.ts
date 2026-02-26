@@ -5,20 +5,13 @@ import { logger } from '$lib/utils/logger';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { setJWTClaims, transaction } from '$lib/server/db';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 
 export const POST: RequestHandler = async (event) => {
 	const { request } = event;
 
 	// Step 1: Validate authentication
-	requireAuth(event, {
-		requiredPermissions: [
-			'documents:write',
-			'documents:write:self',
-			'documents:write:team',
-			'documents:write:all'
-		]
-	});
+	requireAuth(event, { minTier: AccessTier.SELF });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
@@ -39,7 +32,6 @@ export const POST: RequestHandler = async (event) => {
 		const encryptedBuffer = Buffer.from(encryptedData, 'base64');
 
 		// Prepend IV to encrypted data (standard practice for AES-GCM)
-		// This makes the IV always available with the encrypted data
 		let fileDataBuffer: Buffer;
 		if (iv && Array.isArray(iv)) {
 			const ivBuffer = Buffer.from(iv);

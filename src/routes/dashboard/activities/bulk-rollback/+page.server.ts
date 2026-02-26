@@ -3,7 +3,6 @@ import { logger } from '$lib/utils/logger';
  * Bulk Rollback Page - Server Load
  * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
  * Task: T046
- * Created: 2025-10-02
  *
  * Server-side data loading for bulk rollback operations (super_admin only).
  */
@@ -12,16 +11,13 @@ import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
 
-	// Check authentication and permissions (bulk rollback requires write and delete)
-	requireAuth(event, {
-		requiredPermissions: ['activities:write', 'activities:delete'],
-		requireAll: true
-	});
+	// Check authentication and permissions (bulk rollback requires admin access)
+	requireAuth(event, { minTier: AccessTier.ALL });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
@@ -60,7 +56,6 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load rollbackable activity logs from database
-		// NOTE: Using Rust GraphQL schema - fetch all and filter client-side
 		const logsQuery = `
 			query GetRollbackableLogs($limit: Int!) {
 				activityLogs(limit: $limit) {
@@ -115,11 +110,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// NOTE: bulkRollbackBatches query doesn't exist yet in Rust GraphQL schema
-		// Temporarily use empty array until query is implemented
 		const recentBatches: any[] = [];
-
-		// TODO: Implement bulkRollbackBatches query in Rust GraphQL server
-		// Expected fields: id, requestedBy, totalItems, processedItems, status, completedAt, createdAt
 
 		// Get unique resource types from available logs
 		const uniqueResourceTypes = [...new Set(availableLogs.map((log: any) => log.resourceType))];
@@ -144,7 +135,6 @@ export const load: PageServerLoad = async (event) => {
 			createdAt: log.createdAt
 		}));
 
-		// Batches are empty until query is implemented
 		const formattedBatches: any[] = [];
 
 		return {
@@ -163,7 +153,7 @@ export const load: PageServerLoad = async (event) => {
 		logger.error('[BulkRollbackPage] Error loading bulk rollback page:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
-			throw err; // Re-throw SvelteKit errors
+			throw err;
 		}
 
 		error(500, {
@@ -177,10 +167,7 @@ export const actions: Actions = {
 		const { request, cookies } = event;
 
 		// Check authentication and permissions
-		requireAuth(event, {
-			requiredPermissions: ['activities:write', 'activities:delete'],
-			requireAll: true
-		});
+		requireAuth(event, { minTier: AccessTier.ALL });
 
 		// After permission check, re-destructure locals with guaranteed user
 		const { locals } = event;
@@ -206,7 +193,6 @@ export const actions: Actions = {
 			const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 			// Create bulk rollback batch mutation
-			// Migration: ✅ Use idiomatic Rust pattern (direct response, no nested wrapper)
 			const createBatchMutation = `
 				mutation CreateBulkRollbackBatch($input: CreateBulkRollbackBatchInput!) {
 					createBulkRollbackBatch(input: $input) {

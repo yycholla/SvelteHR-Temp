@@ -3,22 +3,19 @@ import { logger } from '$lib/utils/logger';
  * Activity Log Detail Page - Server
  * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
  * Task: T047
- * Created: 2025-10-02
  *
  * Server-side data loading for individual audit log detail with rollback capability.
  */
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { params, url, cookies } = event;
 
 	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: ['audit:read']
-	});
+	requireAuth(event, { minTier: AccessTier.ALL });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
@@ -26,11 +23,11 @@ export const load: PageServerLoad = async (event) => {
 	const logId = params.id;
 
 	try {
-		// Initialize GraphQL client with session auth (same approach as list page)
+		// Initialize GraphQL client with session auth
 		const { GraphQLClient } = await import('$lib/server/graphql-client');
 		const client = GraphQLClient.fromCookies(cookies);
 
-		// Fetch the activity log by ID using GraphQL query
+		// Fetch the activity log by ID
 		const logQuery = `
 			query GetActivityLog($id: UUID!) {
 				activityLog(id: $id) {
@@ -67,8 +64,6 @@ export const load: PageServerLoad = async (event) => {
 			});
 		}
 
-		// Transform log to match expected format
-		// Note: beforeSnapshot, afterSnapshot, isRollback are now direct properties
 		const transformedLog = {
 			id: log.id,
 			employee_id: log.employeeId,
@@ -81,15 +76,12 @@ export const load: PageServerLoad = async (event) => {
 			after_snapshot: log.afterSnapshot || null,
 			is_rollback: log.isRollback || false,
 			rolled_back_log_id: log.rolledBackLogId || null,
-			rollback_of_log_id: null, // TODO: Implement when rollback chain tracking is added
+			rollback_of_log_id: null,
 			created_at: log.createdAt,
 			ip_address: log.ipAddress || null,
 			user_agent: log.userAgent || null
 		};
 
-		// Fetch all logs for the same resource (timeline)
-		// Note: The activityLogs query doesn't support resourceType/resourceId filters,
-		// so we fetch a larger set and filter on the server side
 		let timelineLogs: any[] = [];
 		if (transformedLog.resource_id) {
 			const timelineQuery = `
@@ -113,17 +105,12 @@ export const load: PageServerLoad = async (event) => {
 
 			try {
 				const timelineResult = await client.query(timelineQuery, {});
-
 				const rawTimelineLogs = timelineResult.data?.activityLogs || [];
-
-				// Filter logs for the same resource type and resource ID
 				const filteredLogs = rawTimelineLogs.filter(
 					(tlog: any) =>
 						tlog.resourceType === transformedLog.resource_type &&
 						tlog.resourceId === transformedLog.resource_id
 				);
-
-				// Transform timeline logs and sort by timestamp (newest first)
 				timelineLogs = filteredLogs
 					.map((tlog: any) => ({
 						id: tlog.id,
@@ -141,25 +128,18 @@ export const load: PageServerLoad = async (event) => {
 					);
 			} catch (timelineError) {
 				logger.error('[ActivityLogDetail] Error loading timeline', timelineError as Error);
-				// Continue without timeline if query fails
 			}
 		}
 
-		// TODO: Implement rollback-related queries when rollback functionality is added
-		// - Query for rollback log if this log has been rolled back
-		// - Query for original log if this is a rollback log
-		// - Query for active rollback requests
 		const rollbackLog = null;
 		const originalLog = null;
 		const activeRequest = null;
 
-		// Calculate field changes for diff view
 		const fieldChanges = calculateFieldChanges(
 			transformedLog.before_snapshot,
 			transformedLog.after_snapshot
 		);
 
-		// Get user role from locals
 		const userRole = locals.user.role || 'employee';
 
 		return {
@@ -181,7 +161,6 @@ export const load: PageServerLoad = async (event) => {
 	} catch (err) {
 		logger.error('[ActivityLogDetail] Error loading activity log', err as Error);
 
-		// Handle specific error cases
 		if (err && typeof err === 'object' && 'message' in err) {
 			const error_msg = err.message as string;
 			if (error_msg?.includes('unauthorized') || error_msg?.includes('authentication')) {
@@ -190,7 +169,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		if (err && typeof err === 'object' && 'status' in err) {
-			throw err; // Re-throw SvelteKit errors
+			throw err;
 		}
 
 		error(500, {
@@ -199,26 +178,15 @@ export const load: PageServerLoad = async (event) => {
 	}
 };
 
-/**
- * Unwrap GraphQL response structure to get the actual data
- * GraphQL responses are often wrapped like: { "createTask": { "id": "...", ... } }
- */
 function unwrapGraphQLResponse(data: Record<string, any> | null): Record<string, any> | null {
 	if (!data) return null;
-
-	// If there's only one top-level key and its value is an object, unwrap it
 	const keys = Object.keys(data);
 	if (keys.length === 1 && typeof data[keys[0]] === 'object' && data[keys[0]] !== null) {
-		// This looks like a wrapped GraphQL response
 		return data[keys[0]] as Record<string, any>;
 	}
-
 	return data;
 }
 
-/**
- * Compare before and after snapshots to identify changed fields
- */
 function calculateFieldChanges(
 	before: Record<string, any> | null,
 	after: Record<string, any> | null
@@ -235,82 +203,40 @@ function calculateFieldChanges(
 		changeType: 'added' | 'removed' | 'modified';
 	}> = [];
 
-	// Unwrap GraphQL response structures
 	const unwrappedBefore = unwrapGraphQLResponse(before);
 	const unwrappedAfter = unwrapGraphQLResponse(after);
 
-	// Handle null snapshots
-	if (!unwrappedBefore && !unwrappedAfter) {
-		return changes; // Both null, no changes to report
-	}
+	if (!unwrappedBefore && !unwrappedAfter) return changes;
 
 	if (!unwrappedBefore && unwrappedAfter) {
-		// CREATE operation - all fields are added
 		for (const field in unwrappedAfter) {
-			// Skip internal/system fields that aren't meaningful to show
 			if (field.startsWith('__')) continue;
-
-			changes.push({
-				field,
-				beforeValue: null,
-				afterValue: unwrappedAfter[field],
-				changeType: 'added'
-			});
+			changes.push({ field, beforeValue: null, afterValue: unwrappedAfter[field], changeType: 'added' });
 		}
 		return changes.sort((a, b) => a.field.localeCompare(b.field));
 	}
 
 	if (unwrappedBefore && !unwrappedAfter) {
-		// DELETE operation - all fields are removed
 		for (const field in unwrappedBefore) {
-			// Skip internal/system fields
 			if (field.startsWith('__')) continue;
-
-			changes.push({
-				field,
-				beforeValue: unwrappedBefore[field],
-				afterValue: null,
-				changeType: 'removed'
-			});
+			changes.push({ field, beforeValue: unwrappedBefore[field], afterValue: null, changeType: 'removed' });
 		}
 		return changes.sort((a, b) => a.field.localeCompare(b.field));
 	}
 
-	// UPDATE operation - both snapshots exist
-	// Find modified and removed fields
 	for (const field in unwrappedBefore!) {
-		// Skip internal/system fields
 		if (field.startsWith('__')) continue;
-
 		if (!(field in unwrappedAfter!)) {
-			changes.push({
-				field,
-				beforeValue: unwrappedBefore![field],
-				afterValue: null,
-				changeType: 'removed'
-			});
+			changes.push({ field, beforeValue: unwrappedBefore![field], afterValue: null, changeType: 'removed' });
 		} else if (JSON.stringify(unwrappedBefore![field]) !== JSON.stringify(unwrappedAfter![field])) {
-			changes.push({
-				field,
-				beforeValue: unwrappedBefore![field],
-				afterValue: unwrappedAfter![field],
-				changeType: 'modified'
-			});
+			changes.push({ field, beforeValue: unwrappedBefore![field], afterValue: unwrappedAfter![field], changeType: 'modified' });
 		}
 	}
 
-	// Find added fields
 	for (const field in unwrappedAfter!) {
-		// Skip internal/system fields
 		if (field.startsWith('__')) continue;
-
 		if (!(field in unwrappedBefore!)) {
-			changes.push({
-				field,
-				beforeValue: null,
-				afterValue: unwrappedAfter![field],
-				changeType: 'added'
-			});
+			changes.push({ field, beforeValue: null, afterValue: unwrappedAfter![field], changeType: 'added' });
 		}
 	}
 

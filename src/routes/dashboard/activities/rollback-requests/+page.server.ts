@@ -2,7 +2,6 @@
  * Rollback Requests Page - Server Load
  * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
  * Task: T045
- * Created: 2025-10-02
  *
  * Server-side data loading for rollback requests page with RBAC filtering.
  */
@@ -11,16 +10,14 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
 
 	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: ['activities:write']
-	});
+	requireAuth(event, { minTier: AccessTier.ALL });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
@@ -49,11 +46,8 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		const userRole = locals.user.role || 'employee';
-
-		// Only super_admin can review requests; others can view their own
 		const canReview = userRole === 'super_admin';
 
-		// Parse URL query parameters for filtering and pagination
 		const page = parseInt(url.searchParams.get('page') || '1', 10);
 		const pageSize = parseInt(url.searchParams.get('pageSize') || '20', 10);
 		const offset = (page - 1) * pageSize;
@@ -61,11 +55,8 @@ export const load: PageServerLoad = async (event) => {
 		const status = url.searchParams.get('status') || null;
 		const requesterId = url.searchParams.get('requesterId') || null;
 
-		// Create GraphQL client with authentication
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Load rollback requests from database
-		// NOTE: Using Rust GraphQL schema - fetch all and filter client-side
 		const requestsQuery = `
 			query GetRollbackRequests($limit: Int!) {
 				rollbackRequests(limit: $limit) {
@@ -91,70 +82,49 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const requestsData = await graphqlClient.query(requestsQuery, {
-			limit: 1000
-		});
-
+		const requestsData = await graphqlClient.query(requestsQuery, { limit: 1000 });
 		let allRequests = requestsData.data?.rollbackRequests || [];
 
-		// Sort by createdAt DESC (client-side since Rust schema doesn't support orderBy)
 		allRequests = allRequests.sort(
 			(a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 		);
 
-		// Client-side filtering for status
 		if (status) {
 			allRequests = allRequests.filter((req: any) => req.status === status);
 		}
 
-		// Client-side filtering for requestedBy (RBAC)
-		// Non-super_admin users can only see their own requests
 		if (!canReview) {
 			allRequests = allRequests.filter((req: any) => req.requestedBy === locals.user.id);
 		} else if (requesterId) {
-			// Super_admin can filter by specific requester
 			allRequests = allRequests.filter((req: any) => req.requestedBy === requesterId);
 		}
 
-		// Use array length for total count
 		const totalCount = allRequests.length;
 
-		// Map requests to expected format (mapping new schema to UI expectations)
 		const formattedRequests = allRequests.map((req: any) => ({
 			id: req.id,
 			entityType: req.entityType,
 			entityId: req.entityId,
-			// Map for backward compatibility with UI
-			activityLogId: req.entityId, // Assuming UI expects this field
+			activityLogId: req.entityId,
 			requestedBy: req.requestedBy,
 			requester: req.requester
-				? {
-						id: req.requester.id,
-						name: req.requester.displayName,
-						email: req.requester.email
-					}
+				? { id: req.requester.id, name: req.requester.displayName, email: req.requester.email }
 				: null,
-			requestedAt: req.createdAt, // Map createdAt to requestedAt for UI
+			requestedAt: req.createdAt,
 			reason: req.reason,
 			status: req.status,
-			reviewedBy: req.approvedBy, // Map approvedBy to reviewedBy for UI
+			reviewedBy: req.approvedBy,
 			reviewer: req.reviewer
-				? {
-						id: req.reviewer.id,
-						name: req.reviewer.displayName
-					}
+				? { id: req.reviewer.id, name: req.reviewer.displayName }
 				: null,
-			reviewedAt: req.processedAt, // Map processedAt to reviewedAt for UI
-			reviewReason: null, // This field no longer exists in database
+			reviewedAt: req.processedAt,
+			reviewReason: null,
 			createdAt: req.createdAt
 		}));
 
-		// Calculate statistics for super_admin from filtered data
 		let statistics = null;
 		if (canReview) {
-			// Client-side statistics calculation from all requests
 			const allRequestsForStats = requestsData.data?.rollbackRequests || [];
-
 			statistics = {
 				totalCount: allRequestsForStats.length,
 				pendingCount: allRequestsForStats.filter((req: any) => req.status === 'pending').length,
@@ -168,10 +138,7 @@ export const load: PageServerLoad = async (event) => {
 			totalCount,
 			page,
 			pageSize,
-			filters: {
-				status,
-				requesterId
-			},
+			filters: { status, requesterId },
 			statistics,
 			canReview,
 			userRole,
@@ -181,11 +148,9 @@ export const load: PageServerLoad = async (event) => {
 		logger.error('[RollbackRequestsPage] Error loading rollback requests:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
-			throw err; // Re-throw SvelteKit errors
+			throw err;
 		}
 
-		error(500, {
-			message: 'Failed to load rollback requests'
-		});
+		error(500, { message: 'Failed to load rollback requests' });
 	}
 };

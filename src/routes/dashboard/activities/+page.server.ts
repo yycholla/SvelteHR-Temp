@@ -5,16 +5,14 @@
 
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
 
 	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: ['activities:read:self']
-	});
+	requireAuth(event, { minTier: AccessTier.SELF });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
@@ -36,7 +34,6 @@ export const load: PageServerLoad = async (event) => {
 		logger.info('[Activities] Loading activities for user', { userId: locals.user.id });
 
 		// Fetch user's activity logs using Rust GraphQL backend
-		// Migration: ✅ Use idiomatic Rust pattern (activityLogs with userId parameter)
 		const activitiesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,

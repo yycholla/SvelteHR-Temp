@@ -4,20 +4,13 @@ import { logger } from '$lib/utils/logger';
 
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 
 export const GET: RequestHandler = async (event) => {
 	const { url } = event;
 
 	// Step 1: Validate authentication
-	requireAuth(event, {
-		requiredPermissions: [
-			'documents:read',
-			'documents:read:self',
-			'documents:read:team',
-			'documents:read:all'
-		]
-	});
+	requireAuth(event, { minTier: AccessTier.SELF });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;

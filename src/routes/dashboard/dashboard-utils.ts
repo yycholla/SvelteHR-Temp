@@ -14,7 +14,7 @@ import type {
 } from './dashboard-types';
 
 export function generateDashboardMetrics(
-	roles: string[],
+	_roles: string[],
 	users: User[],
 	departments: Department[],
 	realMetrics: {
@@ -53,7 +53,8 @@ export function generateDashboardMetrics(
 		}
 	];
 
-	if (roles.includes('Admin') || roles.includes('HR Manager')) {
+	const roles = _roles.map(r => r.toLowerCase().replace(/[\s-]+/g, '_'));
+	if (roles.includes('admin') || roles.includes('hr_manager') || roles.includes('super_admin')) {
 		return [
 			...baseMetrics,
 			{
@@ -67,7 +68,7 @@ export function generateDashboardMetrics(
 		];
 	}
 
-	if (roles.includes('Manager') || roles.includes('HR Manager')) {
+	if (roles.includes('manager') || roles.includes('hr_manager')) {
 		return [
 			{
 				id: 'team_size',
@@ -96,7 +97,6 @@ export function generateDashboardMetrics(
 		];
 	}
 
-	// Employee metrics with real data
 	return [
 		{
 			id: 'leave_balance',
@@ -169,7 +169,6 @@ export function generateRecentActivitiesFromLogs(
 		});
 	});
 
-	// Supplement with other data
 	if (activities.length < limit) {
 		leaveRequests.slice(0, Math.min(3, limit - activities.length)).forEach((leave) => {
 			activities.push({
@@ -259,7 +258,8 @@ export function generateUpcomingEventsFromDatabase(
 	});
 }
 
-export function generateQuickActions(roles: string[], users: User[]) {
+export function generateQuickActions(_roles: string[], users: User[]) {
+	const roles = _roles.map(r => r.toLowerCase().replace(/[\s-]+/g, '_'));
 	const baseActions = [
 		{
 			id: 'view_profile',
@@ -279,7 +279,7 @@ export function generateQuickActions(roles: string[], users: User[]) {
 		}
 	];
 
-	if (roles.includes('Admin') || roles.includes('HR Manager')) {
+	if (roles.includes('admin') || roles.includes('hr_manager') || roles.includes('super_admin')) {
 		return [
 			...baseActions,
 			{
