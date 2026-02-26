@@ -1,4 +1,4 @@
-import { hasPermission, hasRole } from './rbac-core';
+import { hasPermission, hasRole, getAccessTier, AccessTier } from './rbac-core';
 
 /**
  * Role hierarchy levels for precedence logic
@@ -7,6 +7,7 @@ import { hasPermission, hasRole } from './rbac-core';
 export const ROLE_HIERARCHY = {
 	admin: 100,
 	'hr manager': 75,
+	hr_manager: 75,
 	manager: 50,
 	employee: 25,
 	guest: 0
@@ -19,34 +20,24 @@ export function getRolePrecedence(roles: string[]): string {
 	let highestLevel = 0;
 
 	for (const role of roles) {
-		const normalizedRole = role.toLowerCase();
+		const normalizedRole = role.toLowerCase().replace(/[\s_-]+/g, '_');
 		const level = ROLE_HIERARCHY[normalizedRole as keyof typeof ROLE_HIERARCHY] || 0;
 		if (level >= highestLevel) {
-			// >= to ensure we pick up at least one valid role if multiple have same level or if first one is found
 			highestLevel = level;
-			highestRole = role; // Return the original role string, or normalized? Tests expect 'admin'.
+			highestRole = role;
 		}
 	}
-
-	// If the highest role found is 'guest' but roles were provided, and none matched hierarchy, return the first one or 'guest'?
-	// Test expects 'employee' if only 'employee' is passed.
-	// If 'employee' is in hierarchy, it works.
 
 	return highestRole;
 }
 
 /**
  * Get the effective role for a user based on role precedence
- * Updates getUserPermissions to use the highest priority role
- *
- * @param locals - SvelteKit locals object
- * @returns The effective role string
  */
 export function getEffectiveRole(locals: App.Locals): string {
 	const roles = locals.roles || [];
 	const userRole = locals.user?.role;
 
-	// Combine explicit roles with user.role if present
 	const allRoles = [...roles];
 	if (userRole && !allRoles.includes(userRole)) {
 		allRoles.push(userRole);
@@ -56,153 +47,101 @@ export function getEffectiveRole(locals: App.Locals): string {
 }
 
 /**
- * Get user permissions for client-side components
- * Updated to support scoped read permissions (read:self, read:team, read:all)
+ * Get user permissions for client-side components.
+ * Includes computed boolean checks AND the user's access tier.
  */
 export function getUserPermissions(locals: App.Locals) {
 	const userPerms = locals.permissions || [];
 	const userRoles = locals.roles || [];
+	const tier = getAccessTier(userRoles);
 
 	return {
 		user: locals.user,
 		permissions: userPerms,
 		roles: userRoles,
 
-		// Computed permission checks with scoped read support
+		// Access tier
+		accessTier: tier,
+		isTierAll:  tier >= AccessTier.ALL,
+		isTierTeam: tier >= AccessTier.TEAM,
+		isTierSelf: tier >= AccessTier.SELF,
+
+		// Computed permission checks (flat perms for actions)
 		// Employee permissions
-		canViewEmployees: hasPermission(userPerms, [
-			'employees:read:self',
-			'employees:read:team',
-			'employees:read:all',
-			'employees:read'
-		]),
+		canViewEmployees: tier >= AccessTier.SELF,
 		canEditEmployees: hasPermission(userPerms, ['employees:write']),
 		canDeleteEmployees: hasPermission(userPerms, ['employees:delete']),
 		canCreateEmployees: hasPermission(userPerms, ['employees:write']),
 		canManageEmployees: hasPermission(userPerms, ['employees:write']),
-		canViewInactiveEmployees: hasRole(userRoles, ['Admin', 'HR Manager', 'Manager']),
+		canViewInactiveEmployees: tier >= AccessTier.TEAM,
 
 		// Department permissions
-		canViewDepartments: hasPermission(userPerms, [
-			'departments:read:self',
-			'departments:read:team',
-			'departments:read:all',
-			'departments:read'
-		]),
+		canViewDepartments: tier >= AccessTier.SELF,
 		canManageDepartments: hasPermission(userPerms, ['departments:write']),
 		canDeleteDepartments: hasPermission(userPerms, ['departments:delete']),
 
 		// Team permissions
-		canViewTeams: hasPermission(userPerms, [
-			'teams:read:self',
-			'teams:read:team',
-			'teams:read:all',
-			'teams:read'
-		]),
+		canViewTeams: tier >= AccessTier.TEAM,
 		canManageTeams: hasPermission(userPerms, ['teams:write']),
 		canDeleteTeams: hasPermission(userPerms, ['teams:delete']),
 
 		// Management permissions
-		canViewManagement: hasPermission(userPerms, [
-			'management:read:team',
-			'management:read:all',
-			'management:read'
-		]),
+		canViewManagement: tier >= AccessTier.TEAM,
 		canManageManagement: hasPermission(userPerms, ['management:write']),
 
 		// Leave permissions
-		canViewLeave: hasPermission(userPerms, [
-			'leave:read:self',
-			'leave:read:team',
-			'leave:read:all',
-			'leave:read'
-		]),
+		canViewLeave: tier >= AccessTier.SELF,
 		canManageLeave: hasPermission(userPerms, ['leave:approve', 'leave:write']),
 		canDeleteLeave: hasPermission(userPerms, ['leave:delete']),
 
 		// Performance permissions
-		canViewPerformance: hasPermission(userPerms, [
-			'performance:read:self',
-			'performance:read:team',
-			'performance:read:all',
-			'performance:read'
-		]),
+		canViewPerformance: tier >= AccessTier.SELF,
 		canManagePerformance: hasPermission(userPerms, ['performance:write']),
 		canDeletePerformance: hasPermission(userPerms, ['performance:delete']),
 
 		// Goals permissions
-		canViewGoals: hasPermission(userPerms, [
-			'goals:read:self',
-			'goals:read:team',
-			'goals:read:all',
-			'goals:read'
-		]),
+		canViewGoals: tier >= AccessTier.SELF,
 		canManageGoals: hasPermission(userPerms, ['goals:write']),
 		canDeleteGoals: hasPermission(userPerms, ['goals:delete']),
 
 		// Reports permissions
-		canViewReports: hasPermission(userPerms, [
-			'reports:read:self',
-			'reports:read:team',
-			'reports:read:all',
-			'reports:read'
-		]),
+		canViewReports: tier >= AccessTier.SELF,
 		canCreateReports: hasPermission(userPerms, ['reports:write']),
 		canExecuteReports: hasPermission(userPerms, ['reports:execute']),
-		canViewAnalytics: hasPermission(userPerms, ['reports:analytics']),
+		canViewAnalytics: tier >= AccessTier.TEAM,
 		canDeleteReports: hasPermission(userPerms, ['reports:delete']),
 
 		// Tasks permissions
-		canViewTasks: hasPermission(userPerms, [
-			'tasks:read:self',
-			'tasks:read:team',
-			'tasks:read:all',
-			'tasks:read'
-		]),
+		canViewTasks: tier >= AccessTier.SELF,
 		canManageTasks: hasPermission(userPerms, ['tasks:write']),
 		canDeleteTasks: hasPermission(userPerms, ['tasks:delete']),
 		canReassignTasks: hasPermission(userPerms, ['tasks:reassign']),
 
 		// Documents permissions
-		canViewDocuments: hasPermission(userPerms, [
-			'documents:read:self',
-			'documents:read:team',
-			'documents:read:all',
-			'documents:read'
-		]),
+		canViewDocuments: tier >= AccessTier.SELF,
 		canManageDocuments: hasPermission(userPerms, ['documents:write']),
 		canDeleteDocuments: hasPermission(userPerms, ['documents:delete']),
-		canAuditDocuments: hasPermission(userPerms, ['documents:audit']),
+		canAuditDocuments: tier >= AccessTier.ALL,
 
 		// Events permissions
-		canViewEvents: hasPermission(userPerms, [
-			'events:read:self',
-			'events:read:team',
-			'events:read:all',
-			'events:read'
-		]),
+		canViewEvents: tier >= AccessTier.SELF,
 		canManageEvents: hasPermission(userPerms, ['events:write']),
 		canDeleteEvents: hasPermission(userPerms, ['events:delete']),
 
 		// Attendance permissions
-		canViewAttendance: hasPermission(userPerms, [
-			'attendance:read:self',
-			'attendance:read:team',
-			'attendance:read:all',
-			'attendance:read'
-		]),
+		canViewAttendance: tier >= AccessTier.SELF,
 		canManageAttendance: hasPermission(userPerms, ['attendance:write']),
 		canDeleteAttendance: hasPermission(userPerms, ['attendance:delete']),
 
 		// Admin permissions
-		canViewAdmin: hasPermission(userPerms, ['admin:read:all', 'admin:read']),
+		canViewAdmin: tier >= AccessTier.ALL,
 		canManageAdmin: hasPermission(userPerms, ['admin:write']),
 		canDeleteAdmin: hasPermission(userPerms, ['admin:delete']),
 
-		// Role checks
-		isAdmin: hasRole(userRoles, ['Admin']),
+		// Role checks (backward compat)
+		isAdmin: tier >= AccessTier.ALL,
 		isHRManager: hasRole(userRoles, ['HR Manager']),
-		isManager: hasRole(userRoles, ['Manager', 'HR Manager', 'Admin']),
-		isEmployee: hasRole(userRoles, ['Employee'])
+		isManager: tier >= AccessTier.TEAM,
+		isEmployee: tier >= AccessTier.SELF
 	};
 }

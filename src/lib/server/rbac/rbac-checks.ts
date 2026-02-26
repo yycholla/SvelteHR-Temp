@@ -1,206 +1,107 @@
 import type { RequestEvent } from '@sveltejs/kit';
-import { requireAuth } from './rbac-core';
+import { requireAuth, requireAccess, AccessTier } from './rbac-core';
 
 /**
- * Specific permission checks for common scenarios
- * Updated to use scoped read permissions (read:self, read:team, read:all)
+ * Centralised permission/access checks for all pages and actions.
+ *
+ * VIEW checks use role-based tiers:
+ *   - SELF  = any authenticated user (employee+)
+ *   - TEAM  = manager+
+ *   - ALL   = admin / hr_manager only
+ *
+ * ACTION checks (write, delete, approve, execute) still use flat permissions
+ * so fine-grained control is preserved.
  */
 export const PermissionChecks = {
-	// Dashboard access - requires at least self-level access
+	// -- Dashboard
 	dashboard: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: [
-				'dashboard:read:self',
-				'dashboard:read:team',
-				'dashboard:read:all',
-				'dashboard:read'
-			]
-		}),
+		requireAccess(event, AccessTier.SELF),
 
-	// Employee management - accepts any level of read access
+	// -- Employees
 	employeeRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: [
-				'employees:read:self',
-				'employees:read:team',
-				'employees:read:all',
-				'employees:read'
-			]
-		}),
+		requireAccess(event, AccessTier.SELF),
 	employeeWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['employees:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['employees:write'] }),
 	employeeManagement: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['employees:read:team', 'employees:read:all', 'employees:read'],
-			allowedRoles: ['Admin', 'Manager', 'HR Manager']
-		}),
+		requireAccess(event, AccessTier.TEAM),
 
-	// Department management - accepts any level of read access
+	// -- Departments
 	departmentRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: [
-				'departments:read:self',
-				'departments:read:team',
-				'departments:read:all',
-				'departments:read'
-			]
-		}),
+		requireAccess(event, AccessTier.SELF),
 	departmentWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['departments:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['departments:write'] }),
 
-	// Team management - requires at least team-level access
+	// -- Teams
 	teamRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['teams:read:team', 'teams:read:all', 'teams:read']
-		}),
+		requireAccess(event, AccessTier.TEAM),
 	teamWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['teams:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['teams:write'] }),
 
-	// Management pages - requires team or all-level access
+	// -- Management
 	management: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['management:read:team', 'management:read:all', 'management:read']
-		}),
+		requireAccess(event, AccessTier.TEAM),
 	managementWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['management:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['management:write'] }),
 
-	// Leave management - accepts any level of read access
+	// -- Leave
 	leaveRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['leave:read:self', 'leave:read:team', 'leave:read:all', 'leave:read']
-		}),
+		requireAccess(event, AccessTier.SELF),
 	leaveApproval: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['leave:approve']
-		}),
+		requireAuth(event, { requiredPermissions: ['leave:approve'] }),
 
-	// Performance management - accepts any level of read access
+	// -- Performance
 	performanceRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: [
-				'performance:read:self',
-				'performance:read:team',
-				'performance:read:all',
-				'performance:read'
-			]
-		}),
+		requireAccess(event, AccessTier.SELF),
 	performanceWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['performance:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['performance:write'] }),
 
-	// Goals and OKRs - accepts any level of read access
+	// -- Goals / OKRs
 	goalsRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['goals:read:self', 'goals:read:team', 'goals:read:all', 'goals:read']
-		}),
+		requireAccess(event, AccessTier.SELF),
 	goalsWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['goals:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['goals:write'] }),
 
-	// Reports - accepts any level of read access
+	// -- Reports
 	reportsRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: [
-				'reports:read:self',
-				'reports:read:team',
-				'reports:read:all',
-				'reports:read'
-			]
-		}),
+		requireAccess(event, AccessTier.SELF),
 	reportsWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['reports:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['reports:write'] }),
 	reportsExecute: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['reports:execute']
-		}),
+		requireAuth(event, { requiredPermissions: ['reports:execute'] }),
 	reportsAnalytics: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['reports:analytics']
-		}),
+		requireAccess(event, AccessTier.TEAM),
 
-	// Admin pages - requires all-level access
+	// -- Admin
 	adminRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['admin:read:all', 'admin:read']
-		}),
+		requireAccess(event, AccessTier.ALL),
 	adminWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['admin:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['admin:write'] }),
 
-	// Additional scoped permission checks
-	// Tasks
+	// -- Tasks
 	tasksRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['tasks:read:self', 'tasks:read:team', 'tasks:read:all', 'tasks:read']
-		}),
+		requireAccess(event, AccessTier.SELF),
 	tasksWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['tasks:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['tasks:write'] }),
 	tasksDelete: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['tasks:delete']
-		}),
+		requireAuth(event, { requiredPermissions: ['tasks:delete'] }),
 
-	// Documents
+	// -- Documents
 	documentsRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: [
-				'documents:read:self',
-				'documents:read:team',
-				'documents:read:all',
-				'documents:read'
-			]
-		}),
+		requireAccess(event, AccessTier.SELF),
 	documentsWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['documents:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['documents:write'] }),
 	documentsDelete: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['documents:delete']
-		}),
+		requireAuth(event, { requiredPermissions: ['documents:delete'] }),
 
-	// Events
+	// -- Events
 	eventsRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: [
-				'events:read:self',
-				'events:read:team',
-				'events:read:all',
-				'events:read'
-			]
-		}),
+		requireAccess(event, AccessTier.SELF),
 	eventsWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['events:write']
-		}),
+		requireAuth(event, { requiredPermissions: ['events:write'] }),
 
-	// Attendance
+	// -- Attendance
 	attendanceRead: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: [
-				'attendance:read:self',
-				'attendance:read:team',
-				'attendance:read:all',
-				'attendance:read'
-			]
-		}),
+		requireAccess(event, AccessTier.SELF),
 	attendanceWrite: (event: RequestEvent) =>
-		requireAuth(event, {
-			requiredPermissions: ['attendance:write']
-		})
+		requireAuth(event, { requiredPermissions: ['attendance:write'] })
 };
