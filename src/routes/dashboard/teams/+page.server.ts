@@ -3,16 +3,14 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
 
 	// RBAC: Check teams management permissions
-	requireAuth(event, {
-		requiredPermissions: ['teams:read', 'teams:read:self', 'teams:read:team', 'teams:read:all']
-	});
+	requireAuth(event, { minTier: AccessTier.TEAM });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
@@ -116,7 +114,7 @@ export const load: PageServerLoad = async (event) => {
 								}
 							}
 						`,
-						variables: { deptId: userData.departmentId }
+					variables: { deptId: userData.departmentId }
 					})
 				});
 

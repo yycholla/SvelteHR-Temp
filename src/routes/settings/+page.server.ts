@@ -2,7 +2,6 @@
 // T041: Fix settings pages with standardized error handling
 
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { createSettingsOperations } from '$lib/graphql/settings-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
@@ -18,9 +17,8 @@ export const load: PageServerLoad = async (event) => {
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
 
-	// Import required models for standardized error handling
+	// Import required models
 	const { createDataRequest } = await import('$lib/models/data-request');
-	const { createErrorResponse } = await import('$lib/models/error-response');
 	const { createUserSession } = await import('$lib/models/user-session');
 
 	// Create user session from server locals
@@ -57,6 +55,56 @@ export const load: PageServerLoad = async (event) => {
 		timeoutMs: 5000
 	});
 
+	// Default settings to return if GraphQL fails
+	const defaultUserSettings = {
+		profile: {
+			id: locals.user.id,
+			email: locals.user.email || '',
+			displayName: locals.user.display_name || locals.user.email || '',
+			firstName: '',
+			lastName: '',
+			phone: null,
+			jobTitle: null,
+			departmentId: null,
+			managerId: null,
+			department: null,
+			manager: null,
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString()
+		},
+		preferences: {
+			theme: 'light' as const,
+			language: 'en',
+			timezone: 'America/Los_Angeles',
+			dateFormat: 'MM/dd/yyyy',
+			timeFormat: '12h' as const,
+			compactView: false,
+			sidebarCollapsed: false,
+			fontSize: 'medium' as const,
+			colorScheme: 'blue'
+		},
+		notificationPreferences: {
+			email: true,
+			push: false,
+			sms: false,
+			leaveReminders: true,
+			performanceUpdates: true,
+			systemAlerts: true,
+			teamUpdates: false,
+			eventReminders: true,
+			taskReminders: true
+		},
+		privacyPreferences: {
+			profileVisibility: 'team' as const,
+			showOnlineStatus: true,
+			allowDirectMessages: true,
+			dataSharing: false,
+			analyticsOptOut: false
+		}
+	};
+
+	let userSettings = defaultUserSettings;
+
 	try {
 		// Create GraphQL client for server-side operations
 		const graphqlClient = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
@@ -64,8 +112,8 @@ export const load: PageServerLoad = async (event) => {
 		// Create settings operations instance
 		const settingsOps = createSettingsOperations(graphqlClient);
 
-		// Fetch user settings from GraphQL backend
-		const userSettings = await settingsOps.getUserSettings({
+		// Fetch user settings from GraphQL backend - catch failures gracefully
+		userSettings = await settingsOps.getUserSettings({
 			userCredentials: {
 				userId: userSession.userId,
 				roles: userSession.roles,
@@ -74,7 +122,14 @@ export const load: PageServerLoad = async (event) => {
 				expiresAt: userSession.expiresAt
 			}
 		});
+	} catch (settingsErr) {
+		logger.warn('[Settings] GraphQL settings fetch failed, using defaults', {
+			error: settingsErr instanceof Error ? settingsErr.message : String(settingsErr)
+		});
+		// userSettings already set to defaults above
+	}
 
+	try {
 		// TODO: Fetch activity log from activity-logs operations
 		// getUserActivityLog was removed from SettingsOperations during migration
 		// Activity logs should be fetched from ActivityLogsOperations instead
@@ -103,24 +158,23 @@ export const load: PageServerLoad = async (event) => {
 	} catch (err) {
 		logger.error('[Settings Load Error]', err as Error);
 
-		// Create standardized error response
-		const errorResponse = createErrorResponse(
-			err instanceof Error ? err : new Error('Settings load failed'),
-			{
-				type: 'DATA_LOAD_ERROR',
-				userMessage: 'Unable to load user settings. Please refresh the page or try again later.'
-			}
-		);
+		// Re-throw redirects and SvelteKit errors
+		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
+			throw err;
+		}
 
-		// Log error details for debugging
-		logger.error('[Settings Error Details]', undefined, {
-			userId: locals.user?.id,
-			userRole: locals.user?.role,
+		// Return safe defaults instead of crashing
+		const userPermissions = getUserPermissions(locals);
+		return {
+			userSession: userSession.toJSON(),
+			userSettings: defaultUserSettings,
+			activityLog: [] as ActivityLogItem[],
 			activeTab,
-			error: errorResponse
-		});
-
-		// Throw SvelteKit error with user-friendly message
-		error(500, 'Settings temporarily unavailable');
+			...userPermissions,
+			canUpdateProfile: true,
+			canChangePassword: true,
+			canExportData: false,
+			loadedAt: new Date().toISOString()
+		};
 	}
 };
