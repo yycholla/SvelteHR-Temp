@@ -225,7 +225,7 @@
 
 		<div>
 			{#if auth.user && auth.hasPermission('task:create')}
-				<Button variant="default" onclick={() => goto(resolve('/dashboard/tasks/new'))}>
+				<Button variant="default" onclick={() => goto(resolve('/dashboard/tasks/my-tasks'))}>
 					<Plus class="mr-2 h-4 w-4" />
 					Create Task
 				</Button>

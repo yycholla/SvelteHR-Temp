@@ -8,6 +8,7 @@ import { env as publicEnv } from '$env/dynamic/public';
 import { print } from 'graphql';
 import type { TypedDocumentNode } from '@urql/core';
 import { existsSync } from 'node:fs';
+import { getRequestContextAccessToken } from '$lib/server/request-context';
 
 const RUNNING_IN_CONTAINER = existsSync('/.dockerenv');
 const DOCKER_ONLY_HOSTS = new Set(['hr-graphql-rust']);
@@ -112,6 +113,11 @@ export async function authenticatedGraphQLRequest(
 	const headers: Record<string, string> = {
 		'Content-Type': 'application/json'
 	};
+
+	const requestContextAccessToken = getRequestContextAccessToken();
+	if (requestContextAccessToken) {
+		headers['Authorization'] = `Bearer ${requestContextAccessToken}`;
+	}
 
 	// Forward session cookies for authentication
 	// Defensive check: ensure request has headers property with get method

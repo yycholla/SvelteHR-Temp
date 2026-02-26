@@ -36,7 +36,7 @@ export function createLeaveRequestService(event: RequestEvent): LeaveRequestServ
 	const cookieHeader = event.request.headers.get('cookie') || '';
 
 	// Create urql client with session cookies for authentication
-	const client = createUrqlClient(event.fetch, event.locals.accessToken, undefined, cookieHeader);
+	const client = createUrqlClient(event.fetch, event.locals?.accessToken, undefined, cookieHeader);
 
 	// Wrap urql client to match GraphQLPort contract expected by repository adapters
 	const repository = new GraphQLLeaveRequestAdapter(new GraphQLAdapter(client));

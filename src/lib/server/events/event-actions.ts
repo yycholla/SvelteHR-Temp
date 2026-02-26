@@ -13,6 +13,28 @@ interface AttendeeSubset {
 	responseStatus: string;
 }
 
+const SUPPORTED_EVENT_TYPES = new Set([
+	'meeting',
+	'training',
+	'social',
+	'company_event',
+	'holiday',
+	'interview',
+	'review',
+	'team_building',
+	'other'
+]);
+
+function normalizeEventType(raw: string): string {
+	if (!raw) return 'other';
+	const normalized = raw
+		.trim()
+		.toLowerCase()
+		.replace(/[\s-]+/g, '_');
+	if (normalized === 'conference') return 'company_event';
+	return SUPPORTED_EVENT_TYPES.has(normalized) ? normalized : 'other';
+}
+
 export const eventActions = {
 	updateEventTime: async (event: RequestEvent) => {
 		const { request, cookies, locals } = event;
@@ -85,7 +107,6 @@ export const eventActions = {
 		const { request, cookies, fetch: eventFetch, locals } = event;
 
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
-		const userId = locals.user.id;
 
 		requireAuth(event, {
 			requiredPermissions: [
@@ -103,9 +124,12 @@ export const eventActions = {
 		const endTime = formData.get('endTime') as string;
 		const isAllDay = formData.get('isAllDay') === 'on';
 		const location = formData.get('location') as string;
-		const eventType = formData.get('eventType') as string;
+		const eventType = normalizeEventType(formData.get('eventType') as string);
 		const isPublic = formData.get('visibilityType') === 'company';
-		const timezoneOffset = parseInt(formData.get('timezoneOffset') as string);
+		const timezoneOffset = Number.parseInt(formData.get('timezoneOffset') as string, 10);
+		const effectiveTimezoneOffset = Number.isFinite(timezoneOffset)
+			? timezoneOffset
+			: new Date().getTimezoneOffset();
 
 		if (!title || !startTime || !endTime) {
 			return fail(400, { error: 'Title, start time, and end time are required.' });
@@ -142,8 +166,8 @@ export const eventActions = {
 				return date;
 			};
 
-			const startDate = parseLocalTime(startTime, timezoneOffset);
-			const endDate = parseLocalTime(endTime, timezoneOffset);
+			const startDate = parseLocalTime(startTime, effectiveTimezoneOffset);
+			const endDate = parseLocalTime(endTime, effectiveTimezoneOffset);
 
 			await eventsOps.createEvent({
 				input: {
@@ -155,8 +179,7 @@ export const eventActions = {
 					isAllDay,
 					location,
 					status: 'scheduled',
-					isPublic,
-					organizerId: locals.user.id
+					isPublic
 				},
 				userCredentials
 			});
@@ -193,9 +216,12 @@ export const eventActions = {
 		const endTime = formData.get('endTime') as string;
 		const isAllDay = formData.get('isAllDay') === 'on';
 		const location = formData.get('location') as string;
-		const eventType = formData.get('eventType') as string;
+		const eventType = normalizeEventType(formData.get('eventType') as string);
 		const isPublic = formData.get('visibilityType') === 'company';
-		const timezoneOffset = parseInt(formData.get('timezoneOffset') as string);
+		const timezoneOffset = Number.parseInt(formData.get('timezoneOffset') as string, 10);
+		const effectiveTimezoneOffset = Number.isFinite(timezoneOffset)
+			? timezoneOffset
+			: new Date().getTimezoneOffset();
 
 		if (!eventId || !title || !startTime || !endTime) {
 			return fail(400, { error: 'Event ID, title, start time, and end time are required.' });
@@ -232,8 +258,8 @@ export const eventActions = {
 				return date;
 			};
 
-			const startDate = parseLocalTime(startTime, timezoneOffset);
-			const endDate = parseLocalTime(endTime, timezoneOffset);
+			const startDate = parseLocalTime(startTime, effectiveTimezoneOffset);
+			const endDate = parseLocalTime(endTime, effectiveTimezoneOffset);
 
 			await eventsOps.updateEvent({
 				id: eventId,

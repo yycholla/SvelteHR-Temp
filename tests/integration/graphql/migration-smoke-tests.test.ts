@@ -30,7 +30,8 @@ describeOrSkip('Migration Smoke Tests - Idiomatic Rust Patterns', () => {
 			url: GRAPHQL_ENDPOINT,
 			fetch: fetch as any,
 			requestPolicy: 'network-only',
-			exchanges: [cacheExchange, fetchExchange]
+			exchanges: [cacheExchange, fetchExchange],
+			preferGetMethod: false
 		});
 	});
 
@@ -576,7 +577,8 @@ export const createTestClient = () => {
 		url: GRAPHQL_ENDPOINT,
 		fetch: fetch as any,
 		requestPolicy: 'network-only',
-		exchanges: [cacheExchange, fetchExchange]
+		exchanges: [cacheExchange, fetchExchange],
+		preferGetMethod: false
 	});
 };
 

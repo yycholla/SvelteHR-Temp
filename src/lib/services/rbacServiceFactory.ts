@@ -8,7 +8,7 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 export function createRBACService(event: RequestEvent): RBACService {
 	const client = createUrqlClient(
 		event.fetch,
-		event.locals.accessToken,
+		event.locals?.accessToken,
 		undefined,
 		serializeCookies(event.cookies)
 	);

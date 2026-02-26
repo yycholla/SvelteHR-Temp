@@ -35,7 +35,7 @@ export function createAuthService(event: RequestEvent): AuthService {
 	const cookieHeader = event.request.headers.get('cookie') || '';
 
 	// Create urql client with session cookies
-	const client = createUrqlClient(event.fetch, event.locals.accessToken, undefined, cookieHeader);
+	const client = createUrqlClient(event.fetch, event.locals?.accessToken, undefined, cookieHeader);
 
 	// Wrap in GraphQLAdapter to properly implement GraphQLPort interface
 	const graphql = new GraphQLAdapter(client);

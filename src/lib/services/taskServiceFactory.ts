@@ -7,7 +7,7 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 export function createTaskService(event: RequestEvent): TaskService {
 	const client = createUrqlClient(
 		event.fetch,
-		event.locals.accessToken,
+		event.locals?.accessToken,
 		undefined,
 		serializeCookies(event.cookies)
 	);

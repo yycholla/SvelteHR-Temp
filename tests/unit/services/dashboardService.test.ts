@@ -50,7 +50,7 @@ describe('DashboardService', () => {
 					return Promise.resolve({ data: { users: mockUsers } });
 				}
 				if (query === GET_DEPARTMENTS_QUERY) {
-					return Promise.resolve({ data: { departments: mockDepts } });
+					return Promise.resolve({ data: { departments: { items: mockDepts } } });
 				}
 				return Promise.resolve({ data: {} });
 			});

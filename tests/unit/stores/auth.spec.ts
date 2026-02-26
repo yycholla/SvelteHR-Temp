@@ -530,8 +530,21 @@ describe('AuthStore', () => {
 					{
 						id: 'admin-role',
 						name: 'Admin',
-						hierarchyLevel: 100,
-						permissions: ['employees:read:all', 'employees:write:all'],
+						level: 100,
+						permissions: [
+							{
+								id: 'perm-1',
+								resource: 'employees',
+								action: 'read',
+								fullPermission: 'employees:read:all'
+							},
+							{
+								id: 'perm-2',
+								resource: 'employees',
+								action: 'write',
+								fullPermission: 'employees:write:all'
+							}
+						],
 						description: 'Administrator role',
 						createdAt: new Date().toISOString(),
 						updatedAt: new Date().toISOString()
@@ -573,8 +586,15 @@ describe('AuthStore', () => {
 						{
 							id: 'manager-role',
 							name: 'Manager',
-							hierarchyLevel: 50,
-							permissions: ['employees:read:team'],
+							level: 50,
+							permissions: [
+								{
+									id: 'perm-1',
+									resource: 'employees',
+									action: 'read',
+									fullPermission: 'employees:read:team'
+								}
+							],
 							description: 'Manager role',
 							createdAt: new Date().toISOString(),
 							updatedAt: new Date().toISOString()
@@ -807,8 +827,15 @@ describe('AuthStore', () => {
 						{
 							id: 'manager-role',
 							name: 'Manager',
-							hierarchyLevel: 50,
-							permissions: ['employees:read:team'],
+							level: 50,
+							permissions: [
+								{
+									id: 'perm-1',
+									resource: 'employees',
+									action: 'read',
+									fullPermission: 'employees:read:team'
+								}
+							],
 							description: 'Manager role',
 							createdAt: new Date().toISOString(),
 							updatedAt: new Date().toISOString()

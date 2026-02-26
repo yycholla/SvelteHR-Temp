@@ -24,13 +24,14 @@ test.describe('Backend Initialization', () => {
 		await page.goto('/dashboard');
 
 		// Page should load without throwing errors
-		await expect(page).toHaveTitle(/SvelteHR|Dashboard/);
+		await expect(page).toHaveTitle(/MountainHR|SvelteHR|Dashboard/);
 
 		// Should not show 500 errors
 		const errorMessages = page.locator('[data-testid="error-message"]');
-		const errorText = await errorMessages.textContent();
+		const hasErrorMessage = (await errorMessages.count()) > 0;
 
-		if (errorText) {
+		if (hasErrorMessage) {
+			const errorText = await errorMessages.first().textContent();
 			// If error is shown, it should be user-friendly, not a 500 error
 			expect(errorText).not.toContain('500');
 			expect(errorText).not.toContain('Internal Server Error');
@@ -174,7 +175,7 @@ test.describe('Backend Initialization', () => {
 			expect(response?.status()).not.toBe(500);
 
 			// Page should load with title
-			await expect(page).toHaveTitle(/SvelteHR|Dashboard/);
+			await expect(page).toHaveTitle(/MountainHR|SvelteHR|Dashboard/);
 
 			// Should not show generic server errors
 			const errorElements = page.locator('text=Internal Server Error');
@@ -205,7 +206,7 @@ test.describe('Backend Initialization', () => {
 
 		// All pages should have proper titles
 		for (const page of pages) {
-			await expect(page).toHaveTitle(/SvelteHR|Dashboard/);
+			await expect(page).toHaveTitle(/MountainHR|SvelteHR|Dashboard/);
 		}
 
 		// Clean up

@@ -7,7 +7,7 @@ import { logger } from '$lib/utils/logger';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { z } from 'zod';
-import { createUrqlClient } from '$lib/graphql/client';
+import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { gql } from '@urql/core';
 
 const UPLOAD_DOCUMENT_MUTATION = gql`
@@ -87,17 +87,19 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 
 		// Validate file type
 		const allowedTypes = ['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV'];
-		if (!allowedTypes.includes(body.fileType.toUpperCase())) {
+		const normalizedFileType = normalizeDocumentFileType(body.fileType, body.filename);
+		if (!allowedTypes.includes(normalizedFileType)) {
 			error(400, `Invalid file type. Allowed: ${allowedTypes.join(', ')}`);
 		}
 
 		// Step 5: Create GraphQL client with session cookies
-		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
+		const cookieHeader = serializeCookies(cookies);
+		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookieHeader);
 
 		// Step 6: Upload document via GraphQL (handles encryption and storage)
 		const uploadInput = {
 			filename: body.filename,
-			fileType: body.fileType.toUpperCase(),
+			fileType: normalizedFileType,
 			fileSizeBytes: body.fileSizeBytes,
 			encryptedData: body.encryptedData, // Base64 encoded encrypted data
 			iv: body.iv || [], // Initialization vector for AES-GCM
@@ -190,3 +192,47 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 		error(500, errorMessage);
 	}
 };
+
+function normalizeDocumentFileType(rawType: unknown, filename: unknown): string {
+	const type = typeof rawType === 'string' ? rawType.trim().toLowerCase() : '';
+	const name = typeof filename === 'string' ? filename.trim().toLowerCase() : '';
+
+	const mimeMap: Record<string, string> = {
+		'application/pdf': 'PDF',
+		'image/jpeg': 'JPEG',
+		'image/jpg': 'JPEG',
+		'image/png': 'PNG',
+		'image/gif': 'GIF',
+		'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+		'text/plain': 'TXT',
+		'text/csv': 'CSV'
+	};
+
+	if (mimeMap[type]) {
+		return mimeMap[type];
+	}
+
+	const extension = name.includes('.') ? name.split('.').pop() || '' : '';
+	const extensionMap: Record<string, string> = {
+		pdf: 'PDF',
+		jpg: 'JPEG',
+		jpeg: 'JPEG',
+		png: 'PNG',
+		gif: 'GIF',
+		docx: 'DOCX',
+		xlsx: 'XLSX',
+		txt: 'TXT',
+		csv: 'CSV'
+	};
+
+	if (extensionMap[extension]) {
+		return extensionMap[extension];
+	}
+
+	if (typeof rawType === 'string') {
+		return rawType.toUpperCase();
+	}
+
+	return '';
+}

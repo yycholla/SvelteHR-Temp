@@ -6,6 +6,16 @@ import { StatisticsCalculator } from '$lib/server/analytics';
 import type { EventStatus, EventType, EventVisibilityType } from '$lib/graphql/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
+function normalizeEventTypeFilter(raw: string | null): EventType | null {
+	if (!raw) return null;
+	const normalized = raw
+		.trim()
+		.toLowerCase()
+		.replace(/[\s-]+/g, '_');
+	if (normalized === 'conference') return 'company_event' as EventType;
+	return normalized as EventType;
+}
+
 export async function loadEventsData(event: RequestEvent) {
 	const loader = new RBACDataLoader(event, [
 		'events:read',
@@ -25,7 +35,7 @@ export async function loadEventsData(event: RequestEvent) {
 		// Get query parameters for filtering
 		const visibilityFilter = params.getString('visibility') as EventVisibilityType | null;
 		const statusFilter = params.getString('status') as EventStatus | null;
-		const typeFilter = params.getString('type') as EventType | null;
+		const typeFilter = normalizeEventTypeFilter(params.getString('type'));
 		const sortBy = params.getString('sort', 'date');
 		const view = params.getString('view', 'calendar');
 

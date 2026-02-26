@@ -182,7 +182,8 @@
 					<option value="meeting">Meeting</option>
 					<option value="training">Training</option>
 					<option value="social">Social</option>
-					<option value="conference">Conference</option>
+					<option value="company_event">Company Event</option>
+					<option value="holiday">Holiday</option>
 					<option value="other">Other</option>
 				</select>
 			</div>

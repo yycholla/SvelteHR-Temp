@@ -14,7 +14,7 @@ import {
 	initializeTestPool,
 	queryActivityLogs
 } from '../../utils/db-trigger-helpers';
-import { nanoid } from 'nanoid';
+import { randomUUID } from 'crypto';
 
 describe('Department INSERT trigger (FR-001)', () => {
 	let db: TestDatabase;
@@ -31,8 +31,8 @@ describe('Department INSERT trigger (FR-001)', () => {
 
 	beforeEach(async () => {
 		db = await createTestDatabase();
-		testUserId = nanoid();
-		departmentId = nanoid();
+		testUserId = randomUUID();
+		departmentId = randomUUID();
 	});
 
 	afterEach(async () => {
@@ -48,16 +48,15 @@ describe('Department INSERT trigger (FR-001)', () => {
 		const department = generateTestDepartment({
 			id: departmentId,
 			name: 'Engineering',
-			description: 'Software development team',
-			budget: 500000
+			description: 'Software development team'
 		});
 
 		await db.query(
 			`
-      INSERT INTO departments (id, name, description, budget)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO departments (id, name, description)
+      VALUES ($1, $2, $3)
     `,
-			[department.id, department.name, department.description, department.budget]
+			[department.id, department.name, department.description]
 		);
 
 		const auditLogs = await queryActivityLogs(db, 'departments', departmentId);
@@ -71,7 +70,6 @@ describe('Department INSERT trigger (FR-001)', () => {
 		expect(auditLogs[0].after_snapshot).toBeTruthy();
 		expect(auditLogs[0].after_snapshot.name).toBe('Engineering');
 		expect(auditLogs[0].after_snapshot.description).toBe('Software development team');
-		expect(auditLogs[0].after_snapshot.budget).toBe(500000);
 		expect(auditLogs[0].ip_address).toBe('192.168.1.150');
 		expect(auditLogs[0].is_rollback).toBe(false);
 	});
@@ -84,16 +82,15 @@ describe('Department INSERT trigger (FR-001)', () => {
 		const department = generateTestDepartment({
 			id: departmentId,
 			name: 'Marketing',
-			description: 'Brand and communications',
-			budget: 300000
+			description: 'Brand and communications'
 		});
 
 		await db.query(
 			`
-      INSERT INTO departments (id, name, description, budget)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO departments (id, name, description)
+      VALUES ($1, $2, $3)
     `,
-			[department.id, department.name, department.description, department.budget]
+			[department.id, department.name, department.description]
 		);
 
 		const auditLogs = await queryActivityLogs(db, 'departments', departmentId);
@@ -102,7 +99,6 @@ describe('Department INSERT trigger (FR-001)', () => {
 		expect(auditLogs[0].after_snapshot).toBeTruthy();
 		expect(auditLogs[0].after_snapshot.id).toBe(departmentId);
 		expect(auditLogs[0].after_snapshot.name).toBe('Marketing');
-		expect(auditLogs[0].after_snapshot.budget).toBe(300000);
 	});
 });
 

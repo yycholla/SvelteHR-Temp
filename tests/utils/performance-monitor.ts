@@ -3,7 +3,6 @@
 // Created: 2025-09-24
 
 import { performance } from 'perf_hooks';
-import { expect } from 'vitest';
 
 // Performance metric types
 interface PerformanceEntry {
@@ -429,6 +428,12 @@ export async function timeFunction<T>(
 
 // Performance assertion utilities
 export class PerformanceAssertions {
+	private static assert(condition: boolean, message: string): void {
+		if (!condition) {
+			throw new Error(message);
+		}
+	}
+
 	/**
 	 * Assert operation completed within target time
 	 */
@@ -437,7 +442,10 @@ export class PerformanceAssertions {
 		target: number,
 		operationName: string = 'operation'
 	): void {
-		expect(duration).toBeLessThan(target);
+		this.assert(
+			duration < target,
+			`${operationName} exceeded target: ${duration}ms >= ${target}ms`
+		);
 
 		if (duration > target * 0.8) {
 			// Warn if within 80% of target
@@ -501,16 +509,22 @@ export class PerformanceAssertions {
 			report.performanceTargets.passed /
 			(report.performanceTargets.passed + report.performanceTargets.failed);
 
-		expect(successRate).toBeGreaterThan(0.9); // 90% of operations should meet targets
+		this.assert(successRate > 0.9, `Performance success rate too low: ${successRate}`); // 90% of operations should meet targets
 
 		// Check that no single operation is extremely slow
 		if (report.slowestTest) {
-			expect(report.slowestTest.duration).toBeLessThan(10000); // No operation should take > 10s
+			this.assert(
+				report.slowestTest.duration < 10000,
+				`Slowest operation exceeded 10s: ${report.slowestTest.duration}ms`
+			); // No operation should take > 10s
 		}
 
 		// Memory growth check
 		const memoryGrowth = report.memoryUsage.final.heapUsed - report.memoryUsage.average.heapUsed;
-		expect(memoryGrowth).toBeLessThan(PERFORMANCE_TARGETS.MEMORY_GROWTH_LIMIT);
+		this.assert(
+			memoryGrowth < PERFORMANCE_TARGETS.MEMORY_GROWTH_LIMIT,
+			`Memory growth exceeded limit: ${memoryGrowth} >= ${PERFORMANCE_TARGETS.MEMORY_GROWTH_LIMIT}`
+		);
 	}
 }
 

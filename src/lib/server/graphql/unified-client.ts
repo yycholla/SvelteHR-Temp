@@ -27,7 +27,7 @@ export class UnifiedGraphQLClient {
 
 	constructor(event: RequestEvent) {
 		const cookieHeader = event.request.headers.get('cookie') || '';
-		this.client = createUrqlClient(undefined, event.locals.accessToken, undefined, cookieHeader);
+		this.client = createUrqlClient(undefined, event.locals?.accessToken, undefined, cookieHeader);
 	}
 
 	private getValueAtPath(data: unknown, path: string): unknown {

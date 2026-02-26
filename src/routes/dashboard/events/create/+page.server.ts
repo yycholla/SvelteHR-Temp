@@ -11,6 +11,28 @@ import { QueryParamExtractor } from '$lib/server/route-helpers';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient } from '$lib/graphql/client';
 
+const SUPPORTED_EVENT_TYPES = new Set([
+	'meeting',
+	'training',
+	'social',
+	'company_event',
+	'holiday',
+	'interview',
+	'review',
+	'team_building',
+	'other'
+]);
+
+function normalizeEventType(raw: string): string {
+	if (!raw) return 'other';
+	const normalized = raw
+		.trim()
+		.toLowerCase()
+		.replace(/[\s-]+/g, '_');
+	if (normalized === 'conference') return 'company_event';
+	return SUPPORTED_EVENT_TYPES.has(normalized) ? normalized : 'other';
+}
+
 export const load: PageServerLoad = async (event) => {
 	const loader = new RBACDataLoader(event, [
 		'events:write',
@@ -181,9 +203,12 @@ export const actions: Actions = {
 		const endTime = formData.get('endTime') as string;
 		const isAllDay = formData.get('isAllDay') === 'on';
 		const location = formData.get('location') as string;
-		const eventType = formData.get('eventType') as string;
+		const eventType = normalizeEventType(formData.get('eventType') as string);
 		const isPublic = formData.get('visibilityType') === 'company';
-		const timezoneOffset = parseInt(formData.get('timezoneOffset') as string);
+		const timezoneOffset = Number.parseInt(formData.get('timezoneOffset') as string, 10);
+		const effectiveTimezoneOffset = Number.isFinite(timezoneOffset)
+			? timezoneOffset
+			: new Date().getTimezoneOffset();
 
 		// Validate required fields
 		if (!title || !startTime || !endTime) {
@@ -222,8 +247,8 @@ export const actions: Actions = {
 				return date;
 			};
 
-			const startDate = parseLocalTime(startTime, timezoneOffset);
-			const endDate = parseLocalTime(endTime, timezoneOffset);
+			const startDate = parseLocalTime(startTime, effectiveTimezoneOffset);
+			const endDate = parseLocalTime(endTime, effectiveTimezoneOffset);
 
 			// Convert to UTC ISO strings
 			const startTimeUTC = startDate.toISOString();
@@ -239,7 +264,7 @@ export const actions: Actions = {
 			};
 
 			// Create the event
-			const result = await eventsOps.createEvent({
+			await eventsOps.createEvent({
 				input: {
 					title,
 					description,
@@ -249,8 +274,7 @@ export const actions: Actions = {
 					isAllDay,
 					location,
 					status: 'scheduled',
-					isPublic,
-					organizerId: loader.getUserId()
+					isPublic
 				},
 				userCredentials
 			});

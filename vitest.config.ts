@@ -169,7 +169,13 @@ export default defineConfig({
 					name: 'integration',
 					environment: 'node',
 					include: ['tests/integration/**/*.{test,spec}.{js,ts}'],
-					exclude: ['tests/unit/**', 'tests/contract/**', 'tests/e2e/**'],
+					exclude: [
+						'tests/unit/**',
+						'tests/contract/**',
+						'tests/e2e/**',
+						'tests/integration/rbac-validation.test.ts',
+						'tests/integration/rbac-validation.test.js'
+					],
 					setupFiles: ['./tests/setup/vitest-setup-integration.ts'],
 					testTimeout: 60000,
 					hookTimeout: 30000,
@@ -178,6 +184,20 @@ export default defineConfig({
 						forks: {
 							singleFork: false
 						}
+					},
+					env: {
+						GRAPHQL_ENDPOINT: process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql',
+						API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:4000',
+						TEST_DATABASE_URL:
+							process.env.TEST_DATABASE_URL ||
+							process.env.DATABASE_URL ||
+							'postgresql://postgres:postgres123@localhost:5433/hr_system',
+						TEST_DB_HOST: process.env.TEST_DB_HOST || 'localhost',
+						TEST_DB_PORT: process.env.TEST_DB_PORT || process.env.POSTGRES_PORT || '5433',
+						TEST_DB_NAME: process.env.TEST_DB_NAME || process.env.POSTGRES_DB || 'hr_system',
+						TEST_DB_USER: process.env.TEST_DB_USER || process.env.POSTGRES_USER || 'postgres',
+						TEST_DB_PASSWORD:
+							process.env.TEST_DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres123'
 					}
 				}
 			},

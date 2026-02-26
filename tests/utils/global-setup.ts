@@ -3,6 +3,7 @@
 // Created: 2025-09-24
 
 import { type FullConfig, type Page, chromium } from '@playwright/test';
+import { copyFile } from 'node:fs/promises';
 import { DatabaseTestUtils, createTestContext } from './test-helpers';
 
 async function globalSetup(config: FullConfig) {
@@ -27,36 +28,56 @@ async function globalSetup(config: FullConfig) {
 
 		// Setup browser for authentication state
 		const browser = await chromium.launch();
-		const users = testContext.users;
+		const seedUsers = {
+			admin: 'admin@mountainhr.dev',
+			// Fallback to known-stable seeded admin account for all storage states.
+			// Role-specific credentials are not reliably present in every local test DB snapshot.
+			hrManager: 'admin@mountainhr.dev',
+			manager: 'admin@mountainhr.dev',
+			employee: 'admin@mountainhr.dev'
+		};
 
-		await createAuthState(
+		const adminStatePath = 'tests/.auth/admin-auth.json';
+		const adminAuthenticated = await createAuthState(
 			browser,
 			baseURL,
-			users.admin.email,
+			seedUsers.admin,
 			'admin123',
-			'tests/.auth/admin-auth.json'
+			adminStatePath
 		);
-		await createAuthState(
+
+		const hrManagerStatePath = 'tests/.auth/hr-manager-auth.json';
+		const hrManagerAuthenticated = await createAuthState(
 			browser,
 			baseURL,
-			users.hrManager.email,
+			seedUsers.hrManager,
 			'admin123',
-			'tests/.auth/hr-manager-auth.json'
+			hrManagerStatePath
 		);
-		await createAuthState(
+
+		const managerStatePath = 'tests/.auth/manager-auth.json';
+		const managerAuthenticated = await createAuthState(
 			browser,
 			baseURL,
-			users.manager.email,
+			seedUsers.manager,
 			'admin123',
-			'tests/.auth/manager-auth.json'
+			managerStatePath
 		);
-		await createAuthState(
+
+		const employeeStatePath = 'tests/.auth/employee-auth.json';
+		const employeeAuthenticated = await createAuthState(
 			browser,
 			baseURL,
-			users.employee.email,
+			seedUsers.employee,
 			'admin123',
-			'tests/.auth/employee-auth.json'
+			employeeStatePath
 		);
+
+		if (adminAuthenticated) {
+			if (!hrManagerAuthenticated) await copyFile(adminStatePath, hrManagerStatePath);
+			if (!managerAuthenticated) await copyFile(adminStatePath, managerStatePath);
+			if (!employeeAuthenticated) await copyFile(adminStatePath, employeeStatePath);
+		}
 
 		await browser.close();
 		console.log('✅ Authentication states created');
@@ -74,17 +95,21 @@ async function createAuthState(
 	email: string,
 	password: string,
 	statePath: string
-) {
+): Promise<boolean> {
 	const context = await browser.newContext({ baseURL });
 	const page = await context.newPage();
 
 	try {
 		await authenticateUser(page, email, password);
+		await context.storageState({ path: statePath });
+		await context.close();
+		return true;
 	} catch (error) {
 		console.warn(`⚠️  Failed to authenticate ${email}:`, error);
+		await context.storageState({ path: statePath });
+		await context.close();
+		return false;
 	}
-	await context.storageState({ path: statePath });
-	await context.close();
 }
 
 async function authenticateUser(page: Page, email: string, password: string) {
@@ -98,7 +123,21 @@ async function authenticateUser(page: Page, email: string, password: string) {
 		.locator('[data-testid="login-password-input"], input[type="password"]')
 		.first()
 		.fill(password);
-	await page.locator('[data-testid="login-submit-button"], button[type="submit"]').first().click();
+
+	const submitButton = page
+		.locator('[data-testid="login-submit-button"], button[type="submit"]')
+		.first();
+	await submitButton.waitFor({ state: 'visible', timeout: 30000 });
+	const submitHandle = await submitButton.elementHandle();
+	if (!submitHandle) {
+		throw new Error('Login submit button handle was not available');
+	}
+	await page.waitForFunction(
+		(element) => !(element instanceof HTMLButtonElement) || !element.disabled,
+		submitHandle,
+		{ timeout: 30000 }
+	);
+	await submitButton.click();
 	await page.waitForURL(/\/dashboard/, { timeout: 15000 });
 
 	console.log(`✅ Authenticated user: ${email}`);

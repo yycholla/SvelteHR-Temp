@@ -46,7 +46,7 @@ export function createTrainingService(event: RequestEvent): TrainingService {
 	const cookieHeader = serializeCookies(event.cookies);
 
 	// Create urql client with session cookies for authentication
-	const client = createUrqlClient(event.fetch, event.locals.accessToken, undefined, cookieHeader);
+	const client = createUrqlClient(event.fetch, event.locals?.accessToken, undefined, cookieHeader);
 
 	// Wrap in GraphQLAdapter to properly implement GraphQLPort interface
 	const graphql = new GraphQLAdapter(client);

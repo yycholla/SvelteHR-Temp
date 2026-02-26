@@ -3,17 +3,46 @@
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Created: 2025-10-02
 
+import { randomUUID } from 'crypto';
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg';
-import { nanoid } from 'nanoid';
+
+interface TestDbConfig {
+	host: string;
+	port: number;
+	database: string;
+	user: string;
+	password: string;
+}
+
+function resolveTestDbConfig(): TestDbConfig {
+	const connectionUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
+
+	if (connectionUrl) {
+		try {
+			const parsed = new URL(connectionUrl);
+			return {
+				host: parsed.hostname,
+				port: Number(parsed.port || '5432'),
+				database: parsed.pathname.replace(/^\//, '') || 'hr_system',
+				user: decodeURIComponent(parsed.username || 'postgres'),
+				password: decodeURIComponent(parsed.password || '')
+			};
+		} catch {
+			// Fall back to discrete env values below when URL parsing fails.
+		}
+	}
+
+	return {
+		host: process.env.TEST_DB_HOST || 'localhost',
+		port: parseInt(process.env.TEST_DB_PORT || process.env.POSTGRES_PORT || '5433'),
+		database: process.env.TEST_DB_NAME || process.env.POSTGRES_DB || 'hr_system',
+		user: process.env.TEST_DB_USER || process.env.POSTGRES_USER || 'postgres',
+		password: process.env.TEST_DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres123'
+	};
+}
 
 // Test database configuration
-const TEST_DB_CONFIG = {
-	host: process.env.TEST_DB_HOST || 'localhost',
-	port: parseInt(process.env.TEST_DB_PORT || '5432'),
-	database: process.env.TEST_DB_NAME || 'sveltekit_hr_test',
-	user: process.env.TEST_DB_USER || 'postgres',
-	password: process.env.TEST_DB_PASSWORD || 'postgres'
-};
+const TEST_DB_CONFIG = resolveTestDbConfig();
 
 // Global pool for test database connections
 let testPool: Pool | null = null;
@@ -108,13 +137,13 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 			ipAddress: string = '192.168.1.100',
 			userAgent: string = 'Test/1.0'
 		): Promise<void> => {
-			await client.query(`SET LOCAL app.current_user_id = $1`, [userId]);
-			await client.query(`SET LOCAL app.current_ip_address = $1`, [ipAddress]);
-			await client.query(`SET LOCAL app.current_user_agent = $1`, [userAgent]);
+			await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
+			await client.query(`SELECT set_config('app.current_ip_address', $1, true)`, [ipAddress]);
+			await client.query(`SELECT set_config('app.current_user_agent', $1, true)`, [userAgent]);
 		},
 
 		setBatchContext: async (batchId: string): Promise<void> => {
-			await client.query(`SET LOCAL app.current_batch_id = $1`, [batchId]);
+			await client.query(`SELECT set_config('app.current_batch_id', $1, true)`, [batchId]);
 		},
 
 		clearContext: async (): Promise<void> => {
@@ -206,13 +235,13 @@ export async function countActivityLogs(
  * Generate test employee data
  */
 export function generateTestEmployee(overrides: Partial<any> = {}) {
-	const id = nanoid();
+	const id = randomUUID();
 	return {
 		id,
 		first_name: 'Test',
 		last_name: 'Employee',
 		email: `test-${id}@example.com`,
-		department_id: nanoid(),
+		department_id: randomUUID(),
 		hire_date: new Date().toISOString(),
 		status: 'ACTIVE',
 		...overrides
@@ -223,7 +252,7 @@ export function generateTestEmployee(overrides: Partial<any> = {}) {
  * Generate test department data
  */
 export function generateTestDepartment(overrides: Partial<any> = {}) {
-	const id = nanoid();
+	const id = randomUUID();
 	return {
 		id,
 		name: `Test Department ${id}`,
@@ -237,7 +266,7 @@ export function generateTestDepartment(overrides: Partial<any> = {}) {
  * Generate test user data
  */
 export function generateTestUser(overrides: Partial<any> = {}) {
-	const id = nanoid();
+	const id = randomUUID();
 	return {
 		id,
 		email: `test-${id}@example.com`,
@@ -259,7 +288,7 @@ export async function cleanupTestRecords(
 	for (const table of tables) {
 		for (const id of ids) {
 			try {
-				await db.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+				await db.query(`DELETE FROM ${table} WHERE id::text = $1`, [id]);
 			} catch (error) {
 				// Ignore errors for records that don't exist
 				console.warn(`Failed to cleanup ${table} record ${id}:`, error);
@@ -269,7 +298,7 @@ export async function cleanupTestRecords(
 
 	// Clean up activity logs for test resources
 	try {
-		await db.query(`DELETE FROM activity_logs WHERE resource_id = ANY($1::text[])`, [ids]);
+		await db.query(`DELETE FROM activity_logs WHERE resource_id::text = ANY($1::text[])`, [ids]);
 	} catch (error) {
 		console.warn('Failed to cleanup activity_logs:', error);
 	}

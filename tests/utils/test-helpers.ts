@@ -8,7 +8,9 @@ import jwt from 'jsonwebtoken';
 // Test configuration constants
 export const TEST_CONFIG = {
 	DATABASE_URL:
-		process.env.TEST_DATABASE_URL || 'postgresql://test:test@localhost:5432/sveltehr_test',
+		process.env.TEST_DATABASE_URL ||
+		process.env.DATABASE_URL ||
+		'postgresql://postgres:postgres123@localhost:5433/hr_system',
 	JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only',
 	API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:4000',
 	GRAPHQL_ENDPOINT: process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql',
