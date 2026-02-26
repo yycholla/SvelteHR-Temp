@@ -5,7 +5,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
 import { logger } from '$lib/utils/logger';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { createEmployeeService } from '$lib/server/services';
 import type { CreateEmployeeData } from '$domain';
 
@@ -18,9 +18,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication and permissions
 	// Only users with full employee write access can create new employees
-	requireAuth(event, {
-		requiredPermissions: ['employees:write:all']
-	});
+	requireAuth(event, { minTier: AccessTier.ALL });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
@@ -114,9 +112,7 @@ export const actions: Actions = {
 
 		// Check authentication and permissions
 		// Only users with full employee write access can create new employees
-		requireAuth(event, {
-			requiredPermissions: ['employees:write:all']
-		});
+		requireAuth(event, { minTier: AccessTier.ALL });
 
 		try {
 			const formData = await request.formData();

@@ -26,7 +26,7 @@ export const load: PageServerLoad = async (event) => {
 			canViewEmployees: userPermissions.canViewEmployees,
 			canManageEmployees: userPermissions.canManageEmployees,
 			isAdmin: userPermissions.isAdmin,
-			isHRManager: locals.roles?.includes('HR Manager') || false
+			isHRManager: (locals.roles || []).some((r: string) => ['hr_manager', 'hr manager'].includes(r.toLowerCase())) || false
 		}
 	};
 };

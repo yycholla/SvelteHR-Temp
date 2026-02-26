@@ -4,18 +4,14 @@ import type { PageServerLoad } from './$types';
 import { logger } from '$lib/utils/logger';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { RBACDataLoader } from '$lib/server/route-loaders';
+import { AccessTier } from '$lib/server/rbac-utils';
 import { QueryParamExtractor, ClientSideFilter } from '$lib/server/route-helpers';
 import { StatisticsCalculator, Aggregators } from '$lib/server/analytics';
 import { gql } from '@urql/svelte';
 
 export const load: PageServerLoad = async (event) => {
 	// Initialize RBAC loader with required permissions
-	const loader = new RBACDataLoader(event, [
-		'goals:read',
-		'goals:read:self',
-		'goals:read:team',
-		'goals:read:all'
-	]);
+	const loader = new RBACDataLoader(event, AccessTier.TEAM);
 
 	return loader.loadWithClient(async (client) => {
 		const { locals, url } = event;
@@ -146,9 +142,6 @@ export const load: PageServerLoad = async (event) => {
 			const paginatedGoals = filter.paginate(page, limit).get();
 
 			// Calculate analytics using Aggregators and StatisticsCalculator
-			// Use FULL filtered list for analytics to be accurate for current view context?
-			// Or full unfiltered list? Previous implementation used 'goals' (fetched result).
-			// Let's use 'transformedGoals' (full fetch) for analytics consistency.
 			const analyticsList = transformedGoals;
 
 			const calc = new StatisticsCalculator(analyticsList);

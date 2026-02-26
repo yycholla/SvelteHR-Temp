@@ -4,21 +4,14 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
 
 	// Check authentication and permissions (managers and above)
-	requireAuth(event, {
-		requiredPermissions: [
-			'management:read',
-			'management:read:self',
-			'management:read:team',
-			'management:read:all'
-		]
-	});
+	requireAuth(event, { minTier: AccessTier.TEAM });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
