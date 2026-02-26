@@ -9,6 +9,7 @@
 
 import type { PageServerLoad } from './$types';
 import { RBACDataLoader } from '$lib/server/route-loaders';
+import { AccessTier } from '$lib/server/rbac-utils';
 import { QueryParamExtractor, ClientSideFilter } from '$lib/server/route-helpers';
 import { StatisticsCalculator, Aggregators } from '$lib/server/analytics';
 import { logger } from '$lib/utils/logger';
@@ -58,12 +59,7 @@ interface PerformanceReview {
 }
 
 export const load: PageServerLoad = async (event) => {
-	const loader = new RBACDataLoader(event, [
-		'performance:read',
-		'performance:read:self',
-		'performance:read:team',
-		'performance:read:all'
-	]);
+	const loader = new RBACDataLoader(event, AccessTier.TEAM);
 
 	return loader.loadWithClient(async (client) => {
 		const { url } = event;
