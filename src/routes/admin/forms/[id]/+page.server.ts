@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// Check admin permissions
-	const isAdmin = user.role === 'Admin';
+	const isAdmin = user.role?.toLowerCase() === 'admin' || (user.roles || []).some((r: string) => ['admin', 'super_admin', 'hr_manager'].includes(r.toLowerCase()));
 	if (!isAdmin) {
 		throw error(403, 'Access denied. Admin permissions required.');
 	}
@@ -30,7 +30,6 @@ export const load: PageServerLoad = async (event) => {
 	const graphqlClient = createGraphQLClient(event);
 
 	try {
-		// Fetch the form with its blocks
 		const result = await graphqlClient.query<{ onboardingForm?: OnboardingForm | null }>(
 			GET_ONBOARDING_FORM,
 			{ id: formId }
@@ -56,7 +55,6 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	// Create a new block
 	createBlock: async (event) => {
 		const { request, locals } = event;
 		const { user } = locals;
@@ -86,9 +84,7 @@ export const actions: Actions = {
 
 		try {
 			const graphqlClient = createGraphQLClient(event);
-			const result = await graphqlClient.mutate<{ createFormBlock: unknown }>(CREATE_FORM_BLOCK, {
-				input
-			});
+			const result = await graphqlClient.mutate<{ createFormBlock: unknown }>(CREATE_FORM_BLOCK, { input });
 			return { success: true, block: result.createFormBlock };
 		} catch (err) {
 			logger.error('Error creating block', err as Error);
@@ -96,7 +92,6 @@ export const actions: Actions = {
 		}
 	},
 
-	// Update a block
 	updateBlock: async (event) => {
 		const { request, locals } = event;
 		const { user } = locals;
@@ -109,24 +104,17 @@ export const actions: Actions = {
 		const input: Record<string, unknown> = {};
 
 		if (formData.has('title')) input.title = formData.get('title');
-		if (formData.has('sequenceOrder'))
-			input.sequenceOrder = parseInt(formData.get('sequenceOrder') as string);
+		if (formData.has('sequenceOrder')) input.sequenceOrder = parseInt(formData.get('sequenceOrder') as string);
 		if (formData.has('textContent')) input.textContent = formData.get('textContent');
 		if (formData.has('documentUrl')) input.documentUrl = formData.get('documentUrl');
 		if (formData.has('formTemplateId')) input.formTemplateId = formData.get('formTemplateId');
-		if (formData.has('fileUploadRequirements'))
-			input.fileUploadRequirements = JSON.parse(formData.get('fileUploadRequirements') as string);
-		if (formData.has('signatureRequirements'))
-			input.signatureRequirements = JSON.parse(formData.get('signatureRequirements') as string);
-		if (formData.has('checkboxItems'))
-			input.checkboxItems = JSON.parse(formData.get('checkboxItems') as string);
+		if (formData.has('fileUploadRequirements')) input.fileUploadRequirements = JSON.parse(formData.get('fileUploadRequirements') as string);
+		if (formData.has('signatureRequirements')) input.signatureRequirements = JSON.parse(formData.get('signatureRequirements') as string);
+		if (formData.has('checkboxItems')) input.checkboxItems = JSON.parse(formData.get('checkboxItems') as string);
 
 		try {
 			const graphqlClient = createGraphQLClient(event);
-			const result = await graphqlClient.mutate<{ updateFormBlock: unknown }>(UPDATE_FORM_BLOCK, {
-				id,
-				input
-			});
+			const result = await graphqlClient.mutate<{ updateFormBlock: unknown }>(UPDATE_FORM_BLOCK, { id, input });
 			return { success: true, block: result.updateFormBlock };
 		} catch (err) {
 			logger.error('Error updating block', err as Error);
@@ -134,7 +122,6 @@ export const actions: Actions = {
 		}
 	},
 
-	// Delete a block
 	deleteBlock: async (event) => {
 		const { request, locals } = event;
 		const { user } = locals;
@@ -156,7 +143,6 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	// Reorder blocks
 	reorderBlocks: async (event) => {
 		const { request, locals } = event;
 		const { user } = locals;
@@ -170,10 +156,7 @@ export const actions: Actions = {
 
 		try {
 			const graphqlClient = createGraphQLClient(event);
-			await graphqlClient.mutate(REORDER_FORM_BLOCKS, {
-				onboardingFormId,
-				blockIds
-			});
+			await graphqlClient.mutate(REORDER_FORM_BLOCKS, { onboardingFormId, blockIds });
 		} catch (err) {
 			logger.error('Error reordering blocks', err as Error);
 			throw error(500, 'Failed to reorder blocks');
@@ -182,7 +165,6 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	// Update form metadata
 	updateForm: async (event) => {
 		const { request, locals } = event;
 		const { user } = locals;
@@ -200,10 +182,7 @@ export const actions: Actions = {
 
 		try {
 			const graphqlClient = createGraphQLClient(event);
-			const result = await graphqlClient.mutate<{ updateOnboardingForm: unknown }>(
-				UPDATE_ONBOARDING_FORM,
-				{ id, input }
-			);
+			const result = await graphqlClient.mutate<{ updateOnboardingForm: unknown }>(UPDATE_ONBOARDING_FORM, { id, input });
 			return { success: true, form: result.updateOnboardingForm };
 		} catch (err) {
 			logger.error('Error updating form', err as Error);
