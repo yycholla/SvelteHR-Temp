@@ -9,18 +9,22 @@
  */
 
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { RBACDataLoader } from '$lib/server/route-loaders';
+import { AccessTier } from '$lib/server/rbac-utils';
 import { canEditReview, canViewReview } from '$lib/utils/rbac';
 import { logger } from '$lib/utils/logger';
 
+// Sub-route names that get caught by [id] - redirect them to main reviews page
+const REVIEWS_SUBROUTES = ['pending', 'history', 'templates', 'new', 'create'];
+
 export const load: PageServerLoad = async (event) => {
-	const loader = new RBACDataLoader(event, [
-		'performance:read',
-		'performance:read:self',
-		'performance:read:team',
-		'performance:read:all'
-	]);
+	// Redirect known sub-route names to avoid treating them as review IDs
+	if (REVIEWS_SUBROUTES.includes(event.params.id)) {
+		redirect(303, '/dashboard/reviews');
+	}
+
+	const loader = new RBACDataLoader(event, AccessTier.SELF);
 
 	return loader.loadWithClient(async () => {
 		const { params, cookies } = event;
