@@ -2,13 +2,11 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { CREATE_TRAINING_MUTATION } from '$lib/graphql/training-operations';
 
 export const load: PageServerLoad = async (event) => {
-	requireAuth(event, {
-		requiredPermissions: ['training:write', 'training:assign']
-	});
+	requireAuth(event, { minTier: AccessTier.ALL });
 	return {
 		meta: {
 			title: 'Create Training Module'
@@ -80,7 +78,7 @@ export const actions: Actions = {
 				metaTitle: metaTitle || null,
 				metaDescription: metaDescription || null,
 				tags: tags.length > 0 ? tags : null,
-				// authorId: authorId || null // TODO: Enable when backend supports User ID resolution or passed from frontend
+				// authorId: authorId || null
 				rrule,
 				recurrenceEndDate
 			}
@@ -113,14 +111,11 @@ export const actions: Actions = {
 				logger.info('Redirecting to training content editor', {
 					path: `/admin/trainings/${newTrainingId}/content`
 				});
-				// Redirect to the content builder for this new training
 				throw redirect(303, `/admin/trainings/${newTrainingId}/content`);
 			} else {
 				logger.error('newTrainingId is falsy! Falling through to default redirect.');
 			}
 		} catch (err) {
-			// Re-throw redirects (these are successful responses, not errors)
-			// SvelteKit redirects have a status property in the 3xx range
 			if (err && typeof err === 'object' && 'status' in err) {
 				throw err;
 			}

@@ -165,8 +165,8 @@ export const actions: Actions = {
 			error(401, 'Unauthorized');
 		}
 
-		const userRoles = locals.roles || [];
-		const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
+		const userRoles = (locals.roles || []).map((r: string) => r.toLowerCase().replace(/[\s-]+/g,'_'));
+		const isAdmin = userRoles.includes('admin') || userRoles.includes('hr_manager') || userRoles.includes('super_admin');
 
 		if (!isAdmin) {
 			error(403, 'Forbidden - Admin or HR Manager role required');
@@ -223,8 +223,8 @@ export const actions: Actions = {
 			error(401, 'Unauthorized');
 		}
 
-		const userRoles = locals.roles || [];
-		const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
+		const userRoles = (locals.roles || []).map((r: string) => r.toLowerCase().replace(/[\s-]+/g,'_'));
+		const isAdmin = userRoles.includes('admin') || userRoles.includes('hr_manager') || userRoles.includes('super_admin');
 
 		if (!isAdmin) {
 			error(403, 'Forbidden - Admin or HR Manager role required');

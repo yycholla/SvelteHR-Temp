@@ -18,7 +18,7 @@ function hasSyncPermission(
 ): boolean {
 	// Admin role or wildcard always has access
 	if (
-		userRoles.includes('Admin') ||
+		userRoles.some((r: string) => r.toLowerCase().replace(/[\s-]+/g,'_') === 'admin') ||
 		userPermissions.includes('*') ||
 		userPermissions.includes('*:*')
 	) {
@@ -36,12 +36,12 @@ function hasSyncPermission(
 	}
 
 	// HR Manager role gets conflict permissions
-	if (userRoles.includes('HR Manager')) {
+	if (userRoles.some((r: string) => r.toLowerCase().replace(/[\s-]+/g,'_') === 'hr_manager')) {
 		return true;
 	}
 
 	// Manager role gets limited conflict permissions
-	if (userRoles.includes('Manager')) {
+	if (userRoles.some((r: string) => ['manager','hr_manager'].includes(r.toLowerCase().replace(/[\s-]+/g,'_')))) {
 		const managerPermissions = [
 			SYNC_PERMISSIONS.VIEW_CONFLICTS,
 			SYNC_PERMISSIONS.RESOLVE_CONFLICTS

@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends }) => {
 
 		if (statusResult.error) {
 			console.error('Failed to fetch health status:', statusResult.error);
-			throw error(500, 'Failed to load sync health status');
+			// Don't throw - return defaults below
 		}
 
 		// Fetch metrics for last 24 hours
@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends }) => {
 
 		if (metricsResult.error) {
 			console.error('Failed to fetch health metrics:', metricsResult.error);
-			throw error(500, 'Failed to load sync health metrics');
+			// Don't throw - return defaults below
 		}
 
 		// Fetch active (unresolved) alerts only
@@ -52,17 +52,22 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends }) => {
 
 		if (alertsResult.error) {
 			console.error('Failed to fetch health alerts:', alertsResult.error);
-			throw error(500, 'Failed to load sync health alerts');
+			// Don't throw - return defaults below
 		}
 
 		return {
-			healthStatus: statusResult.data?.syncHealth.syncHealthStatus ?? null,
-			metrics: metricsResult.data?.syncHealth.syncHealthMetrics ?? [],
-			alerts: alertsResult.data?.syncHealth.syncHealthAlerts ?? []
+			healthStatus: statusResult.data?.syncHealth?.syncHealthStatus ?? null,
+			metrics: metricsResult.data?.syncHealth?.syncHealthMetrics ?? [],
+			alerts: alertsResult.data?.syncHealth?.syncHealthAlerts ?? []
 		};
 	} catch (err) {
 		console.error('Health dashboard load error:', err);
-		throw error(500, 'Failed to load sync health dashboard');
+		// Return safe defaults instead of crashing
+		return {
+			healthStatus: null,
+			metrics: [],
+			alerts: []
+		};
 	}
 };
 
@@ -89,15 +94,15 @@ export const actions: Actions = {
 				return fail(500, { error: 'Failed to resolve alert' });
 			}
 
-			if (!result.data?.syncHealth.resolveHealthAlert.success) {
+			if (!result.data?.syncHealth?.resolveHealthAlert?.success) {
 				return fail(500, {
-					error: result.data?.syncHealth.resolveHealthAlert.message ?? 'Failed to resolve alert'
+					error: result.data?.syncHealth?.resolveHealthAlert?.message ?? 'Failed to resolve alert'
 				});
 			}
 
 			return {
 				success: true,
-				message: result.data.syncHealth.resolveHealthAlert.message
+				message: result.data?.syncHealth?.resolveHealthAlert?.message ?? 'Alert resolved'
 			};
 		} catch (err) {
 			console.error('Resolve alert error:', err);
