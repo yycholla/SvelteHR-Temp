@@ -4,7 +4,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
 import { RBACDataLoader } from '$lib/server/route-loaders';
 import { QueryParamExtractor, ClientSideFilter } from '$lib/server/route-helpers';
@@ -244,14 +244,7 @@ export const actions: Actions = {
 		const { request } = event;
 
 		// Check authentication and permissions
-		requireAuth(event, {
-			requiredPermissions: [
-				'tasks:write',
-				'tasks:write:self',
-				'tasks:write:team',
-				'tasks:write:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.TEAM });
 
 		try {
 			const formData = await request.formData();
