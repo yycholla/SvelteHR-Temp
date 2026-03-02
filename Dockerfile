@@ -12,7 +12,7 @@
 # =============================================================================
 # Stage 1: Dependencies - Production Dependencies
 # =============================================================================
-FROM node:22-alpine AS deps-prod
+FROM node:25-alpine AS deps-prod
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # =============================================================================
 # Stage 2: Dependencies - All Dependencies (for build)
 # =============================================================================
-FROM node:22-alpine AS deps-all
+FROM node:25-alpine AS deps-all
 
 WORKDIR /app
 
@@ -40,7 +40,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # =============================================================================
 # Stage 3: Builder - Build the application
 # =============================================================================
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -78,7 +78,7 @@ RUN test -d /app/build || \
 # =============================================================================
 # Stage 4: Production Runtime
 # =============================================================================
-FROM node:22-alpine AS production
+FROM node:25-alpine AS production
 
 # Install curl for health checks
 RUN apk add --no-cache curl
