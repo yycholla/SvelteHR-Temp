@@ -12,7 +12,7 @@
 # =============================================================================
 # Stage 0: Chef Installer - Install cargo-chef ONCE and reuse
 # =============================================================================
-FROM rust:1.91-alpine AS chef-installer
+FROM rust:1.93-alpine AS chef-installer
 
 # Install system dependencies
 RUN apk add --no-cache musl-dev openssl-dev pkgconfig
@@ -23,7 +23,7 @@ RUN cargo install cargo-chef --version 0.1.73
 # =============================================================================
 # Stage 1: Chef - Prepare recipe for dependency caching
 # =============================================================================
-FROM rust:1.91-alpine AS chef
+FROM rust:1.93-alpine AS chef
 
 # Install system dependencies
 RUN apk add --no-cache musl-dev openssl-dev pkgconfig
@@ -47,7 +47,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 # =============================================================================
 # Stage 3: Builder - Build dependencies only (shared by all targets)
 # =============================================================================
-FROM rust:1.91-alpine AS builder
+FROM rust:1.93-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -125,7 +125,7 @@ RUN test -f /app/seed-data-bin || \
 # =============================================================================
 # Stage 5a: Server Runtime (TARGET: server) - Includes all binaries
 # =============================================================================
-FROM alpine:3.22 AS server
+FROM alpine:3.23 AS server
 
 # Install runtime dependencies (including postgresql-client for migrations)
 RUN apk add --no-cache \
@@ -177,7 +177,7 @@ CMD ["./hr-graphql-server"]
 # =============================================================================
 # Stage 5b: Migration Runtime (TARGET: migration)
 # =============================================================================
-FROM alpine:3.22 AS migration
+FROM alpine:3.23 AS migration
 
 # Install runtime dependencies
 RUN apk add --no-cache \
@@ -217,7 +217,7 @@ CMD ["./migration", "up"]
 # =============================================================================
 # Stage 5c: Seed Runtime (TARGET: seed)
 # =============================================================================
-FROM alpine:3.22 AS seed
+FROM alpine:3.23 AS seed
 
 # Install runtime dependencies
 RUN apk add --no-cache \
