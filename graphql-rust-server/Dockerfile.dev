@@ -6,7 +6,7 @@
 # - cargo-chef for optimal Docker layer caching
 
 # Stage 1: Base chef image with cargo-chef installed
-FROM rust:1.91-slim AS chef
+FROM rust:1.93-slim AS chef
 
 # Install cargo-chef
 RUN cargo install cargo-chef
