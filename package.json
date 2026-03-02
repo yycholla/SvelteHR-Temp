@@ -210,7 +210,7 @@
 		"@types/node-cron": "^3.0.11",
 		"@types/pdfkit": "^0.17.3",
 		"@urql/exchange-auth": "^3.0.0",
-		"@urql/exchange-graphcache": "^8.1.0",
+		"@urql/exchange-graphcache": "^9.0.0",
 		"@urql/exchange-retry": "^2.0.0",
 		"@urql/svelte": "^5.0.0",
 		"@vincjo/datatables": "^2.6.4",
