@@ -23,9 +23,9 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Convert repository name to lowercase
         id: repo
@@ -72,7 +72,7 @@ jobs:
           }
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ env.REGISTRY_USER }}
@@ -80,7 +80,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             ${{ env.REGISTRY }}/${{ steps.repo.outputs.lowercase }}/backend-server
@@ -132,7 +132,7 @@ jobs:
           EOF
 
       - name: Upload build metrics
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: build-metrics-backend-${{ matrix.target }}
           path: build-metrics/
@@ -152,7 +152,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Convert repository name to lowercase
         id: repo
@@ -190,7 +190,7 @@ jobs:
           }
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ env.REGISTRY_USER }}
@@ -198,7 +198,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             ${{ env.REGISTRY }}/${{ steps.repo.outputs.lowercase }}/frontend
@@ -252,7 +252,7 @@ jobs:
           EOF
 
       - name: Upload build metrics
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: build-metrics-frontend
           path: build-metrics/
@@ -266,7 +266,7 @@ jobs:
     runs-on: ${{ vars.USE_BLACKSMITH == 'true' && 'blacksmith-4vcpu-ubuntu-2404' || 'ubuntu-latest' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Helm
         uses: azure/setup-helm@v4
@@ -302,7 +302,7 @@ jobs:
           echo "✓ Prod template validation passed"
 
       - name: Upload Helm templates
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: helm-templates
           path: /tmp/helm-*.yaml
